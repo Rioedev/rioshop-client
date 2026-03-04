@@ -1,13 +1,14 @@
 import { Routes, Route } from "react-router-dom";
 import AdminLayout from "../components/layouts/AdminLayout";
 import ClientLayout from "../components/layouts/ClientLayout";
-
-// import Dashboard from "../pages/admin/Dashboard";
-// import ProductManager from "../pages/admin/ProductManager";
-
 import Home from "../pages/client/Home";
 import Login from "../pages/auth/Login";
 import Register from "../pages/auth/Register";
+import Dashboard from "../pages/admin/dashboard";
+import ListCategory from "../pages/admin/category/ListCategory";
+import AddCategory from "../pages/admin/category/AddCategory";
+import UpdateCategory from "../pages/admin/category/UpdateCategory";
+import DetailCategory from "../pages/admin/category/DetailCategory";
 
 const AppRoutes = () => {
   return (
@@ -21,8 +22,11 @@ const AppRoutes = () => {
 
       {/* Admin */}
       <Route path="/admin" element={<AdminLayout />}>
-        {/* <Route index element={<Dashboard />} />
-        <Route path="products" element={<ProductManager />} /> */}
+        <Route index element={<Dashboard />} />
+        <Route path="/admin/categories" element={<ListCategory />} />
+        <Route path="/admin/category/detail/:id" element={<DetailCategory />} />
+        <Route path="/admin/categories/create" element={<AddCategory />} />
+        <Route path="/admin/categories/edit/:id" element={<UpdateCategory />} />  
       </Route>
     </Routes>
   );
