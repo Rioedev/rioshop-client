@@ -21,12 +21,14 @@ export const getCategories = async (
   page = 1,
   limit = 10,
   status?: "active" | "inactive",
+  search?: string,
 ): Promise<IPaginatedCategory> => {
   const { data } = await axiosInstance.get("/categories", {
     params: {
       page,
       limit,
       ...(status && { status }),
+      ...(search && { search }),
     },
   });
 

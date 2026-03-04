@@ -32,7 +32,7 @@ const UpdateCategory = () => {
             return acc;
           }, []);
         setCategories(flatten(tree));
-      } catch {}
+      } catch { /* empty */ }
     };
 
     loadData();

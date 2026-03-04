@@ -10,6 +10,7 @@ import {
   Pagination,
   Input,
   Empty,
+  Select,
 } from "antd";
 import type { ColumnsType } from "antd/es/table";
 import { Link } from "react-router-dom";
@@ -23,6 +24,7 @@ import {
   EditOutlined,
   DeleteOutlined,
   EyeOutlined,
+  ClearOutlined,
 } from "@ant-design/icons";
 
 const PAGE_SIZE = 10;
@@ -32,11 +34,22 @@ const ListCategory = () => {
   const [page, setPage] = useState(1);
   const [totalDocs, setTotalDocs] = useState(0);
   const [loading, setLoading] = useState(false);
+  const [searchName, setSearchName] = useState("");
+  const [filterStatus, setFilterStatus] = useState<string | undefined>();
 
-  const fetchCategories = async (pageNumber = 1) => {
+  const fetchCategories = async (
+    pageNumber = 1,
+    name = "",
+    status?: string,
+  ) => {
     try {
       setLoading(true);
-      const res = await getCategories(pageNumber, PAGE_SIZE);
+      const res = await getCategories(
+        pageNumber,
+        PAGE_SIZE,
+        status as "active" | "inactive" | undefined,
+        name,
+      );
 
       setData(res.docs);
       setTotalDocs(res.totalDocs);
@@ -50,7 +63,7 @@ const ListCategory = () => {
   };
 
   useEffect(() => {
-    fetchCategories(1);
+    fetchCategories(1, searchName, filterStatus);
   }, []);
 
   const handleDelete = async (id: string) => {
@@ -58,11 +71,10 @@ const ListCategory = () => {
       await deleteCategory(id);
       message.success("Xoá thành công");
 
-      // Nếu xoá xong mà page hiện tại rỗng thì lùi lại 1 trang
       if (data.length === 1 && page > 1) {
-        fetchCategories(page - 1);
+        fetchCategories(page - 1, searchName, filterStatus);
       } else {
-        fetchCategories(page);
+        fetchCategories(page, searchName, filterStatus);
       }
       // eslint-disable-next-line @typescript-eslint/no-unused-vars
     } catch (error) {
@@ -70,7 +82,37 @@ const ListCategory = () => {
     }
   };
 
+  const handleSearch = (value: string) => {
+    setSearchName(value);
+    setPage(1);
+    fetchCategories(1, value, filterStatus);
+  };
+
+  const handleStatusFilter = (value: string | undefined) => {
+    setFilterStatus(value);
+    setPage(1);
+    fetchCategories(1, searchName, value);
+  };
+
+  const handleClearFilters = () => {
+    setSearchName("");
+    setFilterStatus(undefined);
+    setPage(1);
+    fetchCategories(1, "", undefined);
+  };
+
   const columns: ColumnsType<ICategory> = [
+    {
+      title: "ID",
+      dataIndex: "_id",
+      key: "_id",
+      width: 120,
+      render: (_id) => (
+        <span className="text-gray-600 text-xs font-mono bg-purple-50 px-2 py-1 rounded border border-purple-200">
+          {_id?.substring(0, 8)}...
+        </span>
+      ),
+    },
     {
       title: "Ảnh",
       dataIndex: "image",
@@ -85,7 +127,7 @@ const ListCategory = () => {
             className="rounded-lg object-cover shadow-sm"
           />
         ) : (
-          <div className="w-16 h-16 bg-gray-200 rounded-lg flex items-center justify-center text-gray-400">
+          <div className="w-16 h-16 bg-gray-200 rounded-lg flex items-center justify-center text-gray-400 text-sm">
             Không ảnh
           </div>
         ),
@@ -94,6 +136,7 @@ const ListCategory = () => {
       title: "Tên danh mục",
       dataIndex: "name",
       key: "name",
+      width: 200,
       render: (name) => (
         <span className="font-semibold text-gray-900">{name}</span>
       ),
@@ -102,8 +145,9 @@ const ListCategory = () => {
       title: "Slug",
       dataIndex: "slug",
       key: "slug",
+      width: 120,
       render: (slug) => (
-        <span className="text-gray-500 text-sm font-mono bg-gray-100 px-2 py-1 rounded">
+        <span className="text-gray-600 text-sm font-mono bg-blue-50 px-3 py-1 rounded-md border border-blue-200">
           {slug}
         </span>
       ),
@@ -113,8 +157,9 @@ const ListCategory = () => {
       dataIndex: "sortOrder",
       key: "sortOrder",
       align: "center",
+      width: 80,
       render: (sortOrder) => (
-        <span className="inline-flex items-center justify-center w-8 h-8 bg-blue-100 text-blue-600 rounded-full font-semibold text-sm\">
+        <span className="inline-flex items-center justify-center w-8 h-8 bg-blue-100 text-blue-600 rounded-full font-semibold text-sm">
           {sortOrder}
         </span>
       ),
@@ -123,13 +168,18 @@ const ListCategory = () => {
       title: "Trạng thái",
       dataIndex: "status",
       key: "status",
+      width: 140,
+      filters: [
+        { text: "Hoạt động", value: "active" },
+        { text: "Không hoạt động", value: "inactive" },
+      ],
       render: (status) =>
         status === "active" ? (
           <Tag icon={<span>✓</span>} color="success" className="!border-0">
             Hoạt động
           </Tag>
         ) : (
-          <Tag color="error" className="!border-0">
+          <Tag icon={<span>✕</span>} color="error" className="!border-0">
             Không hoạt động
           </Tag>
         ),
@@ -184,6 +234,8 @@ const ListCategory = () => {
     },
   ];
 
+  const hasActiveFilters = searchName || filterStatus;
+
   return (
     <div>
       {/* Header */}
@@ -199,23 +251,87 @@ const ListCategory = () => {
       {/* Card */}
       <div className="bg-white rounded-2xl shadow-md border border-gray-200 p-8">
         {/* Toolbar */}
-        <div className="flex justify-between items-center mb-8 flex-wrap gap-4">
-          <Input.Search
-            placeholder="Tìm kiếm danh mục..."
-            allowClear
-            className="!w-80"
-            size="large"
-          />
-          <Link to="create">
-            <Button
-              type="primary"
-              size="large"
-              icon={<PlusOutlined />}
-              className="!bg-indigo-600 hover:!bg-indigo-700 !border-none !font-semibold"
-            >
-              Thêm danh mục
-            </Button>
-          </Link>
+        <div className="mb-8">
+          <div className="flex flex-wrap items-center justify-between mb-4 gap-4">
+            {/* search & filters */}
+            <div className="flex flex-wrap gap-4">
+              <Input.Search
+                placeholder="Tìm kiếm theo tên hoặc mã..."
+                allowClear
+                size="large"
+                value={searchName}
+                onChange={(e) => handleSearch(e.target.value)}
+                className="!rounded-lg w-full sm:!w-auto"
+              />
+
+              <Select
+                placeholder="Trạng thái"
+                allowClear
+                size="large"
+                value={filterStatus}
+                onChange={handleStatusFilter}
+                options={[
+                  {
+                    label: "Hoạt động",
+                    value: "active",
+                  },
+                  {
+                    label: "Không hoạt động",
+                    value: "inactive",
+                  },
+                ]}
+                className="!w-full sm:!w-auto !rounded-lg"
+              />
+
+              {hasActiveFilters && (
+                <Button
+                  icon={<ClearOutlined />}
+                  size="large"
+                  onClick={handleClearFilters}
+                  className="!w-full sm:!w-auto !rounded-lg"
+                >
+                  Xóa bộ lọc
+                </Button>
+              )}
+            </div>
+
+            {/* add button */}
+            <Link to="create" className="w-full sm:w-auto">
+              <Button
+                type="primary"
+                size="large"
+                icon={<PlusOutlined />}
+                className="!bg-indigo-600 hover:!bg-indigo-700 !border-none !font-semibold !w-full sm:!w-auto !rounded-lg"
+              >
+                Thêm danh mục
+              </Button>
+            </Link>
+          </div>
+
+          {/* Active filters display */}
+          {hasActiveFilters && (
+            <div className="flex flex-wrap gap-2 items-center">
+              {searchName && (
+                <Tag
+                  closable
+                  onClose={() => handleSearch("")}
+                  className="!text-xs"
+                >
+                  Tìm kiếm: "{searchName}"
+                </Tag>
+              )}
+              {filterStatus && (
+                <Tag
+                  closable
+                  onClose={() => handleStatusFilter(undefined)}
+                  className="!text-xs"
+                >
+                  Trạng thái:{" "}
+                  {filterStatus === "active" ? "Hoạt động" : "Không hoạt động"}
+                </Tag>
+              )}
+            </div>
+          )}
         </div>
 
         {/* Table */}
@@ -229,7 +345,11 @@ const ListCategory = () => {
           locale={{
             emptyText: (
               <Empty
-                description="Không có danh mục"
+                description={
+                  hasActiveFilters
+                    ? "Không có danh mục phù hợp"
+                    : "Không có danh mục"
+                }
                 style={{ paddingTop: 40, paddingBottom: 40 }}
               />
             ),
@@ -243,7 +363,9 @@ const ListCategory = () => {
             total={totalDocs}
             pageSize={PAGE_SIZE}
             showSizeChanger={false}
-            onChange={(page) => fetchCategories(page)}
+            onChange={(pageNum) =>
+              fetchCategories(pageNum, searchName, filterStatus)
+            }
             className="!text-gray-700"
           />
         </div>
