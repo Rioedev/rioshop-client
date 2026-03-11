@@ -139,7 +139,12 @@ export function AdminCategoriesPage() {
     const timer = setTimeout(() => {
       const searchKeyword = searchText.trim();
       setKeyword(searchKeyword);
-      void loadCategories({ page: 1, pageSize, keyword: searchKeyword, statusFilter });
+      void loadCategories({
+        page: 1,
+        pageSize,
+        keyword: searchKeyword,
+        statusFilter,
+      });
     }, 350);
 
     return () => clearTimeout(timer);
@@ -149,6 +154,7 @@ export function AdminCategoriesPage() {
     () => buildParentCategoryOptions(treeData),
     [treeData],
   );
+
   const filteredParentOptions = parentOptions.filter(
     (option) => option.value !== editingCategory?._id,
   );
@@ -435,8 +441,7 @@ export function AdminCategoriesPage() {
             {editingCategory ? "Chỉnh sửa danh mục" : "Tạo danh mục mới"}
           </Title>
           <Text className="!text-slate-200">
-            Điền đầy đủ thông tin, tải ảnh đại diện và thiết lập trạng thái hiển
-            thị.
+            Điền đầy đủ thông tin, tải ảnh đại diện và thiết lập trạng thái hiển thị.
           </Text>
         </div>
 
@@ -479,42 +484,51 @@ export function AdminCategoriesPage() {
           </Form.Item>
 
           <Form.Item label="Ảnh danh mục">
-            <Upload.Dragger
-              accept="image/*"
-              maxCount={1}
-              showUploadList={false}
-              customRequest={uploadImage}
-              beforeUpload={beforeUpload}
-              className="!rounded-xl"
-            >
-              <p className="ant-upload-drag-icon">
-                <InboxOutlined />
-              </p>
-              <p className="ant-upload-text">
-                Kéo thả ảnh vào đây hoặc bấm để tải ảnh lên
-              </p>
-              <p className="ant-upload-hint">
-                Hỗ trợ JPG/PNG/WebP, dung lượng tối đa 5MB
-              </p>
-            </Upload.Dragger>
-            <Form.Item name="image" hidden>
-              <Input />
-            </Form.Item>
-            {imageUploading ? (
-              <Text type="secondary" className="mt-2 block">
-                Đang tải ảnh lên...
-              </Text>
-            ) : null}
-            {uploadedImageUrl ? (
-              <div className="mt-3">
-                <Image
-                  src={uploadedImageUrl}
-                  width={140}
-                  height={140}
-                  className="rounded-xl border border-slate-200 object-cover"
-                />
+            <div className="grid gap-4 md:grid-cols-[1fr_180px] md:items-start">
+              <div>
+                <Upload.Dragger
+                  accept="image/*"
+                  maxCount={1}
+                  showUploadList={false}
+                  customRequest={uploadImage}
+                  beforeUpload={beforeUpload}
+                  className="!rounded-xl"
+                >
+                  <p className="ant-upload-drag-icon">
+                    <InboxOutlined />
+                  </p>
+                  <p className="ant-upload-text">
+                    Kéo thả ảnh vào đây hoặc bấm để tải ảnh lên
+                  </p>
+                  <p className="ant-upload-hint">
+                    Hỗ trợ JPG/PNG/WebP, dung lượng tối đa 5MB
+                  </p>
+                </Upload.Dragger>
+                <Form.Item name="image" hidden>
+                  <Input />
+                </Form.Item>
+                {imageUploading ? (
+                  <Text type="secondary" className="mt-2 block">
+                    Đang tải ảnh lên...
+                  </Text>
+                ) : null}
               </div>
-            ) : null}
+
+              <div className="rounded-xl border border-slate-200 p-2">
+                {uploadedImageUrl ? (
+                  <Image
+                    src={uploadedImageUrl}
+                    width={140}
+                    height={140}
+                    className="rounded-lg object-cover"
+                  />
+                ) : (
+                  <div className="flex h-[140px] w-[140px] items-center justify-center rounded-lg bg-slate-100 text-xs text-slate-400">
+                    Chưa có ảnh
+                  </div>
+                )}
+              </div>
+            </div>
           </Form.Item>
 
           {editingCategory ? (
@@ -523,7 +537,7 @@ export function AdminCategoriesPage() {
               name="isActive"
               valuePropName="checked"
             >
-              <Switch checkedChildren="Active" unCheckedChildren="Inactive  " />
+              <Switch checkedChildren="Active" unCheckedChildren="Inactive" />
             </Form.Item>
           ) : null}
         </Form>
@@ -531,4 +545,3 @@ export function AdminCategoriesPage() {
     </div>
   );
 }
-
