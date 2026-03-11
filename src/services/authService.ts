@@ -1,10 +1,15 @@
 import { apiClient } from "./apiClient";
 
+export type AccountType = "user" | "admin";
+export type AdminRole = "superadmin" | "manager" | "warehouse" | "cs" | "marketer";
+
 export type AuthUser = {
   id: string;
   email: string;
   fullName: string;
-  phone: string;
+  phone?: string;
+  role: string;
+  accountType: AccountType;
 };
 
 export type LoginPayload = {
@@ -34,7 +39,42 @@ type ApiResponse<T> = {
 export const authService = {
   async login(payload: LoginPayload): Promise<AuthResponse> {
     const response = await apiClient.post<ApiResponse<AuthResponse>>("/api/auth/login", payload);
-    return response.data.data;
+    return {
+      user: {
+        ...response.data.data.user,
+        role: "user",
+        accountType: "user",
+      },
+      token: response.data.data.token,
+    };
+  },
+
+  async loginAdmin(payload: LoginPayload): Promise<AuthResponse> {
+    type AdminApiAuthResponse = {
+      admin: {
+        id: string;
+        email: string;
+        fullName: string;
+        role: AdminRole;
+      };
+      token: string;
+    };
+
+    const response = await apiClient.post<ApiResponse<AdminApiAuthResponse>>(
+      "/api/admins/login",
+      payload,
+    );
+
+    return {
+      user: {
+        id: response.data.data.admin.id,
+        email: response.data.data.admin.email,
+        fullName: response.data.data.admin.fullName,
+        role: response.data.data.admin.role,
+        accountType: "admin",
+      },
+      token: response.data.data.token,
+    };
   },
 
   async register(payload: RegisterPayload): Promise<AuthResponse> {
@@ -42,16 +82,60 @@ export const authService = {
       "/api/auth/register",
       payload,
     );
-    return response.data.data;
+    return {
+      user: {
+        ...response.data.data.user,
+        role: "user",
+        accountType: "user",
+      },
+      token: response.data.data.token,
+    };
   },
 
-  async getCurrentUser(): Promise<AuthUser> {
-    const response = await apiClient.get<ApiResponse<AuthUser>>("/api/auth/me");
-    return response.data.data;
+  async getCurrentUser(accountType: AccountType): Promise<AuthUser> {
+    if (accountType === "admin") {
+      type AdminMeResponse = {
+        _id: string;
+        email: string;
+        fullName: string;
+        role: AdminRole;
+      };
+      const response = await apiClient.get<ApiResponse<AdminMeResponse>>("/api/admins/me");
+
+      return {
+        id: response.data.data._id,
+        email: response.data.data.email,
+        fullName: response.data.data.fullName,
+        role: response.data.data.role,
+        accountType: "admin",
+      };
+    }
+
+    type UserMeResponse = {
+      _id?: string;
+      id?: string;
+      email: string;
+      fullName: string;
+      phone?: string;
+    };
+    const response = await apiClient.get<ApiResponse<UserMeResponse>>("/api/auth/me");
+
+    return {
+      id: response.data.data.id ?? response.data.data._id ?? "",
+      email: response.data.data.email,
+      fullName: response.data.data.fullName,
+      phone: response.data.data.phone,
+      role: "user",
+      accountType: "user",
+    };
   },
 
-  async logout(): Promise<void> {
+  async logout(accountType: AccountType): Promise<void> {
+    if (accountType === "admin") {
+      await apiClient.post("/api/admins/logout");
+      return;
+    }
+
     await apiClient.post("/api/auth/logout");
   },
 };
-

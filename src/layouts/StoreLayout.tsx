@@ -8,6 +8,7 @@ const { Text, Title } = Typography;
 export function StoreLayout() {
   const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
   const user = useAuthStore((state) => state.user);
+  const accountType = useAuthStore((state) => state.accountType);
   const logout = useAuthStore((state) => state.logout);
 
   return (
@@ -22,9 +23,11 @@ export function StoreLayout() {
             {isAuthenticated ? (
               <>
                 <Text>{user?.fullName}</Text>
-                <Link to="/admin/dashboard">
-                  <Button type="primary">Admin</Button>
-                </Link>
+                {accountType === "admin" ? (
+                  <Link to="/admin/dashboard">
+                    <Button type="primary">Admin</Button>
+                  </Link>
+                ) : null}
                 <Button onClick={() => void logout()}>Logout</Button>
               </>
             ) : (
@@ -34,6 +37,9 @@ export function StoreLayout() {
                 </Link>
                 <Link to="/register">
                   <Button type="primary">Register</Button>
+                </Link>
+                <Link to="/admin/login">
+                  <Button>Admin Login</Button>
                 </Link>
               </>
             )}

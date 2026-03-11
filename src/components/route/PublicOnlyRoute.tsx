@@ -6,6 +6,7 @@ export function PublicOnlyRoute() {
   const [searchParams] = useSearchParams();
   const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
   const isHydrated = useAuthStore((state) => state.isHydrated);
+  const accountType = useAuthStore((state) => state.accountType);
 
   if (!isHydrated) {
     return (
@@ -16,9 +17,9 @@ export function PublicOnlyRoute() {
   }
 
   if (isAuthenticated) {
-    return <Navigate to={searchParams.get("redirect") ?? "/admin/dashboard"} replace />;
+    const fallbackPath = accountType === "admin" ? "/admin/dashboard" : "/";
+    return <Navigate to={searchParams.get("redirect") ?? fallbackPath} replace />;
   }
 
   return <Outlet />;
 }
-

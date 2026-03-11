@@ -1,9 +1,9 @@
 import { Spin } from "antd";
-import { Navigate, Outlet, useLocation } from "react-router-dom";
+import { Navigate, Outlet, useSearchParams } from "react-router-dom";
 import { useAuthStore } from "../../stores/authStore";
 
-export function RequireAuth() {
-  const location = useLocation();
+export function AdminPublicOnlyRoute() {
+  const [searchParams] = useSearchParams();
   const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
   const isHydrated = useAuthStore((state) => state.isHydrated);
   const accountType = useAuthStore((state) => state.accountType);
@@ -16,14 +16,14 @@ export function RequireAuth() {
     );
   }
 
-  if (!isAuthenticated) {
-    const redirectPath = `${location.pathname}${location.search}`;
-    return <Navigate to={`/admin/login?redirect=${encodeURIComponent(redirectPath)}`} replace />;
+  if (isAuthenticated && accountType === "admin") {
+    return <Navigate to={searchParams.get("redirect") ?? "/admin/dashboard"} replace />;
   }
 
-  if (accountType !== "admin") {
+  if (isAuthenticated && accountType === "user") {
     return <Navigate to="/" replace />;
   }
 
   return <Outlet />;
 }
+

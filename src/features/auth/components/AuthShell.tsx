@@ -8,10 +8,17 @@ type AuthShellProps = {
   title: string;
   subtitle: string;
   mode: "login" | "register";
+  showAuthTabs?: boolean;
   children: ReactNode;
 };
 
-export function AuthShell({ title, subtitle, mode, children }: AuthShellProps) {
+export function AuthShell({
+  title,
+  subtitle,
+  mode,
+  showAuthTabs = true,
+  children,
+}: AuthShellProps) {
   const isLogin = mode === "login";
 
   return (
@@ -41,30 +48,32 @@ export function AuthShell({ title, subtitle, mode, children }: AuthShellProps) {
             <Paragraph className="!mb-0 !text-slate-500">{subtitle}</Paragraph>
           </div>
 
-          <div className="mb-5 rounded-xl bg-slate-100 p-1">
-            <div className="grid grid-cols-2 gap-1">
-              <Link
-                to="/login"
-                className={`rounded-lg px-4 py-2 text-center text-sm font-medium transition ${
-                  isLogin
-                    ? "bg-white text-slate-900 shadow-sm"
-                    : "text-slate-500 hover:text-slate-700"
-                }`}
-              >
-                Đăng nhập
-              </Link>
-              <Link
-                to="/register"
-                className={`rounded-lg px-4 py-2 text-center text-sm font-medium transition ${
-                  !isLogin
-                    ? "bg-white text-slate-900 shadow-sm"
-                    : "text-slate-500 hover:text-slate-700"
-                }`}
-              >
-                Đăng ký
-              </Link>
+          {showAuthTabs ? (
+            <div className="mb-5 rounded-xl bg-slate-100 p-1">
+              <div className="grid grid-cols-2 gap-1">
+                <Link
+                  to="/login"
+                  className={`rounded-lg px-4 py-2 text-center text-sm font-medium transition ${
+                    isLogin
+                      ? "bg-white text-slate-900 shadow-sm"
+                      : "text-slate-500 hover:text-slate-700"
+                  }`}
+                >
+                  Đăng nhập
+                </Link>
+                <Link
+                  to="/register"
+                  className={`rounded-lg px-4 py-2 text-center text-sm font-medium transition ${
+                    !isLogin
+                      ? "bg-white text-slate-900 shadow-sm"
+                      : "text-slate-500 hover:text-slate-700"
+                  }`}
+                >
+                  Đăng ký
+                </Link>
+              </div>
             </div>
-          </div>
+          ) : null}
 
           {children}
         </section>
@@ -72,4 +81,3 @@ export function AuthShell({ title, subtitle, mode, children }: AuthShellProps) {
     </div>
   );
 }
-
