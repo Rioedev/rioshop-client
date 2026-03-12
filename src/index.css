@@ -73,3 +73,23 @@ body {
     transform: translate3d(0, 0, 0);
   }
 }
+
+.product-form-smooth .ant-input,
+.product-form-smooth .ant-input-number,
+.product-form-smooth .ant-select-selector {
+  transition: border-color 180ms ease, box-shadow 180ms ease;
+}
+
+.product-form-smooth .ant-card {
+  border-radius: 12px;
+}
+
+.compact-uploader .ant-upload {
+  padding: 14px 12px;
+  min-height: 108px;
+}
+
+.compact-uploader--sm .ant-upload {
+  padding: 10px;
+  min-height: 84px;
+}

@@ -283,7 +283,7 @@ export function AdminCategoriesPage() {
       width: 190,
       render: (id: string) => (
         <Tooltip title={id}>
-          <Text className="inline-block max-w-[150px]" ellipsis>
+          <Text className="inline-block max-w-37.5" ellipsis>
             {id}
           </Text>
         </Tooltip>
@@ -381,7 +381,7 @@ export function AdminCategoriesPage() {
 
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <Title level={3} className="!mb-1 !mt-0">
+          <Title level={3} className="mb-1! mt-0!">
             Quản lý danh mục
           </Title>
         </div>
@@ -436,11 +436,11 @@ export function AdminCategoriesPage() {
         width={760}
         destroyOnHidden
       >
-        <div className="mb-5 rounded-2xl bg-gradient-to-r from-slate-900 to-sky-800 p-4 text-white">
-          <Title level={4} className="!mb-1 !mt-0 !text-white">
+        <div className="mb-5 rounded-2xl bg-linear-to-r from-slate-900 to-sky-800 p-4 text-white">
+          <Title level={4} className="mb-1! mt-0! text-white!">
             {editingCategory ? "Chỉnh sửa danh mục" : "Tạo danh mục mới"}
           </Title>
-          <Text className="!text-slate-200">
+          <Text className="text-slate-200!">
             Điền đầy đủ thông tin, tải ảnh đại diện và thiết lập trạng thái hiển thị.
           </Text>
         </div>
@@ -468,7 +468,7 @@ export function AdminCategoriesPage() {
             </Form.Item>
 
             <Form.Item label="Vị trí hiển thị" name="position">
-              <InputNumber min={0} className="!w-full" />
+              <InputNumber min={0} className="w-full!" />
             </Form.Item>
 
             <Form.Item label="Icon" name="icon">
@@ -492,7 +492,7 @@ export function AdminCategoriesPage() {
                   showUploadList={false}
                   customRequest={uploadImage}
                   beforeUpload={beforeUpload}
-                  className="!rounded-xl"
+                  className="rounded-xl!"
                 >
                   <p className="ant-upload-drag-icon">
                     <InboxOutlined />
@@ -523,7 +523,7 @@ export function AdminCategoriesPage() {
                     className="rounded-lg object-cover"
                   />
                 ) : (
-                  <div className="flex h-[140px] w-[140px] items-center justify-center rounded-lg bg-slate-100 text-xs text-slate-400">
+                  <div className="flex h-35 w-35 items-center justify-center rounded-lg bg-slate-100 text-xs text-slate-400">
                     Chưa có ảnh
                   </div>
                 )}
