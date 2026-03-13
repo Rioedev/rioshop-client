@@ -36,6 +36,7 @@ import {
   type ProductVariantSize,
 } from "../../../services/productService";
 import { useProductStore } from "../../../stores/productStore";
+import { RichTextEditor } from "../../../components/editor/RichTextEditor";
 
 const { Paragraph, Title, Text } = Typography;
 const REQUIRED_RULE = [{ required: true, message: "Trường bắt buộc" }];
@@ -376,6 +377,16 @@ export function AdminProductsPage() {
     return true;
   };
 
+  const handleEditorImageUpload = async (file: File) => {
+    if (!file.type.startsWith("image/")) {
+      throw new Error("Chi chap nhan file anh");
+    }
+    if (file.size / 1024 / 1024 > 5) {
+      throw new Error("Kich thuoc anh phai nho hon 5MB");
+    }
+    return productService.uploadProductImage(file);
+  };
+
   const handleCategoryChange = async (value: string) => {
     const nextCategoryId = value === "all" ? undefined : value;
     setCategoryId(nextCategoryId);
@@ -708,8 +719,20 @@ export function AdminProductsPage() {
                 <Form.Item label="Mô tả ngắn" name="shortDescription" className="mb-3!">
                   <Input placeholder="Mô tả ngắn hiển thị ở danh sách sản phẩm" />
                 </Form.Item>
-                <Form.Item label="Mô tả" name="description" className="mb-0!">
-                  <Input.TextArea rows={3} placeholder="Mô tả ngắn về sản phẩm" />
+                <Form.Item label="Mô tả" className="mb-0!">
+                  <Form.Item noStyle shouldUpdate>
+                    {() => (
+                      <RichTextEditor
+                        value={(form.getFieldValue("description") as string | undefined) ?? ""}
+                        onChange={(nextValue) => form.setFieldValue("description", nextValue)}
+                        placeholder="Mô tả chi tiết sản phẩm..."
+                        onUploadImage={handleEditorImageUpload}
+                      />
+                    )}
+                  </Form.Item>
+                </Form.Item>
+                <Form.Item name="description" hidden>
+                  <Input />
                 </Form.Item>
               </div>
 
