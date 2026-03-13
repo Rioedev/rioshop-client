@@ -305,6 +305,7 @@ export function AdminProductsPage() {
   );
 
   const registerPendingFile = (file: File) => {
+    // eslint-disable-next-line react-hooks/purity
     const pendingFileId = `pending-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
     pendingUploadFilesRef.current[pendingFileId] = file;
     setPendingUploadCount(Object.keys(pendingUploadFilesRef.current).length);
@@ -603,8 +604,8 @@ export function AdminProductsPage() {
 
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <Title level={3} className="!mb-1 !mt-0">Quản lý sản phẩm</Title>
-          <Paragraph className="!mb-0" type="secondary">Quản lý thông tin, ảnh và biến thể sản phẩm.</Paragraph>
+          <Title level={3} className="mb-1! mt-0!">Quản lý sản phẩm</Title>
+          <Paragraph className="mb-0!" type="secondary">Quản lý thông tin, ảnh và biến thể sản phẩm.</Paragraph>
         </div>
         <Button type="primary" icon={<PlusOutlined />} onClick={openCreateModal}>Thêm sản phẩm</Button>
       </div>
@@ -612,7 +613,7 @@ export function AdminProductsPage() {
       <Row gutter={[12, 12]}>
         <Col xs={24} md={8}><Card><Text type="secondary">Tổng sản phẩm</Text><Title level={3}>{total}</Title></Card></Col>
         <Col xs={24} md={8}><Card><Text type="secondary">Đang bán</Text><Title level={3}>{products.filter((p) => p.status === "active").length}</Title></Card></Col>
-        <Col xs={24} md={8}><Card><Text type="secondary">Sắp hết hàng (&lt;=10)</Text><Title level={3} className="!text-amber-600">{products.filter((p) => getStock(p) <= 10).length}</Title></Card></Col>
+        <Col xs={24} md={8}><Card><Text type="secondary">Sắp hết hàng (&lt;=10)</Text><Title level={3} className="text-amber-600!">{products.filter((p) => getStock(p) <= 10).length}</Title></Card></Col>
       </Row>
 
       <Card>
@@ -649,10 +650,10 @@ export function AdminProductsPage() {
         destroyOnHidden
       >
         <div className="mb-5 rounded-2xl bg-linear-to-r from-slate-900 to-sky-800 p-4 text-white">
-          <Title level={4} className="!mb-1 !mt-0 !text-white">
+          <Title level={4} className="mb-1! mt-0! text-white!">
             {editingProduct ? "Chỉnh sửa sản phẩm" : "Tạo sản phẩm mới"}
           </Title>
-          <Text className="!text-slate-200">
+          <Text className="text-slate-200!">
             Điền thông tin cơ bản, thêm ảnh và cấu hình biến thể trước khi lưu.
           </Text>
         </div>
@@ -662,36 +663,36 @@ export function AdminProductsPage() {
             <div className="space-y-4">
               <div className="rounded-2xl border border-slate-200 bg-white p-4">
                 <Text strong className="text-base">Trạng thái</Text>
-                <Form.Item label="Hiển thị" name="status" rules={REQUIRED_RULE} className="!mb-3 !mt-3">
+                <Form.Item label="Hiển thị" name="status" rules={REQUIRED_RULE} className="mb-3! mt-3!">
                   <Select options={PRODUCT_STATUS_OPTIONS} />
                 </Form.Item>
-                <Form.Item label="Tồn kho" name="stock" rules={REQUIRED_RULE} className="!mb-0">
+                <Form.Item label="Tồn kho" name="stock" rules={REQUIRED_RULE} className="mb-0!">
                   <InputNumber min={0} className="w-full!" placeholder="0" />
                 </Form.Item>
               </div>
 
               <div className="rounded-2xl border border-slate-200 bg-white p-4">
                 <Text strong className="text-base">Giá bán</Text>
-                <Form.Item label="Giá gốc" name="basePrice" rules={REQUIRED_RULE} className="!mb-3 !mt-3">
+                <Form.Item label="Giá gốc" name="basePrice" rules={REQUIRED_RULE} className="mb-3! mt-3!">
                   <InputNumber min={0} className="w-full!" placeholder="0" />
                 </Form.Item>
-                <Form.Item label="Giá bán" name="salePrice" rules={REQUIRED_RULE} className="!mb-0">
+                <Form.Item label="Giá bán" name="salePrice" rules={REQUIRED_RULE} className="mb-0!">
                   <InputNumber min={0} className="w-full!" placeholder="0" />
                 </Form.Item>
               </div>
 
               <div className="rounded-2xl border border-slate-200 bg-white p-4">
                 <Text strong className="text-base">Chi tiết nhanh</Text>
-                <Form.Item label="Danh mục" name="categoryId" rules={REQUIRED_RULE} className="!mb-3 !mt-3">
+                <Form.Item label="Danh mục" name="categoryId" rules={REQUIRED_RULE} className="mb-3! mt-3!">
                   <Select options={categoryOptions} optionFilterProp="label" showSearch placeholder="Chọn danh mục" />
                 </Form.Item>
-                <Form.Item label="Giới tính" name="gender" className="!mb-3">
+                <Form.Item label="Giới tính" name="gender" className="mb-3!">
                   <Select options={GENDER_OPTIONS} placeholder="Chọn giới tính" />
                 </Form.Item>
-                <Form.Item label="Nhóm tuổi" name="ageGroup" className="!mb-3">
+                <Form.Item label="Nhóm tuổi" name="ageGroup" className="mb-3!">
                   <Select options={AGE_GROUP_OPTIONS} placeholder="Chọn nhóm tuổi" />
                 </Form.Item>
-                <Form.Item label="Thương hiệu" name="brand" rules={REQUIRED_RULE} className="!mb-0">
+                <Form.Item label="Thương hiệu" name="brand" rules={REQUIRED_RULE} className="mb-0!">
                   <Input placeholder="Nhập thương hiệu" />
                 </Form.Item>
               </div>
@@ -699,22 +700,22 @@ export function AdminProductsPage() {
 
             <div className="space-y-4">
               <div className="rounded-2xl border border-slate-200 bg-white p-4">
-                <Title level={5} className="!mb-3 !mt-0">Thông tin chung</Title>
+                <Title level={5} className="mb-3! mt-0!">Thông tin chung</Title>
                 <div className="grid gap-3 md:grid-cols-2">
                   <Form.Item label="SKU" name="sku" rules={REQUIRED_RULE}><Input placeholder="Ví dụ: RIO-TEE-001" /></Form.Item>
                   <Form.Item label="Tên sản phẩm" name="name" rules={REQUIRED_RULE}><Input placeholder="Nhập tên sản phẩm" /></Form.Item>
                 </div>
-                <Form.Item label="Mô tả ngắn" name="shortDescription" className="!mb-3">
+                <Form.Item label="Mô tả ngắn" name="shortDescription" className="mb-3!">
                   <Input placeholder="Mô tả ngắn hiển thị ở danh sách sản phẩm" />
                 </Form.Item>
-                <Form.Item label="Mô tả" name="description" className="!mb-0">
+                <Form.Item label="Mô tả" name="description" className="mb-0!">
                   <Input.TextArea rows={3} placeholder="Mô tả ngắn về sản phẩm" />
                 </Form.Item>
               </div>
 
               <div className="rounded-2xl border border-slate-200 bg-white p-4">
                 <div className="mb-3 flex items-center justify-between gap-2">
-                  <Title level={5} className="!mb-0 !mt-0">Media</Title>
+                  <Title level={5} className="mb-0! mt-0!">Media</Title>
                   <div className="flex items-center gap-2">
                     <Upload accept="image/*" showUploadList={false} customRequest={handleUpload} beforeUpload={beforeUpload}>
                       <Button size="small" icon={<InboxOutlined />}>Chọn ảnh</Button>
@@ -754,31 +755,31 @@ export function AdminProductsPage() {
               </div>
 
               <div className="rounded-2xl border border-slate-200 bg-white p-4">
-                <Title level={5} className="!mb-3 !mt-0">Thuộc tính thêm</Title>
-                <Form.Item label="Chất liệu (phân tách bằng dấu phẩy)" name="materialText" className="!mb-3">
+                <Title level={5} className="mb-3! mt-0!">Thuộc tính thêm</Title>
+                <Form.Item label="Chất liệu (phân tách bằng dấu phẩy)" name="materialText" className="mb-3!">
                   <Input placeholder="Cotton, Spandex, Polyester" />
                 </Form.Item>
-                <Form.Item label="Hướng dẫn bảo quản (phân tách bằng dấu phẩy)" name="careText" className="!mb-0">
+                <Form.Item label="Hướng dẫn bảo quản (phân tách bằng dấu phẩy)" name="careText" className="mb-0!">
                   <Input placeholder="Giặt lạnh, Không sấy, Ủi nhẹ" />
                 </Form.Item>
               </div>
 
               <div className="rounded-2xl border border-slate-200 bg-white p-4">
-                <Title level={5} className="!mb-3 !mt-0">SEO Meta</Title>
-                <Form.Item label="SEO Title" name="seoTitle" className="!mb-3">
+                <Title level={5} className="mb-3! mt-0!">SEO Meta</Title>
+                <Form.Item label="SEO Title" name="seoTitle" className="mb-3!">
                   <Input placeholder="Tiêu đề SEO" />
                 </Form.Item>
-                <Form.Item label="SEO Description" name="seoDescription" className="!mb-3">
+                <Form.Item label="SEO Description" name="seoDescription" className="mb-3!">
                   <Input.TextArea rows={2} placeholder="Mô tả SEO" />
                 </Form.Item>
-                <Form.Item label="SEO Keywords (phân tách bằng dấu phẩy)" name="seoKeywordsText" className="!mb-0">
+                <Form.Item label="SEO Keywords (phân tách bằng dấu phẩy)" name="seoKeywordsText" className="mb-0!">
                   <Input placeholder="áo thun nam, rio shop, áo thể thao" />
                 </Form.Item>
               </div>
 
               <div className="rounded-2xl border border-slate-200 bg-white p-4">
                 <div className="mb-3 flex items-center justify-between gap-2">
-                  <Title level={5} className="!mb-0 !mt-0">Biến thể</Title>
+                  <Title level={5} className="mb-0! mt-0!">Biến thể</Title>
                   <Button type="dashed" size="small" icon={<PlusOutlined />} onClick={() => form.setFieldValue("variants", [...((form.getFieldValue("variants") ?? []) as VariantFormValue[]), defaultVariant(((form.getFieldValue("variants") ?? []) as VariantFormValue[]).length)])}>
                     Thêm biến thể
                   </Button>
