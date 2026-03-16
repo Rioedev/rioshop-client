@@ -17,13 +17,15 @@ import {
 import type { ColumnsType, TablePaginationConfig } from "antd/es/table";
 import { useEffect, useMemo, useState } from "react";
 import {
-  customerUserService,
   type CreateCustomerPayload,
   type CustomerStatus,
   type CustomerStatusFilter,
   type CustomerUser,
   type UpdateCustomerPayload,
 } from "../../../services/customerUserService";
+import {
+  useCustomerUserStore,
+} from "../../../stores/customerUserStore";
 
 const { Paragraph, Title, Text } = Typography;
 
@@ -35,24 +37,22 @@ type CustomerFormValues = {
   status: CustomerStatus;
 };
 
-type DeletedFilter = "active_only" | "deleted_only";
-
 const STATUS_OPTIONS: { value: CustomerStatusFilter; label: string }[] = [
-  { value: "all", label: "All status" },
-  { value: "active", label: "Active" },
-  { value: "inactive", label: "Inactive" },
-  { value: "banned", label: "Banned" },
-];
-
-const DELETED_FILTER_OPTIONS: { value: DeletedFilter; label: string }[] = [
-  { value: "active_only", label: "Not deleted" },
-  { value: "deleted_only", label: "Soft deleted" },
+  { value: "all", label: "Tất cả trạng thái" },
+  { value: "active", label: "Đang hoạt động" },
+  { value: "inactive", label: "Ngừng hoạt động" },
+  { value: "banned", label: "Đã khóa" },
 ];
 
 const STATUS_COLOR_MAP: Record<CustomerStatus, string> = {
   active: "green",
   inactive: "default",
   banned: "red",
+};
+const STATUS_LABEL_MAP: Record<CustomerStatus, string> = {
+  active: "Đang hoạt động",
+  inactive: "Ngừng hoạt động",
+  banned: "Đã khóa",
 };
 
 const getErrorMessage = (error: unknown) => {
@@ -64,7 +64,7 @@ const getErrorMessage = (error: unknown) => {
     return error.message;
   }
 
-  return "Request failed";
+  return "Yêu cầu thất bại";
 };
 
 const formatDateTime = (value?: string) => {
@@ -84,59 +84,55 @@ export function AdminUsersPage() {
   const [form] = Form.useForm<CustomerFormValues>();
   const [messageApi, contextHolder] = message.useMessage();
 
-  const [customers, setCustomers] = useState<CustomerUser[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [saving, setSaving] = useState(false);
-  const [isForbidden, setIsForbidden] = useState(false);
-
   const [searchText, setSearchText] = useState("");
-  const [keyword, setKeyword] = useState("");
-  const [statusFilter, setStatusFilter] = useState<CustomerStatusFilter>("all");
-  const [deletedFilter, setDeletedFilter] = useState<DeletedFilter>("active_only");
-
-  const [page, setPage] = useState(1);
-  const [pageSize, setPageSize] = useState(10);
-  const [total, setTotal] = useState(0);
-
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingCustomer, setEditingCustomer] = useState<CustomerUser | null>(null);
-
-  const loadCustomers = async (params?: { nextPage?: number; nextPageSize?: number }) => {
-    const nextPage = params?.nextPage ?? page;
-    const nextPageSize = params?.nextPageSize ?? pageSize;
-
-    setLoading(true);
-    try {
-      const result = await customerUserService.getCustomers({
-        page: nextPage,
-        limit: nextPageSize,
-        search: keyword,
-        status: statusFilter,
-        isDeleted: deletedFilter === "deleted_only" ? true : undefined,
-      });
-
-      setCustomers(result.docs);
-      setTotal(result.totalDocs);
-      setPage(result.page);
-      setPageSize(result.limit);
-      setIsForbidden(false);
-    } catch (error) {
-      const axiosError = error as AxiosError;
-      if (axiosError.response?.status === 403) {
-        setCustomers([]);
-        setTotal(0);
-        setIsForbidden(true);
-      } else {
-        messageApi.error(getErrorMessage(error));
-      }
-    } finally {
-      setLoading(false);
-    }
-  };
+  const customers = useCustomerUserStore((state) => state.customers);
+  const loading = useCustomerUserStore((state) => state.loading);
+  const saving = useCustomerUserStore((state) => state.saving);
+  const isForbidden = useCustomerUserStore((state) => state.isForbidden);
+  const page = useCustomerUserStore((state) => state.page);
+  const pageSize = useCustomerUserStore((state) => state.pageSize);
+  const total = useCustomerUserStore((state) => state.total);
+  const keyword = useCustomerUserStore((state) => state.keyword);
+  const statusFilter = useCustomerUserStore((state) => state.statusFilter);
+  const loadCustomers = useCustomerUserStore((state) => state.loadCustomers);
+  const setKeyword = useCustomerUserStore((state) => state.setKeyword);
+  const setStatusFilter = useCustomerUserStore((state) => state.setStatusFilter);
+  const setPage = useCustomerUserStore((state) => state.setPage);
+  const setPageSize = useCustomerUserStore((state) => state.setPageSize);
+  const createCustomer = useCustomerUserStore((state) => state.createCustomer);
+  const updateCustomer = useCustomerUserStore((state) => state.updateCustomer);
+  const updateCustomerStatus = useCustomerUserStore((state) => state.updateCustomerStatus);
+  const softDeleteCustomer = useCustomerUserStore((state) => state.softDeleteCustomer);
 
   useEffect(() => {
-    void loadCustomers();
-  }, [page, pageSize, keyword, statusFilter, deletedFilter]);
+    setSearchText(keyword);
+  }, [keyword]);
+
+  useEffect(() => {
+    const nextKeyword = searchText.trim();
+    if (nextKeyword === keyword) return;
+
+    const timeoutId = window.setTimeout(() => {
+      setPage(1);
+      setKeyword(nextKeyword);
+    }, 400);
+
+    return () => window.clearTimeout(timeoutId);
+  }, [keyword, searchText, setKeyword, setPage]);
+
+  useEffect(() => {
+    void loadCustomers({
+      page,
+      pageSize,
+      keyword,
+      statusFilter,
+      deletedFilter: "active_only",
+    }).catch((error) => {
+      messageApi.error(getErrorMessage(error));
+    });
+  }, [keyword, loadCustomers, messageApi, page, pageSize, statusFilter]);
 
   const stats = useMemo(() => {
     const active = customers.filter((item) => item.status === "active").length;
@@ -180,7 +176,6 @@ export function AdminUsersPage() {
   const handleSaveCustomer = async () => {
     try {
       const values = await form.validateFields();
-      setSaving(true);
 
       if (editingCustomer) {
         const payload: UpdateCustomerPayload = {
@@ -189,8 +184,8 @@ export function AdminUsersPage() {
           phone: values.phone.trim(),
           status: values.status,
         };
-        await customerUserService.updateCustomer(editingCustomer.id, payload);
-        messageApi.success("Customer updated successfully");
+        await updateCustomer(editingCustomer.id, payload);
+        messageApi.success("Cập nhật khách hàng thành công");
       } else {
         const payload: CreateCustomerPayload = {
           fullName: values.fullName.trim(),
@@ -199,19 +194,16 @@ export function AdminUsersPage() {
           password: values.password,
           status: values.status,
         };
-        await customerUserService.createCustomer(payload);
-        messageApi.success("Customer created successfully");
+        await createCustomer(payload);
+        messageApi.success("Tạo khách hàng thành công");
       }
 
       closeModal();
-      await loadCustomers();
     } catch (error) {
       if (error instanceof Error && "errorFields" in error) {
         return;
       }
       messageApi.error(getErrorMessage(error));
-    } finally {
-      setSaving(false);
     }
   };
 
@@ -219,33 +211,20 @@ export function AdminUsersPage() {
     if (customer.status === nextStatus) return;
 
     try {
-      setSaving(true);
-      await customerUserService.updateCustomerStatus(customer.id, nextStatus);
-      messageApi.success("Status updated successfully");
-      await loadCustomers();
+      await updateCustomerStatus(customer.id, nextStatus);
+      messageApi.success("Cập nhật trạng thái thành công");
     } catch (error) {
       messageApi.error(getErrorMessage(error));
-    } finally {
-      setSaving(false);
     }
   };
 
   const handleSoftDelete = async (id: string) => {
     try {
-      setSaving(true);
-      await customerUserService.softDeleteCustomer(id);
-      messageApi.success("Customer soft deleted successfully");
-      await loadCustomers();
+      await softDeleteCustomer(id);
+      messageApi.success("Xóa mềm khách hàng thành công");
     } catch (error) {
       messageApi.error(getErrorMessage(error));
-    } finally {
-      setSaving(false);
     }
-  };
-
-  const handleSearch = () => {
-    setPage(1);
-    setKeyword(searchText.trim());
   };
 
   const handleStatusFilterChange = (value: CustomerStatusFilter) => {
@@ -253,14 +232,9 @@ export function AdminUsersPage() {
     setStatusFilter(value);
   };
 
-  const handleDeletedFilterChange = (value: DeletedFilter) => {
-    setPage(1);
-    setDeletedFilter(value);
-  };
-
   const columns: ColumnsType<CustomerUser> = [
     {
-      title: "Full Name",
+      title: "Họ tên",
       dataIndex: "fullName",
       key: "fullName",
       width: 200,
@@ -272,27 +246,27 @@ export function AdminUsersPage() {
       width: 240,
     },
     {
-      title: "Phone",
+      title: "Số điện thoại",
       dataIndex: "phone",
       key: "phone",
       width: 140,
     },
     {
-      title: "Status",
+      title: "Trạng thái",
       dataIndex: "status",
       key: "status",
       width: 160,
       render: (status: CustomerStatus, record) =>
         record.isDeleted ? (
-          <Tag color="default">Soft Deleted</Tag>
+          <Tag color="default">Đã xóa mềm</Tag>
         ) : (
           <Select<CustomerStatus>
             size="small"
             value={status}
             options={[
-              { value: "active", label: "Active" },
-              { value: "inactive", label: "Inactive" },
-              { value: "banned", label: "Banned" },
+              { value: "active", label: "Đang hoạt động" },
+              { value: "inactive", label: "Ngừng hoạt động" },
+              { value: "banned", label: "Đã khóa" },
             ]}
             onChange={(nextStatus) => void handleUpdateStatus(record, nextStatus)}
             disabled={isForbidden || saving}
@@ -300,35 +274,33 @@ export function AdminUsersPage() {
         ),
     },
     {
-      title: "Current Status",
+      title: "Hiển thị",
       key: "statusTag",
       width: 130,
-      render: (_, record) => (
-        <Tag color={STATUS_COLOR_MAP[record.status]}>{record.status}</Tag>
-      ),
+      render: (_, record) => <Tag color={STATUS_COLOR_MAP[record.status]}>{STATUS_LABEL_MAP[record.status]}</Tag>,
     },
     {
-      title: "Orders",
+      title: "Số đơn",
       dataIndex: "totalOrders",
       key: "totalOrders",
       width: 90,
     },
     {
-      title: "Spend (VND)",
+      title: "Chi tiêu (VND)",
       dataIndex: "totalSpend",
       key: "totalSpend",
       width: 140,
       render: (value: number) => formatCurrency.format(value),
     },
     {
-      title: "Last Login",
+      title: "Lần đăng nhập cuối",
       dataIndex: "lastLoginAt",
       key: "lastLoginAt",
       width: 150,
       render: (lastLoginAt?: string) => formatDateTime(lastLoginAt),
     },
     {
-      title: "Actions",
+      title: "Hành động",
       key: "actions",
       width: 180,
       render: (_, record) => (
@@ -338,18 +310,18 @@ export function AdminUsersPage() {
             onClick={() => openEditModal(record)}
             disabled={isForbidden || record.isDeleted}
           >
-            Edit
+            Sửa
           </Button>
           <Popconfirm
-            title="Soft delete customer"
-            description="This action only marks the account as deleted."
-            okText="Delete"
-            cancelText="Cancel"
+            title="Xóa mềm khách hàng"
+            description="Tài khoản sẽ được đánh dấu đã xóa mềm."
+            okText="Xóa mềm"
+            cancelText="Hủy"
             disabled={isForbidden || record.isDeleted}
             onConfirm={() => void handleSoftDelete(record.id)}
           >
             <Button size="small" danger disabled={isForbidden || record.isDeleted}>
-              Delete
+              Xóa
             </Button>
           </Popconfirm>
         </Space>
@@ -364,14 +336,14 @@ export function AdminUsersPage() {
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <Title level={3} className="mb-1! mt-0!">
-            Customer Users
+            Quản lý khách hàng
           </Title>
           <Paragraph className="mb-0!" type="secondary">
-            Manage customer accounts with status updates and soft delete.
+            Quản lý tài khoản khách hàng, cập nhật trạng thái và xóa mềm.
           </Paragraph>
         </div>
         <Button type="primary" onClick={openCreateModal} disabled={isForbidden}>
-          Add Customer
+          Thêm khách hàng
         </Button>
       </div>
 
@@ -379,32 +351,32 @@ export function AdminUsersPage() {
         <Alert
           type="warning"
           showIcon
-          message="Your account does not have permission to manage customer users."
-          description="Only roles with customer management permission can access this screen."
+          message="Tài khoản của bạn không có quyền quản lý khách hàng."
+          description="Chỉ các vai trò có quyền quản lý khách hàng mới truy cập được."
         />
       ) : null}
 
       <div className="grid gap-3 md:grid-cols-4">
         <Card>
-          <Text type="secondary">Total Records</Text>
+          <Text type="secondary">Tổng bản ghi</Text>
           <Title level={3} className="mb-0! mt-1!">
             {total}
           </Title>
         </Card>
         <Card>
-          <Text type="secondary">Active (current page)</Text>
+          <Text type="secondary">Đang hoạt động (trang hiện tại)</Text>
           <Title level={3} className="mb-0! mt-1! text-emerald-600!">
             {stats.active}
           </Title>
         </Card>
         <Card>
-          <Text type="secondary">Inactive (current page)</Text>
+          <Text type="secondary">Ngừng hoạt động (trang hiện tại)</Text>
           <Title level={3} className="mb-0! mt-1!">
             {stats.inactive}
           </Title>
         </Card>
         <Card>
-          <Text type="secondary">Banned (current page)</Text>
+          <Text type="secondary">Đã khóa (trang hiện tại)</Text>
           <Title level={3} className="mb-0! mt-1! text-red-600!">
             {stats.banned}
           </Title>
@@ -412,25 +384,18 @@ export function AdminUsersPage() {
       </div>
 
       <Card>
-        <div className="mb-4 grid gap-3 md:grid-cols-[1fr_180px_180px_110px]">
+        <div className="mb-4 grid gap-3 md:grid-cols-[1fr_180px]">
           <Input
             value={searchText}
             allowClear
-            placeholder="Search by name, email, phone"
+            placeholder="Tìm theo họ tên, email, số điện thoại"
             onChange={(event) => setSearchText(event.target.value)}
-            onPressEnter={handleSearch}
           />
           <Select
             value={statusFilter}
             options={STATUS_OPTIONS}
             onChange={handleStatusFilterChange}
           />
-          <Select
-            value={deletedFilter}
-            options={DELETED_FILTER_OPTIONS}
-            onChange={handleDeletedFilterChange}
-          />
-          <Button onClick={handleSearch}>Search</Button>
         </div>
 
         <Table<CustomerUser>
@@ -444,7 +409,7 @@ export function AdminUsersPage() {
             pageSize,
             total,
             showSizeChanger: true,
-            showTotal: (value) => `Total ${value} customers`,
+            showTotal: (value) => `Tổng ${value} khách hàng`,
           }}
           onChange={(pagination: TablePaginationConfig) => {
             const nextPage = pagination.current ?? page;
@@ -456,44 +421,44 @@ export function AdminUsersPage() {
       </Card>
 
       <Modal
-        title={editingCustomer ? "Edit Customer" : "Create Customer"}
+        title={editingCustomer ? "Sửa khách hàng" : "Tạo khách hàng"}
         open={isModalOpen}
         onCancel={closeModal}
         onOk={() => void handleSaveCustomer()}
-        okText={editingCustomer ? "Update" : "Create"}
-        cancelText="Cancel"
+        okText={editingCustomer ? "Cập nhật" : "Tạo mới"}
+        cancelText="Hủy"
         okButtonProps={{ loading: saving }}
         destroyOnHidden
       >
         <Form<CustomerFormValues> form={form} layout="vertical">
           <Form.Item
-            label="Full Name"
+            label="Họ tên"
             name="fullName"
             rules={[
-              { required: true, message: "Please enter full name" },
-              { min: 2, message: "Full name must be at least 2 characters" },
+              { required: true, message: "Vui lòng nhập họ tên" },
+              { min: 2, message: "Họ tên phải có ít nhất 2 ký tự" },
             ]}
           >
-            <Input placeholder="Enter full name" />
+            <Input placeholder="Nhập họ tên" />
           </Form.Item>
 
           <Form.Item
             label="Email"
             name="email"
             rules={[
-              { required: true, message: "Please enter email" },
-              { type: "email", message: "Email is invalid" },
+              { required: true, message: "Vui lòng nhập email" },
+              { type: "email", message: "Email không hợp lệ" },
             ]}
           >
             <Input placeholder="customer@rioshop.com" />
           </Form.Item>
 
           <Form.Item
-            label="Phone"
+            label="Số điện thoại"
             name="phone"
             rules={[
-              { required: true, message: "Please enter phone" },
-              { pattern: /^[0-9]{10,11}$/, message: "Phone must be 10-11 digits" },
+              { required: true, message: "Vui lòng nhập số điện thoại" },
+              { pattern: /^[0-9]{10,11}$/, message: "Số điện thoại phải có 10-11 chữ số" },
             ]}
           >
             <Input placeholder="0987654321" />
@@ -501,27 +466,27 @@ export function AdminUsersPage() {
 
           {editingCustomer ? null : (
             <Form.Item
-              label="Password"
+              label="Mật khẩu"
               name="password"
               rules={[
-                { required: true, message: "Please enter password" },
-                { min: 6, message: "Password must be at least 6 characters" },
+                { required: true, message: "Vui lòng nhập mật khẩu" },
+                { min: 6, message: "Mật khẩu phải có ít nhất 6 ký tự" },
               ]}
             >
-              <Input.Password placeholder="Enter password" />
+              <Input.Password placeholder="Nhập mật khẩu" />
             </Form.Item>
           )}
 
           <Form.Item
-            label="Status"
+            label="Trạng thái"
             name="status"
-            rules={[{ required: true, message: "Please select status" }]}
+            rules={[{ required: true, message: "Vui lòng chọn trạng thái" }]}
           >
             <Select
               options={[
-                { value: "active", label: "Active" },
-                { value: "inactive", label: "Inactive" },
-                { value: "banned", label: "Banned" },
+                { value: "active", label: "Đang hoạt động" },
+                { value: "inactive", label: "Ngừng hoạt động" },
+                { value: "banned", label: "Đã khóa" },
               ]}
             />
           </Form.Item>
