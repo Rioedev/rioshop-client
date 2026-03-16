@@ -8,10 +8,11 @@ const { Text, Title } = Typography;
 
 const baseAdminMenuItems: ItemType[] = [
   { key: "/admin/dashboard", label: "Dashboard" },
-  { key: "/admin/orders", label: "Orders" },
-  { key: "/admin/products", label: "Products" },
-  { key: "/admin/categories", label: "Categories" },
-  { key: "/admin/users", label: "Customers" },
+  { key: "/admin/orders", label: "Đơn hàng" },
+  { key: "/admin/products", label: "Sản phẩm" },
+  { key: "/admin/categories", label: "Danh mục" },
+  { key: "/admin/users", label: "Khách hàng" },
+  { key: "/admin/brand-config", label: "Cấu hình thương hiệu" },
 ];
 
 export function AdminLayout() {
@@ -31,9 +32,9 @@ export function AdminLayout() {
 
   return (
     <Layout className="min-h-screen">
-      <Sider breakpoint="lg" width={240} className="!bg-slate-950">
+      <Sider breakpoint="lg" width={240} className="bg-slate-950!">
         <div className="px-6 py-5">
-          <Title level={4} className="!mb-0 !mt-2 !text-white">
+          <Title level={4} className="mb-0! mt-2! text-white!">
             RioShop
           </Title>
         </div>
@@ -46,9 +47,9 @@ export function AdminLayout() {
         />
       </Sider>
       <Layout>
-        <Header className="!bg-white !px-6 shadow-sm">
+        <Header className="bg-white! px-6! shadow-sm">
           <div className="flex h-full items-center justify-between">
-            <Title level={4} className="!m-0">
+            <Title level={4} className="m-0!">
               Quản lý hệ thống cửa hàng RioShop
             </Title>
             <div className="flex items-center gap-3">

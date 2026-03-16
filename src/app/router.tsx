@@ -7,6 +7,7 @@ import { AdminProductsPage } from "../features/admin/pages/AdminProductsPage";
 import { AdminCategoriesPage } from "../features/admin/pages/AdminCategoriesPage";
 import { AdminUsersPage } from "../features/admin/pages/AdminUsersPage";
 import { AdminAccountsPage } from "../features/admin/pages/AdminAccountsPage";
+import { AdminBrandConfigPage } from "../features/admin/pages/AdminBrandConfigPage";
 import { StoreHomePage } from "../features/store/pages/StoreHomePage";
 import { StoreProductDetailPage } from "../features/store/pages/StoreProductDetailPage";
 import { StoreCartPage } from "../features/store/pages/StoreCartPage";
@@ -52,6 +53,7 @@ export const appRouter = createBrowserRouter([
           { path: "categories", element: <AdminCategoriesPage /> },
           { path: "users", element: <AdminUsersPage /> },
           { path: "admin-accounts", element: <AdminAccountsPage /> },
+          { path: "brand-config", element: <AdminBrandConfigPage /> },
           { path: "*", element: <Navigate to="/admin/dashboard" replace /> },
         ],
       },
