@@ -5,6 +5,8 @@ import { AdminDashboardPage } from "../features/admin/pages/AdminDashboardPage";
 import { AdminOrdersPage } from "../features/admin/pages/AdminOrdersPage";
 import { AdminProductsPage } from "../features/admin/pages/AdminProductsPage";
 import { AdminCategoriesPage } from "../features/admin/pages/AdminCategoriesPage";
+import { AdminUsersPage } from "../features/admin/pages/AdminUsersPage";
+import { AdminAccountsPage } from "../features/admin/pages/AdminAccountsPage";
 import { StoreHomePage } from "../features/store/pages/StoreHomePage";
 import { StoreProductDetailPage } from "../features/store/pages/StoreProductDetailPage";
 import { StoreCartPage } from "../features/store/pages/StoreCartPage";
@@ -48,6 +50,8 @@ export const appRouter = createBrowserRouter([
           { path: "orders", element: <AdminOrdersPage /> },
           { path: "products", element: <AdminProductsPage /> },
           { path: "categories", element: <AdminCategoriesPage /> },
+          { path: "users", element: <AdminUsersPage /> },
+          { path: "admin-accounts", element: <AdminAccountsPage /> },
           { path: "*", element: <Navigate to="/admin/dashboard" replace /> },
         ],
       },

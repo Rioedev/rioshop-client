@@ -1,7 +1,7 @@
 import { apiClient } from "./apiClient";
 
 export type AccountType = "user" | "admin";
-export type AdminRole = "superadmin" | "manager" | "warehouse" | "cs" | "marketer";
+export type AdminRole = "superadmin" | "manager" | "warehouse" | "cs" | "marketer" | "sales";
 
 export type AuthUser = {
   id: string;

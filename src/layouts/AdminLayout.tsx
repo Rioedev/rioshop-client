@@ -6,11 +6,12 @@ import { useAuthStore } from "../stores/authStore";
 const { Header, Content, Sider } = Layout;
 const { Text, Title } = Typography;
 
-const adminMenuItems: ItemType[] = [
+const baseAdminMenuItems: ItemType[] = [
   { key: "/admin/dashboard", label: "Dashboard" },
   { key: "/admin/orders", label: "Orders" },
   { key: "/admin/products", label: "Products" },
   { key: "/admin/categories", label: "Categories" },
+  { key: "/admin/users", label: "Customers" },
 ];
 
 export function AdminLayout() {
@@ -18,6 +19,10 @@ export function AdminLayout() {
   const navigate = useNavigate();
   const user = useAuthStore((state) => state.user);
   const logout = useAuthStore((state) => state.logout);
+  const canManageAdminAccounts = user?.role === "superadmin" || user?.role === "manager";
+  const adminMenuItems: ItemType[] = canManageAdminAccounts
+    ? [...baseAdminMenuItems, { key: "/admin/admin-accounts", label: "Admin Accounts" }]
+    : baseAdminMenuItems;
 
   const activeKey =
     adminMenuItems.find((item) =>
