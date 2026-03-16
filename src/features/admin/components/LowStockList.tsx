@@ -11,7 +11,7 @@ export function LowStockList({ data }: LowStockListProps) {
   return (
     <Card>
       <Title level={4} className="!mb-4 !mt-0">
-        San pham sap het hang
+        Sản phẩm sắp hết hàng
       </Title>
       <List
         dataSource={data}
@@ -24,7 +24,7 @@ export function LowStockList({ data }: LowStockListProps) {
                   <Text type="secondary">{item.sku}</Text>
                 </div>
               </div>
-              <Tag color={item.quantity <= 5 ? "red" : "orange"}>{item.quantity} cai</Tag>
+              <Tag color={item.quantity <= 5 ? "red" : "orange"}>{item.quantity} cái</Tag>
             </div>
           </List.Item>
         )}
