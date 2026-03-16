@@ -6,6 +6,8 @@ import { AdminOrdersPage } from "../features/admin/pages/AdminOrdersPage";
 import { AdminProductsPage } from "../features/admin/pages/AdminProductsPage";
 import { AdminCategoriesPage } from "../features/admin/pages/AdminCategoriesPage";
 import { StoreHomePage } from "../features/store/pages/StoreHomePage";
+import { StoreProductDetailPage } from "../features/store/pages/StoreProductDetailPage";
+import { StoreCartPage } from "../features/store/pages/StoreCartPage";
 import { LoginPage } from "../features/auth/pages/LoginPage";
 import { RegisterPage } from "../features/auth/pages/RegisterPage";
 import { AdminLoginPage } from "../features/auth/pages/AdminLoginPage";
@@ -30,6 +32,8 @@ export const appRouter = createBrowserRouter([
     element: <StoreLayout />,
     children: [
       { index: true, element: <StoreHomePage /> },
+      { path: "products/:slug", element: <StoreProductDetailPage /> },
+      { path: "cart", element: <StoreCartPage /> },
     ],
   },
   {

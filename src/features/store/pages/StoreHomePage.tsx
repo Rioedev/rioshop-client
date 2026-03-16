@@ -1,110 +1,5 @@
-import { Button, Typography } from "antd";
-import { useEffect, useMemo, useState } from "react";
+import { Button } from "antd";
 import { Link } from "react-router-dom";
-import { productService, type Product } from "../../../services/productService";
-
-const { Paragraph, Title } = Typography;
-
-type ShowcaseProduct = {
-  id: string;
-  name: string;
-  category: string;
-  salePrice: number;
-  basePrice: number;
-  imageUrl?: string;
-  badge: string;
-};
-
-const apiBaseUrl = (import.meta.env.VITE_API_BASE_URL ?? "http://localhost:5000").replace(/\/$/, "");
-
-const categoryHighlights = [
-  {
-    kicker: "Essential",
-    title: "Ao thun nam",
-    description: "Form regular, chat cotton compact, mac mat ca ngay.",
-  },
-  {
-    kicker: "Everyday",
-    title: "Quan lot",
-    description: "Mem, thoang, om gon de chuyen dong linh hoat.",
-  },
-  {
-    kicker: "Active",
-    title: "Do the thao",
-    description: "Vai nhanh kho, giu form va hut am toi uu.",
-  },
-  {
-    kicker: "Saving",
-    title: "Combo tiet kiem",
-    description: "Mua theo set giam sau, de phoi va de dung.",
-  },
-];
-
-const reasons = [
-  {
-    title: "Thu do 60 ngay",
-    description: "Sai size doi ngay, khong can thao tac phuc tap.",
-  },
-  {
-    title: "Chat lieu uu tien",
-    description: "Tap trung vao do ben, do mem va do co gian khi mac.",
-  },
-  {
-    title: "Giao nhanh toan quoc",
-    description: "Ho tro giao nhanh tai cac thanh pho lon trong ngay.",
-  },
-];
-
-const fallbackProducts: ShowcaseProduct[] = [
-  {
-    id: "fallback-1",
-    name: "Ao thun Cotton Compact",
-    category: "Ao thun nam",
-    salePrice: 199000,
-    basePrice: 249000,
-    badge: "Ban chay",
-  },
-  {
-    id: "fallback-2",
-    name: "Quan lot Boxer Modal",
-    category: "Quan lot",
-    salePrice: 159000,
-    basePrice: 199000,
-    badge: "Moi",
-  },
-  {
-    id: "fallback-3",
-    name: "Ao polo AiryTech",
-    category: "Polo",
-    salePrice: 349000,
-    basePrice: 429000,
-    badge: "Deal",
-  },
-  {
-    id: "fallback-4",
-    name: "Combo 3 ao thun co tron",
-    category: "Combo",
-    salePrice: 499000,
-    basePrice: 597000,
-    badge: "Tiet kiem",
-  },
-  {
-    id: "fallback-5",
-    name: "Quan short Everyday",
-    category: "Quan short",
-    salePrice: 269000,
-    basePrice: 329000,
-    badge: "Hot",
-  },
-  {
-    id: "fallback-6",
-    name: "Ao tanktop MoveFit",
-    category: "Do the thao",
-    salePrice: 219000,
-    basePrice: 269000,
-    badge: "New",
-  },
-];
 
 const formatCurrency = (value: number) =>
   new Intl.NumberFormat("vi-VN", {
@@ -113,267 +8,257 @@ const formatCurrency = (value: number) =>
     maximumFractionDigits: 0,
   }).format(value);
 
-const resolveImageUrl = (product: Product): string | undefined => {
-  const image = product.media?.find((item) => item.type === "image")?.url;
-
-  if (!image) {
-    return undefined;
-  }
-
-  if (/^https?:\/\//i.test(image)) {
-    return image;
-  }
-
-  const normalizedPath = image.startsWith("/") ? image : `/${image}`;
-  return `${apiBaseUrl}${normalizedPath}`;
+type HomeProduct = {
+  id: string;
+  name: string;
+  slug: string;
+  category: string;
+  price: number;
+  originalPrice?: number;
+  badge?: string;
+  image: string;
 };
 
+const quickCategories = [
+  { name: "Áo thun", count: "120+ mẫu", image: "https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?auto=format&fit=crop&w=400&q=80" },
+  { name: "Áo polo", count: "56 sản phẩm", image: "https://images.unsplash.com/photo-1622470953794-aa9c70b0fb9d?auto=format&fit=crop&w=400&q=80" },
+  { name: "Quần short", count: "88 sản phẩm", image: "https://images.unsplash.com/photo-1591195853828-11db59a44f6b?auto=format&fit=crop&w=400&q=80" },
+  { name: "Đồ tập", count: "74 sản phẩm", image: "https://images.unsplash.com/photo-1517836357463-d25dfeac3438?auto=format&fit=crop&w=400&q=80" },
+  { name: "Đồ mặc nhà", count: "42 sản phẩm", image: "https://images.unsplash.com/photo-1603252109303-2751441dd157?auto=format&fit=crop&w=400&q=80" },
+  { name: "Combo", count: "34 gói", image: "https://images.unsplash.com/photo-1617137984095-74e4e5e3613f?auto=format&fit=crop&w=400&q=80" },
+];
+
+const featuredProducts: HomeProduct[] = [
+  {
+    id: "p1",
+    name: "Áo Thun AirFlex Pique",
+    slug: "ao-thun-airflex-pique",
+    category: "Bán chạy",
+    price: 259000,
+    originalPrice: 329000,
+    badge: "-21%",
+    image: "https://images.unsplash.com/photo-1516826957135-700dedea698c?auto=format&fit=crop&w=900&q=80",
+  },
+  {
+    id: "p2",
+    name: "Polo Premium Essential",
+    slug: "polo-premium-essential",
+    category: "Mới về",
+    price: 329000,
+    image: "https://images.unsplash.com/photo-1593032465171-8bd40f88d5f8?auto=format&fit=crop&w=900&q=80",
+  },
+  {
+    id: "p3",
+    name: "Quần Short Everyday Fit",
+    slug: "quan-short-everyday-fit",
+    category: "Mùa hè",
+    price: 289000,
+    originalPrice: 359000,
+    badge: "-19%",
+    image: "https://images.unsplash.com/photo-1595341888016-a392ef81b7de?auto=format&fit=crop&w=900&q=80",
+  },
+  {
+    id: "p4",
+    name: "Áo Khoác Light Bomber",
+    slug: "ao-khoac-light-bomber",
+    category: "Giới hạn",
+    price: 549000,
+    image: "https://images.unsplash.com/photo-1552374196-c4e7ffc6e126?auto=format&fit=crop&w=900&q=80",
+  },
+  {
+    id: "p5",
+    name: "Bộ Đồ Tập Motion Pro",
+    slug: "bo-do-tap-motion-pro",
+    category: "Năng động",
+    price: 469000,
+    image: "https://images.unsplash.com/photo-1571731956672-f2b94d7dd0cb?auto=format&fit=crop&w=900&q=80",
+  },
+  {
+    id: "p6",
+    name: "Combo 3 Quần Lót Modal",
+    slug: "combo-3-quan-lot-modal",
+    category: "Combo tốt",
+    price: 299000,
+    originalPrice: 389000,
+    badge: "-23%",
+    image: "https://images.unsplash.com/photo-1603251578711-3290ca1a0181?auto=format&fit=crop&w=900&q=80",
+  },
+  {
+    id: "p7",
+    name: "Sơ Mi Linen Breath",
+    slug: "so-mi-linen-breath",
+    category: "Công sở",
+    price: 399000,
+    image: "https://images.unsplash.com/photo-1581655353564-df123a1eb820?auto=format&fit=crop&w=900&q=80",
+  },
+  {
+    id: "p8",
+    name: "Quần Dài Smart Chino",
+    slug: "quan-dai-smart-chino",
+    category: "Dáng chuẩn",
+    price: 459000,
+    originalPrice: 539000,
+    badge: "-15%",
+    image: "https://images.unsplash.com/photo-1516257984-b1b4d707412e?auto=format&fit=crop&w=900&q=80",
+  },
+];
+
+const valueProps = [
+  {
+    title: "Chất liệu cao cấp",
+    text: "Vải mềm, bền màu, giữ form ổn định qua nhiều lần giặt.",
+  },
+  {
+    title: "Form dễ mặc",
+    text: "Phù hợp nhiều dáng người, dễ phối từ đi làm đến đi chơi.",
+  },
+  {
+    title: "Đổi trả 60 ngày",
+    text: "Thử thoải mái tại nhà, đổi trả miễn phí nếu không vừa.",
+  },
+];
+
 export function StoreHomePage() {
-  const [products, setProducts] = useState<Product[]>([]);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    let active = true;
-
-    const fetchProducts = async () => {
-      setLoading(true);
-
-      try {
-        const result = await productService.getProducts({
-          page: 1,
-          limit: 8,
-          status: "active",
-          sort: { createdAt: -1 },
-        });
-
-        if (active) {
-          setProducts(result.docs);
-        }
-      } catch {
-        if (active) {
-          setProducts([]);
-        }
-      } finally {
-        if (active) {
-          setLoading(false);
-        }
-      }
-    };
-
-    void fetchProducts();
-
-    return () => {
-      active = false;
-    };
-  }, []);
-
-  const showcaseProducts = useMemo<ShowcaseProduct[]>(() => {
-    if (products.length === 0) {
-      return fallbackProducts;
-    }
-
-    return products.slice(0, 8).map((product, index) => ({
-      id: product._id,
-      name: product.name,
-      category: product.category?.name ?? "San pham moi",
-      salePrice: product.pricing.salePrice,
-      basePrice: product.pricing.basePrice,
-      imageUrl: resolveImageUrl(product),
-      badge: product.isNew
-        ? "Moi"
-        : product.isBestseller
-          ? "Ban chay"
-          : product.isFeatured
-            ? "Noi bat"
-            : index % 2 === 0
-              ? "Hot"
-              : "Deal",
-    }));
-  }, [products]);
-
   return (
-    <div className="space-y-8 md:space-y-12">
-      <section className="cool-hero p-6 md:p-10">
-        <div className="cool-hero-content max-w-2xl">
-          <p className="text-xs font-semibold uppercase tracking-[0.24em] text-slate-500">
-            Spring Collection 2026
+    <div className="rio-home space-y-7 md:space-y-10">
+      <section className="rio-hero rio-full-bleed">
+        <div className="rio-hero-overlay" />
+        <div className="rio-hero-content">
+          <p className="rio-kicker">Bộ sưu tập mới 2026</p>
+          <h1 className="mt-3 text-4xl font-black leading-[1.05] text-white md:text-6xl">
+            Mặc hằng ngày
+            <br />
+            nhưng vẫn nổi bật.
+          </h1>
+          <p className="mt-4 max-w-xl text-base leading-7 text-slate-200 md:text-lg">
+            Giao diện demo cho RioShop theo phong cách thời trang trẻ, hiện đại,
+            gọn gàng như các website top trong ngành.
           </p>
-          <Title level={1} className="mb-4! mt-3! text-3xl! leading-tight! text-slate-900! md:text-5xl!">
-            Mac dep moi ngay, thoai mai nhu do mac nha.
-          </Title>
-          <Paragraph className="mb-6! max-w-xl! text-base! leading-7! text-slate-600!">
-            Home page duoc dung theo phong cach Coolmate: bo cuc sach, khung banner lon,
-            danh muc ro rang va card san pham toi gian de tap trung vao conversion.
-          </Paragraph>
-
-          <div className="flex flex-wrap gap-3">
-            <Link to="/register">
-              <Button type="primary" size="large" className="h-11! rounded-full! bg-slate-900! px-6! shadow-none!">
-                Mua ngay
+          <div className="mt-7 flex flex-wrap gap-3">
+            <Link to="/products/ao-thun-airflex-pique">
+              <Button type="primary" className="rio-btn-light !h-11 !rounded-full !px-7 !font-bold">
+                Mua BST mới
               </Button>
             </Link>
-            <Button size="large" className="h-11! rounded-full! border-slate-300! px-6!">
-              Xem combo tiet kiem
+            <Button className="rio-btn-ghost !h-11 !rounded-full !px-7 !font-bold">
+              Xem lookbook
             </Button>
           </div>
-
-          <div className="mt-7 grid max-w-xl grid-cols-1 gap-3 sm:grid-cols-3">
-            <div className="cool-stat-card">
-              <p className="cool-stat-value">120K+</p>
-              <p className="cool-stat-label">Khach hang hang thang</p>
-            </div>
-            <div className="cool-stat-card">
-              <p className="cool-stat-value">4.9/5</p>
-              <p className="cool-stat-label">Danh gia trung binh</p>
-            </div>
-            <div className="cool-stat-card">
-              <p className="cool-stat-value">60 ngay</p>
-              <p className="cool-stat-label">Doi tra mien phi</p>
-            </div>
+          <div className="rio-tag-row">
+            <span className="rio-tag">Freeship 299K</span>
+            <span className="rio-tag">Đổi trả 60 ngày</span>
+            <span className="rio-tag">Hàng mới mỗi tuần</span>
           </div>
         </div>
       </section>
 
-      <section>
-        <div className="mb-4 flex items-end justify-between gap-3">
-          <div>
-            <Title level={3} className="m-0! text-2xl! text-slate-900!">
-              Danh muc noi bat
-            </Title>
-            <Paragraph className="mb-0! mt-1! text-slate-600!">
-              Chon nhanh theo nhu cau phoi do hang ngay.
-            </Paragraph>
-          </div>
-        </div>
-
-        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-          {categoryHighlights.map((item) => (
-            <button key={item.title} type="button" className="cool-category-card text-left">
-              <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">
-                {item.kicker}
-              </p>
-              <h3 className="mt-2 text-lg font-semibold text-slate-900">{item.title}</h3>
-              <p className="mt-2 text-sm leading-6 text-slate-600">{item.description}</p>
-            </button>
-          ))}
-        </div>
+      <section className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+        {quickCategories.map((item) => (
+          <button key={item.name} type="button" className="rio-category-card">
+            <div className="rio-category-image">
+              <img src={item.image} alt={item.name} className="h-full w-full object-cover" />
+            </div>
+            <div className="p-4">
+              <p className="m-0 text-base font-bold text-slate-900">{item.name}</p>
+              <p className="m-0 mt-1 text-sm text-slate-500">{item.count}</p>
+            </div>
+          </button>
+        ))}
       </section>
 
-      <section>
-        <div className="mb-4 flex items-end justify-between gap-3">
-          <div>
-            <Title level={3} className="m-0! text-2xl! text-slate-900!">
-              San pham dang duoc quan tam
-            </Title>
-            <Paragraph className="mb-0! mt-1! text-slate-600!">
-              Lay tu du lieu backend, fallback san pham demo khi he thong chua co data.
-            </Paragraph>
+      <section className="rio-collection-grid">
+        <article className="rio-collection-card rio-collection-men">
+          <div className="rio-collection-content">
+            <p className="rio-collection-kicker">Dành cho nam</p>
+            <h2>Tối giản. Gọn dáng. Mỗi ngày.</h2>
+            <Button className="!h-10 !rounded-full !border-0 !px-6 !font-bold">Khám phá ngay</Button>
           </div>
+        </article>
+
+        <article className="rio-collection-card rio-collection-women">
+          <div className="rio-collection-content">
+            <p className="rio-collection-kicker">Dành cho nữ</p>
+            <h2>Nhẹ. Thoải mái. Linh hoạt.</h2>
+            <Button className="!h-10 !rounded-full !border-0 !px-6 !font-bold">Xem bộ sưu tập</Button>
+          </div>
+        </article>
+      </section>
+
+      <section className="rio-product-section">
+        <div className="rio-section-head">
+          <div>
+            <p className="rio-mini-title">Gợi ý hôm nay</p>
+            <h3 className="m-0 text-2xl font-black text-slate-900 md:text-3xl">Sản phẩm nổi bật</h3>
+          </div>
+          <button type="button" className="rio-more-link">
+            Xem tat ca
+          </button>
         </div>
 
-        {loading ? (
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-            {Array.from({ length: 4 }).map((_, index) => (
-              <div key={`loading-${index}`} className="cool-skeleton-card" />
-            ))}
-          </div>
-        ) : (
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-            {showcaseProducts.map((product) => {
-              const hasDiscount = product.basePrice > product.salePrice;
-              const discountPercent = hasDiscount
-                ? Math.round(((product.basePrice - product.salePrice) / product.basePrice) * 100)
-                : 0;
+        <div className="rio-product-grid">
+          {featuredProducts.map((product) => {
+            const hasDiscount =
+              typeof product.originalPrice === "number" && product.originalPrice > product.price;
 
-              return (
-                <article key={product.id} className="cool-product-card group">
-                  <div className="cool-product-media">
-                    {product.imageUrl ? (
-                      <img
-                        src={product.imageUrl}
-                        alt={product.name}
-                        className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
-                      />
-                    ) : (
-                      <div className="cool-product-fallback">RIO</div>
-                    )}
-                    <span className="cool-product-badge">{product.badge}</span>
+            return (
+              <Link key={product.id} to={`/products/${product.slug}`} className="rio-product-card">
+                <div className="rio-product-image">
+                  <img src={product.image} alt={product.name} className="h-full w-full object-cover" />
+                  <span className="rio-product-category">{product.category}</span>
+                  {hasDiscount && product.badge ? (
+                    <span className="rio-product-discount">{product.badge}</span>
+                  ) : null}
+                </div>
+                <div className="p-4">
+                  <h4 className="m-0 min-h-[44px] text-sm font-semibold leading-6 text-slate-900 md:text-base">
+                    {product.name}
+                  </h4>
+                  <div className="mt-2 flex items-end gap-2">
+                    <span className="text-base font-extrabold text-slate-900 md:text-lg">
+                      {formatCurrency(product.price)}
+                    </span>
                     {hasDiscount ? (
-                      <span className="cool-product-discount">-{discountPercent}%</span>
+                      <span className="text-sm text-slate-400 line-through">
+                        {formatCurrency(product.originalPrice ?? product.price)}
+                      </span>
                     ) : null}
                   </div>
-
-                  <div className="p-4">
-                    <p className="text-xs font-medium uppercase tracking-[0.16em] text-slate-500">
-                      {product.category}
-                    </p>
-                    <h3 className="mt-2 min-h-12 text-base font-semibold leading-6 text-slate-900">
-                      {product.name}
-                    </h3>
-                    <div className="mt-3 flex items-end gap-2">
-                      <span className="text-lg font-bold text-slate-900">
-                        {formatCurrency(product.salePrice)}
-                      </span>
-                      {hasDiscount ? (
-                        <span className="text-sm text-slate-400 line-through">
-                          {formatCurrency(product.basePrice)}
-                        </span>
-                      ) : null}
-                    </div>
-                    <Button block className="mt-4! h-10! rounded-full! border-slate-300!">
-                      Them vao gio
-                    </Button>
-                  </div>
-                </article>
-              );
-            })}
-          </div>
-        )}
+                </div>
+              </Link>
+            );
+          })}
+        </div>
       </section>
 
-      <section className="grid gap-4 md:grid-cols-3">
-        {reasons.map((item) => (
-          <article key={item.title} className="cool-feature-card">
-            <h3 className="text-lg font-semibold text-slate-900">{item.title}</h3>
-            <p className="mt-2 text-sm leading-6 text-slate-600">{item.description}</p>
+      <section className="grid gap-3 md:grid-cols-3">
+        {valueProps.map((item) => (
+          <article key={item.title} className="rio-value-card">
+            <h4>{item.title}</h4>
+            <p>{item.text}</p>
           </article>
         ))}
       </section>
 
-      <section className="cool-combo-banner">
+      <section className="rio-story">
         <div>
-          <p className="text-xs font-semibold uppercase tracking-[0.22em] text-slate-500">
-            Super Combo
+          <p className="rio-mini-title">Rio Journal</p>
+          <h3 className="m-0 text-3xl font-black text-slate-900">Thời trang dễ sống dễ mặc.</h3>
+          <p className="mt-3 max-w-2xl text-base leading-7 text-slate-600">
+            Mục tiêu của demo này là tạo một giao diện storefront đẹp, hiện đại, có bố cục rõ ràng,
+            khuyến mãi nổi bật và trình bày sản phẩm theo phong cách thương mại điện tử chuyên nghiệp.
           </p>
-          <Title level={2} className="mb-3! mt-3! text-3xl! text-slate-900! md:text-4xl!">
-            Mua nhieu tiet kiem nhieu
-          </Title>
-          <Paragraph className="mb-0! max-w-xl! text-base! leading-7! text-slate-600!">
-            Chon combo 3, 5, 7 san pham de toi uu chi phi, phu hop cho nhu cau mac di lam
-            va di choi trong ca tuan.
-          </Paragraph>
         </div>
-        <div className="mt-6 md:mt-0 md:text-right">
-          <Button type="primary" size="large" className="h-11! rounded-full! bg-slate-900! px-7! shadow-none!">
-            Kham pha combo
-          </Button>
-        </div>
-      </section>
-
-      <section className="cool-newsletter">
-        <div>
-          <Title level={4} className="mb-1! mt-0! text-slate-900!">
-            Nhan uu dai hang tuan
-          </Title>
-          <Paragraph className="mb-0! text-slate-600!">
-            Dang ky email de cap nhat bo suu tap moi va ma giam gia doc quyen.
-          </Paragraph>
-        </div>
-        <div className="cool-newsletter-form">
-          <input type="email" placeholder="Nhap email cua ban" className="cool-newsletter-input" />
-          <Button type="primary" className="h-11! rounded-full! bg-slate-900! px-6! shadow-none!">
-            Dang ky
-          </Button>
+        <div className="rio-newsletter">
+          <div>
+            <p className="m-0 text-sm font-bold uppercase tracking-[0.14em] text-slate-500">Rio Member</p>
+            <h4 className="m-0 mt-2 text-2xl font-black text-slate-900">Nhận ưu đãi 10% cho đơn đầu</h4>
+          </div>
+          <form className="rio-newsletter-form" onSubmit={(event) => event.preventDefault()}>
+            <input className="rio-newsletter-input" placeholder="Nhập email của bạn" />
+            <Button type="primary" className="!h-11 !rounded-full !bg-slate-900 !px-6 !font-bold !shadow-none">
+              Đăng ký
+            </Button>
+          </form>
         </div>
       </section>
     </div>

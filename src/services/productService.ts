@@ -167,6 +167,16 @@ export const productService = {
     return response.data.data;
   },
 
+  async getProductBySlug(slug: string): Promise<Product> {
+    const response = await apiClient.get<ApiResponse<Product>>(`/api/products/${slug}`);
+    return response.data.data;
+  },
+
+  async getRelatedProducts(id: string): Promise<Product[]> {
+    const response = await apiClient.get<ApiResponse<Product[]>>(`/api/products/${id}/related`);
+    return response.data.data;
+  },
+
   async createProduct(payload: ProductPayload): Promise<Product> {
     const response = await apiClient.post<ApiResponse<Product>>("/api/products", payload);
     return response.data.data;
