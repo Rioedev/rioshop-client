@@ -221,7 +221,7 @@ export function AdminUsersPage() {
   const handleSoftDelete = async (id: string) => {
     try {
       await softDeleteCustomer(id);
-      messageApi.success("Xóa mềm khách hàng thành công");
+      messageApi.success("Xóa khách hàng thành công");
     } catch (error) {
       messageApi.error(getErrorMessage(error));
     }
@@ -258,7 +258,7 @@ export function AdminUsersPage() {
       width: 160,
       render: (status: CustomerStatus, record) =>
         record.isDeleted ? (
-          <Tag color="default">Đã xóa mềm</Tag>
+          <Tag color="default">Đã xóa</Tag>
         ) : (
           <Select<CustomerStatus>
             size="small"
@@ -313,9 +313,9 @@ export function AdminUsersPage() {
             Sửa
           </Button>
           <Popconfirm
-            title="Xóa mềm khách hàng"
-            description="Tài khoản sẽ được đánh dấu đã xóa mềm."
-            okText="Xóa mềm"
+            title="Xóa khách hàng"
+            description="Tài khoản sẽ bị vô hiệu hóa và không thể đăng nhập."
+            okText="Xóa"
             cancelText="Hủy"
             disabled={isForbidden || record.isDeleted}
             onConfirm={() => void handleSoftDelete(record.id)}
@@ -339,7 +339,7 @@ export function AdminUsersPage() {
             Quản lý khách hàng
           </Title>
           <Paragraph className="mb-0!" type="secondary">
-            Quản lý tài khoản khách hàng, cập nhật trạng thái và xóa mềm.
+            Quản lý tài khoản khách hàng, cập nhật trạng thái.
           </Paragraph>
         </div>
         <Button type="primary" onClick={openCreateModal} disabled={isForbidden}>

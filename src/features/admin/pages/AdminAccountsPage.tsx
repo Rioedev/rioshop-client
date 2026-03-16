@@ -208,7 +208,7 @@ export function AdminAccountsPage() {
   const handleDelete = async (id: string) => {
     try {
       await deleteAdminAccount(id);
-      messageApi.success("Xóa mềm tài khoản admin thành công");
+      messageApi.success("Xóa tài khoản admin thành công");
     } catch (error) {
       messageApi.error(getErrorMessage(error));
     }
@@ -265,9 +265,9 @@ export function AdminAccountsPage() {
               Sửa
             </Button>
             <Popconfirm
-              title="Xóa mềm tài khoản admin"
-              description="Hành động này sẽ vô hiệu hóa tài khoản và đánh dấu đã xóa mềm."
-              okText="Xóa mềm"
+              title="Xóa tài khoản admin"
+              description="Hành động này sẽ vô hiệu hóa tài khoản admin"
+              okText="Xóa"
               cancelText="Hủy"
               disabled={disabled}
               onConfirm={() => void handleDelete(record.id)}
