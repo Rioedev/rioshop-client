@@ -7,6 +7,7 @@ import { AdminProductsPage } from "../features/admin/pages/AdminProductsPage";
 import { AdminInventoriesPage } from "../features/admin/pages/AdminInventoriesPage";
 import { AdminCouponsPage } from "../features/admin/pages/AdminCouponsPage";
 import { AdminNotificationsPage } from "../features/admin/pages/AdminNotificationsPage";
+import { AdminReviewsPage } from "../features/admin/pages/AdminReviewsPage";
 import { AdminCategoriesPage } from "../features/admin/pages/AdminCategoriesPage";
 import { AdminUsersPage } from "../features/admin/pages/AdminUsersPage";
 import { AdminAccountsPage } from "../features/admin/pages/AdminAccountsPage";
@@ -53,6 +54,7 @@ export const appRouter = createBrowserRouter([
           { path: "dashboard", element: <AdminDashboardPage /> },
           { path: "orders", element: <AdminOrdersPage /> },
           { path: "products", element: <AdminProductsPage /> },
+          { path: "reviews", element: <AdminReviewsPage /> },
           { path: "inventories", element: <AdminInventoriesPage /> },
           { path: "coupons", element: <AdminCouponsPage /> },
           { path: "notifications", element: <AdminNotificationsPage /> },
