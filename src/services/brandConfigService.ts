@@ -44,6 +44,81 @@ export type BrandConfigFeatureFlags = {
   review?: boolean;
 };
 
+export type StorefrontHomeMetric = {
+  value: string;
+  label: string;
+};
+
+export type StorefrontHomeValueProp = {
+  title: string;
+  text: string;
+  iconKey?: string | null;
+};
+
+export type StorefrontHomeContent = {
+  hero?: {
+    kicker?: string | null;
+    titleLine1?: string | null;
+    titleLine2?: string | null;
+    description?: string | null;
+    primaryCtaLabel?: string | null;
+    secondaryCtaLabel?: string | null;
+    dealDescription?: string | null;
+    sideKicker?: string | null;
+    sideTitleLine1?: string | null;
+    sideTitleLine2?: string | null;
+    sideDescription?: string | null;
+    dealCtaLabel?: string | null;
+    sideCtaLabel?: string | null;
+    metrics?: StorefrontHomeMetric[];
+  };
+  sections?: {
+    categoriesMiniTitle?: string | null;
+    categoriesTitle?: string | null;
+    categoriesLinkLabel?: string | null;
+    flashSaleMiniTitle?: string | null;
+    flashSaleTitle?: string | null;
+    flashSaleLinkLabel?: string | null;
+    productsMiniTitle?: string | null;
+    productsTitle?: string | null;
+    productsLinkLabel?: string | null;
+  };
+  labels?: {
+    flashDeal?: string | null;
+    soldPercentPrefix?: string | null;
+    soldOutSoon?: string | null;
+    dealFallbackTitle?: string | null;
+    buyDeal?: string | null;
+    exploreNow?: string | null;
+    noCategories?: string | null;
+    noFlashSales?: string | null;
+    noProducts?: string | null;
+    loadingCategories?: string | null;
+    loadingFlashSales?: string | null;
+    loadingProducts?: string | null;
+  };
+  valueProps?: StorefrontHomeValueProp[];
+  journal?: {
+    kicker?: string | null;
+    titleLine1?: string | null;
+    titleLine2?: string | null;
+    description?: string | null;
+    ctaLabel?: string | null;
+  };
+  member?: {
+    kicker?: string | null;
+    title?: string | null;
+    description?: string | null;
+    emailPlaceholder?: string | null;
+    ctaLabel?: string | null;
+  };
+  apiNotice?: string | null;
+};
+
+export type BrandConfigStorefront = {
+  home?: StorefrontHomeContent;
+};
+
 type BrandConfigApiItem = {
   _id?: string;
   id?: string;
@@ -58,6 +133,7 @@ type BrandConfigApiItem = {
   supportPhone?: string;
   socialLinks?: BrandConfigSocialLinks;
   featureFlags?: BrandConfigFeatureFlags;
+  storefront?: BrandConfigStorefront;
   maintenanceMode?: boolean;
   updatedAt?: string;
 };
@@ -75,6 +151,7 @@ export type BrandConfig = {
   supportPhone?: string | null;
   socialLinks?: BrandConfigSocialLinks;
   featureFlags: Required<BrandConfigFeatureFlags>;
+  storefront?: BrandConfigStorefront;
   maintenanceMode: boolean;
   updatedAt?: string;
 };
@@ -90,6 +167,7 @@ export type UpdateBrandConfigPayload = Partial<{
   supportPhone: string | null;
   socialLinks: BrandConfigSocialLinks;
   featureFlags: BrandConfigFeatureFlags;
+  storefront: BrandConfigStorefront;
   maintenanceMode: boolean;
 }>;
 
@@ -110,6 +188,7 @@ const normalizeBrandConfig = (item: BrandConfigApiItem): BrandConfig => ({
     flashSale: item.featureFlags?.flashSale ?? true,
     review: item.featureFlags?.review ?? true,
   },
+  storefront: item.storefront,
   maintenanceMode: item.maintenanceMode ?? false,
   updatedAt: item.updatedAt,
 });

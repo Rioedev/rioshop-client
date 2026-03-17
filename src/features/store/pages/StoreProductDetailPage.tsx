@@ -1,4 +1,11 @@
-import { Button, InputNumber, Typography, message } from "antd";
+import {
+  CheckCircleOutlined,
+  HeartOutlined,
+  SafetyCertificateOutlined,
+  StarFilled,
+  TruckOutlined,
+} from "@ant-design/icons";
+import { Button, InputNumber, Progress, Rate, Typography, message } from "antd";
 import { useEffect, useMemo, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { productService, type Product } from "../../../services/productService";
@@ -28,6 +35,15 @@ const resolveImageUrl = (url?: string): string | undefined => {
   return `${apiBaseUrl}${normalizedPath}`;
 };
 
+type ProductRuntime = Product & {
+  ratings?: {
+    avg?: number;
+    count?: number;
+    dist?: Record<string, number>;
+  };
+  totalSold?: number;
+};
+
 type MockProduct = {
   id: string;
   slug: string;
@@ -41,6 +57,43 @@ type MockProduct = {
   care: string[];
   images: string[];
 };
+
+const demoColors = [
+  { name: "Coral", hex: "#ff7f7f" },
+  { name: "Pearl", hex: "#f1f5f9" },
+  { name: "Navy", hex: "#1e3a8a" },
+  { name: "Onyx", hex: "#0f172a" },
+  { name: "Slate", hex: "#64748b" },
+];
+
+const demoSizes = ["XS", "S", "M", "L", "XL", "2XL"];
+
+const techCards = [
+  {
+    title: "CoolSoft",
+    subtitle: "Mem, mat, khong bi xoc",
+    text: "Soi vai mem va be mat min giup mac em, thoang, khong gay cam giac kho chiu khi van dong.",
+    image: "https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?auto=format&fit=crop&w=900&q=80",
+  },
+  {
+    title: "CoolDry",
+    subtitle: "Thoat hoi am nhanh",
+    text: "Cong nghe dan hoi va hut am tot giup trang phuc kho nhanh, phu hop cho ca ngay dai.",
+    image: "https://images.unsplash.com/photo-1467043198406-dc953a3defa0?auto=format&fit=crop&w=900&q=80",
+  },
+  {
+    title: "CoolRib",
+    subtitle: "Giu form on dinh",
+    text: "Cau truc det rib giup vai giu do bung, giam gian bai va ben dep sau nhieu lan giat.",
+    image: "https://images.unsplash.com/photo-1602810318383-e386cc2a3ccf?auto=format&fit=crop&w=900&q=80",
+  },
+  {
+    title: "CoolFlex",
+    subtitle: "Co gian 4 chieu",
+    text: "Ty le spandex toi uu giup cu dong thoai mai hon khi tap luyen va di chuyen lien tuc.",
+    image: "https://images.unsplash.com/photo-1512436991641-6745cdb1723f?auto=format&fit=crop&w=900&q=80",
+  },
+];
 
 const mockProducts: MockProduct[] = [
   {
@@ -100,10 +153,7 @@ const mockProducts: MockProduct[] = [
   },
 ];
 
-const demoColors = ["Den", "Trang", "Navy", "Reu"];
-const demoSizes = ["S", "M", "L", "XL", "2XL"];
-
-const toMockProduct = (product: MockProduct): Product => ({
+const toMockProduct = (product: MockProduct): ProductRuntime => ({
   _id: product.id,
   sku: `SKU-${product.id.toUpperCase()}`,
   slug: product.slug,
@@ -132,9 +182,21 @@ const toMockProduct = (product: MockProduct): Product => ({
   isFeatured: true,
   isNew: true,
   isBestseller: product.salePrice < product.basePrice,
+  ratings: {
+    avg: 4.8,
+    count: 214,
+    dist: {
+      5: 168,
+      4: 31,
+      3: 10,
+      2: 4,
+      1: 1,
+    },
+  },
+  totalSold: 1860,
 });
 
-const findMockBySlug = (slug?: string): Product | null => {
+const findMockBySlug = (slug?: string): ProductRuntime | null => {
   if (!slug) {
     return toMockProduct(mockProducts[0]);
   }
@@ -143,18 +205,43 @@ const findMockBySlug = (slug?: string): Product | null => {
   return found ? toMockProduct(found) : toMockProduct(mockProducts[0]);
 };
 
+const toProductCardImage = (item: ProductRuntime, fallback = "RIO") =>
+  resolveImageUrl(item.media?.find((media) => media.type === "image")?.url) ??
+  `https://dummyimage.com/800x1000/e2e8f0/0f172a&text=${encodeURIComponent(fallback)}`;
+
+const generateReviewPercents = (product: ProductRuntime) => {
+  const dist = product.ratings?.dist;
+  const count = product.ratings?.count ?? 0;
+
+  if (dist && count > 0) {
+    return [5, 4, 3, 2, 1].map((star) => ({
+      star,
+      percent: Math.round(((dist[String(star)] ?? 0) / count) * 100),
+    }));
+  }
+
+  return [
+    { star: 5, percent: 78 },
+    { star: 4, percent: 15 },
+    { star: 3, percent: 4 },
+    { star: 2, percent: 2 },
+    { star: 1, percent: 1 },
+  ];
+};
+
 export function StoreProductDetailPage() {
   const { slug } = useParams();
   const addItem = useCartStore((state) => state.addItem);
 
-  const [product, setProduct] = useState<Product | null>(null);
-  const [relatedProducts, setRelatedProducts] = useState<Product[]>([]);
+  const [product, setProduct] = useState<ProductRuntime | null>(null);
+  const [relatedProducts, setRelatedProducts] = useState<ProductRuntime[]>([]);
+  const [catalogProducts, setCatalogProducts] = useState<ProductRuntime[]>([]);
   const [loading, setLoading] = useState(true);
   const [usingMock, setUsingMock] = useState(false);
   const [quantity, setQuantity] = useState(1);
   const [selectedImage, setSelectedImage] = useState<string | undefined>(undefined);
-  const [selectedColor, setSelectedColor] = useState(demoColors[0]);
-  const [selectedSize, setSelectedSize] = useState(demoSizes[1]);
+  const [selectedColor, setSelectedColor] = useState(demoColors[0].name);
+  const [selectedSize, setSelectedSize] = useState(demoSizes[2]);
 
   useEffect(() => {
     let active = true;
@@ -163,10 +250,13 @@ export function StoreProductDetailPage() {
       setLoading(true);
       setUsingMock(false);
 
+      const fallbackProduct = findMockBySlug(slug);
+
       if (!slug) {
         if (active) {
-          setProduct(findMockBySlug());
+          setProduct(fallbackProduct);
           setRelatedProducts(mockProducts.slice(1).map((item) => toMockProduct(item)));
+          setCatalogProducts(mockProducts.map((item) => toMockProduct(item)));
           setUsingMock(true);
           setLoading(false);
         }
@@ -174,23 +264,38 @@ export function StoreProductDetailPage() {
       }
 
       try {
-        const result = await productService.getProductBySlug(slug);
+        const result = (await productService.getProductBySlug(slug)) as ProductRuntime;
         if (!active) {
           return;
         }
 
         setProduct(result);
 
-        try {
-          const related = await productService.getRelatedProducts(result._id);
-          if (active) {
-            setRelatedProducts(related);
-          }
-        } catch {
-          if (active) {
+        const [relatedResult, catalogResult] = await Promise.allSettled([
+          productService.getRelatedProducts(result._id),
+          productService.getProducts({
+            page: 1,
+            limit: 28,
+            status: "active",
+            sort: { isFeatured: -1, totalSold: -1, createdAt: -1 },
+          }),
+        ]);
+
+        if (active) {
+          if (relatedResult.status === "fulfilled") {
+            setRelatedProducts((relatedResult.value as ProductRuntime[]).filter((item) => item._id !== result._id));
+          } else {
             setRelatedProducts(
-              mockProducts.filter((item) => item.slug !== slug).map((item) => toMockProduct(item)),
+              mockProducts
+                .filter((item) => item.slug !== slug)
+                .map((item) => toMockProduct(item)),
             );
+          }
+
+          if (catalogResult.status === "fulfilled") {
+            setCatalogProducts((catalogResult.value.docs as ProductRuntime[]).filter((item) => item._id !== result._id));
+          } else {
+            setCatalogProducts(mockProducts.filter((item) => item.slug !== slug).map((item) => toMockProduct(item)));
           }
         }
       } catch {
@@ -198,9 +303,9 @@ export function StoreProductDetailPage() {
           return;
         }
 
-        const mockProduct = findMockBySlug(slug);
-        setProduct(mockProduct);
+        setProduct(fallbackProduct);
         setRelatedProducts(mockProducts.filter((item) => item.slug !== slug).map((item) => toMockProduct(item)));
+        setCatalogProducts(mockProducts.filter((item) => item.slug !== slug).map((item) => toMockProduct(item)));
         setUsingMock(true);
       } finally {
         if (active) {
@@ -229,6 +334,36 @@ export function StoreProductDetailPage() {
     setSelectedImage(imageList[0]);
   }, [imageList]);
 
+  const productPool = useMemo(() => {
+    const all = [...relatedProducts, ...catalogProducts].filter((item) => item._id !== product?._id);
+    const map = new Map<string, ProductRuntime>();
+
+    all.forEach((item) => {
+      if (!map.has(item._id)) {
+        map.set(item._id, item);
+      }
+    });
+
+    return Array.from(map.values());
+  }, [relatedProducts, catalogProducts, product?._id]);
+
+  const styleProducts = productPool.slice(0, 4);
+  const sameTechProducts = productPool.slice(4, 8).length > 0 ? productPool.slice(4, 8) : productPool.slice(0, 4);
+  const suggestedProducts = productPool.slice(8, 12).length > 0 ? productPool.slice(8, 12) : productPool.slice(2, 6);
+
+  const viewedProducts = useMemo(() => {
+    const list = [product, ...productPool].filter((item): item is ProductRuntime => Boolean(item));
+    const map = new Map<string, ProductRuntime>();
+
+    list.forEach((item) => {
+      if (!map.has(item._id)) {
+        map.set(item._id, item);
+      }
+    });
+
+    return Array.from(map.values()).slice(0, 4);
+  }, [product, productPool]);
+
   if (loading) {
     return <div className="product-detail-skeleton" />;
   }
@@ -253,6 +388,10 @@ export function StoreProductDetailPage() {
 
   const displayImage = selectedImage ?? imageList[0];
   const hasDiscount = product.pricing.basePrice > product.pricing.salePrice;
+  const ratingValue = product.ratings?.avg ?? 4.8;
+  const ratingCount = product.ratings?.count ?? 0;
+  const soldText = product.totalSold ? `${product.totalSold.toLocaleString("vi-VN")} da ban` : "Moi cap nhat";
+  const reviewPercents = generateReviewPercents(product);
 
   const onAddToCart = () => {
     addItem({
@@ -266,8 +405,29 @@ export function StoreProductDetailPage() {
     message.success("Da them san pham vao gio hang");
   };
 
+  const renderProductCards = (items: ProductRuntime[]) => (
+    <div className="pdpv2-showcase-grid">
+      {items.map((item, index) => (
+        <Link key={item._id} to={`/products/${item.slug}`} className="pdpv2-showcase-card">
+          <div className="pdpv2-showcase-image">
+            <img src={toProductCardImage(item, `RIO-${index + 1}`)} alt={item.name} className="h-full w-full object-cover" />
+          </div>
+          <div className="pdpv2-showcase-content">
+            <div className="pdpv2-color-row">
+              {demoColors.slice(0, 4).map((color) => (
+                <span key={`${item._id}-${color.name}`} className="pdpv2-color-mini" style={{ background: color.hex }} />
+              ))}
+            </div>
+            <h4>{item.name}</h4>
+            <p>{formatCurrency(item.pricing.salePrice)}</p>
+          </div>
+        </Link>
+      ))}
+    </div>
+  );
+
   return (
-    <div className="space-y-8">
+    <div className="pdpv2-page space-y-8">
       <div className="flex flex-wrap items-center justify-between gap-3 text-sm text-slate-500">
         <div>
           <Link to="/" className="hover:text-slate-900">
@@ -281,39 +441,50 @@ export function StoreProductDetailPage() {
         {usingMock ? <span className="product-mock-badge">Demo UI mode</span> : null}
       </div>
 
-      <section className="product-detail-wrap">
-        <div className="product-gallery-panel">
-          <div className="product-main-image">
-            {displayImage ? (
-              <img src={displayImage} alt={product.name} className="h-full w-full object-cover" />
-            ) : (
-              <div className="product-main-fallback">RIO</div>
-            )}
-          </div>
+      <section className="pdpv2-main-wrap">
+        <div className="pdpv2-gallery-panel">
+          <div className="pdpv2-gallery-grid">
+            {imageList.length > 1 ? (
+              <div className="pdpv2-thumb-column">
+                {imageList.map((image) => (
+                  <button
+                    key={image}
+                    type="button"
+                    onClick={() => setSelectedImage(image)}
+                    className={`pdpv2-thumb-btn ${selectedImage === image ? "is-active" : ""}`}
+                  >
+                    <img src={image} alt={product.name} className="h-full w-full object-cover" />
+                  </button>
+                ))}
+              </div>
+            ) : null}
 
-          {imageList.length > 1 ? (
-            <div className="product-thumb-grid">
-              {imageList.map((image) => (
-                <button
-                  key={image}
-                  type="button"
-                  onClick={() => setSelectedImage(image)}
-                  className={`product-thumb-btn ${selectedImage === image ? "is-active" : ""}`}
-                >
-                  <img src={image} alt={product.name} className="h-full w-full object-cover" />
-                </button>
-              ))}
+            <div className="pdpv2-main-image-wrap">
+              {displayImage ? (
+                <img src={displayImage} alt={product.name} className="h-full w-full object-cover" />
+              ) : (
+                <div className="product-main-fallback">RIO</div>
+              )}
             </div>
-          ) : null}
+          </div>
         </div>
 
-        <div className="product-info-panel">
+        <div className="pdpv2-buy-panel">
           <p className="product-info-category">{product.category?.name ?? "San pham moi"}</p>
-          <Title level={2} className="!mb-2 !mt-1 !text-3xl !text-slate-900 md:!text-4xl">
+          <Title level={2} className="!mb-2 !mt-1 !text-3xl !text-slate-900 md:!text-[34px]">
             {product.name}
           </Title>
 
-          <div className="mb-5 flex items-end gap-2">
+          <div className="pdpv2-rating-row">
+            <span className="inline-flex items-center gap-1 text-amber-500">
+              <StarFilled />
+              {ratingValue.toFixed(1)}
+            </span>
+            <span>({ratingCount} danh gia)</span>
+            <span>{soldText}</span>
+          </div>
+
+          <div className="mb-4 mt-4 flex items-end gap-2">
             <span className="text-3xl font-black text-slate-900">
               {formatCurrency(product.pricing.salePrice)}
             </span>
@@ -328,25 +499,37 @@ export function StoreProductDetailPage() {
             {product.shortDescription ?? product.description ?? "San pham toi gian, de mac, de phoi."}
           </Paragraph>
 
-          <div className="product-highlight-grid">
-            <div className="product-highlight-item">Giao nhanh 2h noi thanh</div>
-            <div className="product-highlight-item">Doi size 60 ngay</div>
-            <div className="product-highlight-item">Bao hanh duong may 6 thang</div>
+          <div className="pdpv2-policy-grid">
+            <div className="pdpv2-policy-item">
+              <TruckOutlined />
+              Giao nhanh 2h noi thanh
+            </div>
+            <div className="pdpv2-policy-item">
+              <SafetyCertificateOutlined />
+              Chinh hang 100%
+            </div>
+            <div className="pdpv2-policy-item">
+              <CheckCircleOutlined />
+              Doi tra 60 ngay
+            </div>
+            <div className="pdpv2-policy-item">
+              <HeartOutlined />
+              Tu van size 24/7
+            </div>
           </div>
 
-          <div className="mt-6">
-            <p className="mb-2 text-sm font-semibold uppercase tracking-[0.12em] text-slate-500">
-              Mau sac
-            </p>
+          <div className="mt-5">
+            <p className="mb-2 text-sm font-semibold uppercase tracking-[0.12em] text-slate-500">Mau sac</p>
             <div className="flex flex-wrap gap-2">
               {demoColors.map((color) => (
                 <button
-                  key={color}
+                  key={color.name}
                   type="button"
-                  onClick={() => setSelectedColor(color)}
-                  className={`option-pill ${selectedColor === color ? "is-active" : ""}`}
+                  onClick={() => setSelectedColor(color.name)}
+                  className={`pdpv2-color-pill ${selectedColor === color.name ? "is-active" : ""}`}
                 >
-                  {color}
+                  <span className="pdpv2-color-dot" style={{ background: color.hex }} />
+                  {color.name}
                 </button>
               ))}
             </div>
@@ -368,13 +551,13 @@ export function StoreProductDetailPage() {
             </div>
           </div>
 
-          <div className="mt-5">
-            <p className="mb-2 text-sm font-semibold uppercase tracking-[0.12em] text-slate-500">So luong</p>
+          <div className="mt-5 flex flex-wrap items-center gap-3">
+            <p className="m-0 text-sm font-semibold uppercase tracking-[0.12em] text-slate-500">So luong</p>
             <InputNumber
               min={1}
               value={quantity}
               onChange={(value) => setQuantity(Math.max(1, Number(value ?? 1)))}
-              className="!w-32 !rounded-xl"
+              className="!w-28 !rounded-xl"
             />
           </div>
 
@@ -389,7 +572,7 @@ export function StoreProductDetailPage() {
             </Button>
             <Link to="/cart">
               <Button size="large" className="!h-11 !rounded-full !border-slate-300 !px-7 !font-semibold">
-                Xem gio hang
+                Mua ngay
               </Button>
             </Link>
           </div>
@@ -405,11 +588,111 @@ export function StoreProductDetailPage() {
         </div>
       </section>
 
+      <section className="pdpv2-overview-card">
+        <h3 className="pdpv2-section-title">Mo ta san pham</h3>
+        <div className="pdpv2-overview-grid">
+          <div className="pdpv2-spec-card">
+            <p className="pdpv2-spec-label">Thong tin chi tiet</p>
+            <ul className="pdpv2-spec-list">
+              <li>
+                <span>Thuong hieu</span>
+                <strong>{product.brand ?? "RioShop"}</strong>
+              </li>
+              <li>
+                <span>Danh muc</span>
+                <strong>{product.category?.name ?? "San pham"}</strong>
+              </li>
+              <li>
+                <span>SKU</span>
+                <strong>{product.sku ?? "Dang cap nhat"}</strong>
+              </li>
+              <li>
+                <span>Tinh trang</span>
+                <strong>{product.status === "active" ? "Con hang" : "Tam het"}</strong>
+              </li>
+            </ul>
+
+            <Paragraph className="!mb-0 !mt-4 !text-sm !leading-7 !text-slate-600">
+              {product.description ?? "San pham duoc phat trien theo huong toi gian, de mac, de phoi va de bao quan."}
+            </Paragraph>
+          </div>
+
+          <div className="pdpv2-overview-media-grid">
+            <div className="pdpv2-overview-media-large">
+              <img src={displayImage ?? techCards[0].image} alt={product.name} className="h-full w-full object-cover" />
+            </div>
+            <div className="pdpv2-overview-media-large">
+              <img
+                src={imageList[1] ?? imageList[0] ?? techCards[1].image}
+                alt={`${product.name}-look`}
+                className="h-full w-full object-cover"
+              />
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section className="pdpv2-block">
+        <h3 className="pdpv2-section-title">Mua sam theo phong cach</h3>
+        {renderProductCards(styleProducts.length > 0 ? styleProducts : relatedProducts.slice(0, 4))}
+      </section>
+
+      <section className="pdpv2-block">
+        <h3 className="pdpv2-section-title">San pham cung cong nghe</h3>
+        {renderProductCards(sameTechProducts.length > 0 ? sameTechProducts : relatedProducts.slice(0, 4))}
+      </section>
+
+      <section className="pdpv2-block">
+        <h3 className="pdpv2-section-title">Cong nghe vai noi bat</h3>
+        <div className="pdpv2-tech-grid">
+          {techCards.map((item) => (
+            <article key={item.title} className="pdpv2-tech-card">
+              <div className="pdpv2-tech-image">
+                <img src={item.image} alt={item.title} className="h-full w-full object-cover" />
+              </div>
+              <div className="pdpv2-tech-content">
+                <h4>{item.title}</h4>
+                <p className="pdpv2-tech-subtitle">{item.subtitle}</p>
+                <p>{item.text}</p>
+              </div>
+            </article>
+          ))}
+        </div>
+      </section>
+
+      <section className="pdpv2-block">
+        <h3 className="pdpv2-section-title">Goi y san pham</h3>
+        {renderProductCards(suggestedProducts.length > 0 ? suggestedProducts : relatedProducts.slice(0, 4))}
+      </section>
+
+      <section className="pdpv2-review-wrap">
+        <h3 className="pdpv2-section-title">Danh gia san pham</h3>
+        <div className="pdpv2-review-grid">
+          <div className="pdpv2-review-score">
+            <p className="pdpv2-score-number">{ratingValue.toFixed(1)}</p>
+            <Rate allowHalf disabled value={ratingValue} className="!text-base" />
+            <p className="m-0 text-sm text-slate-500">{ratingCount} danh gia tu khach hang</p>
+          </div>
+
+          <div className="space-y-3">
+            {reviewPercents.map((item) => (
+              <div key={item.star} className="pdpv2-review-row">
+                <span>{item.star} sao</span>
+                <Progress percent={item.percent} showInfo={false} strokeColor="#0f172a" trailColor="#e2e8f0" />
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      <section className="pdpv2-block">
+        <h3 className="pdpv2-section-title">San pham ban da xem</h3>
+        {renderProductCards(viewedProducts)}
+      </section>
+
       {relatedProducts.length > 0 ? (
-        <section>
-          <Title level={3} className="!mb-4 !mt-0 !text-2xl">
-            Ban co the se thich
-          </Title>
+        <section className="pdpv2-block">
+          <h3 className="pdpv2-section-title">Ban co the se thich</h3>
           <div className="related-grid">
             {relatedProducts.slice(0, 4).map((item) => {
               const image = resolveImageUrl(item.media?.find((media) => media.type === "image")?.url);
@@ -437,6 +720,14 @@ export function StoreProductDetailPage() {
           </div>
         </section>
       ) : null}
+
+      <div className="pdpv2-member-banner">
+        <div>
+          <p className="pdpv2-mini-kicker">Dac quyen thanh vien</p>
+          <h4>Uu dai rieng cho don tiep theo</h4>
+        </div>
+        <Button className="!h-11 !rounded-full !border-0 !px-7 !font-bold">Dang ky ngay</Button>
+      </div>
     </div>
   );
 }
