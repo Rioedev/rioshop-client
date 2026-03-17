@@ -11,6 +11,8 @@ const baseAdminMenuItems: ItemType[] = [
   { key: "/admin/orders", label: "Đơn hàng" },
   { key: "/admin/products", label: "Sản phẩm" },
   { key: "/admin/reviews", label: "Đánh giá" },
+  { key: "/admin/flash-sales", label: "Giảm giá chớp nhoáng" },
+  { key: "/admin/analytics-events", label: "Sự kiện phân tích" },
   { key: "/admin/coupons", label: "Mã giảm giá" },
   { key: "/admin/notifications", label: "Thông báo" },
   { key: "/admin/inventories", label: "Tồn kho" },
