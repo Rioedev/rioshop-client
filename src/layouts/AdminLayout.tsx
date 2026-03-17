@@ -10,6 +10,7 @@ const baseAdminMenuItems: ItemType[] = [
   { key: "/admin/dashboard", label: "Tổng quan" },
   { key: "/admin/orders", label: "Đơn hàng" },
   { key: "/admin/products", label: "Sản phẩm" },
+  { key: "/admin/coupons", label: "Mã giảm giá" },
   { key: "/admin/inventories", label: "Tồn kho" },
   { key: "/admin/categories", label: "Danh mục" },
   { key: "/admin/users", label: "Khách hàng" },
@@ -32,8 +33,12 @@ export function AdminLayout() {
     )?.key ?? "/admin/dashboard";
 
   return (
-    <Layout className="min-h-screen">
-      <Sider breakpoint="lg" width={240} className="bg-slate-950!">
+    <Layout className="h-screen overflow-hidden">
+      <Sider
+        breakpoint="lg"
+        width={240}
+        className="bg-slate-950! h-screen! sticky! left-0 top-0 overflow-y-auto"
+      >
         <div className="px-6 py-5">
           <Title level={4} className="mb-0! mt-2! text-white!">
             RioShop
@@ -47,8 +52,8 @@ export function AdminLayout() {
           onClick={({ key }) => navigate(key)}
         />
       </Sider>
-      <Layout>
-        <Header className="bg-white! px-6! shadow-sm">
+      <Layout className="h-screen overflow-hidden">
+        <Header className="bg-white! px-6! shadow-sm shrink-0">
           <div className="flex h-full items-center justify-between">
             <Title level={4} className="m-0!">
               Quản lý hệ thống cửa hàng RioShop
@@ -66,8 +71,8 @@ export function AdminLayout() {
             </div>
           </div>
         </Header>
-        <Content className="bg-slate-100 p-6">
-          <div className="min-h-[calc(100vh-112px)] rounded-2xl border border-slate-200 bg-white p-5 md:p-6">
+        <Content className="bg-slate-100 p-6 overflow-y-auto">
+          <div className="min-h-full rounded-2xl border border-slate-200 bg-white p-5 md:p-6">
             <Outlet />
           </div>
         </Content>
