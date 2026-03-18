@@ -18,9 +18,9 @@ import {
 import { categoryService, type Category } from "../../../services/categoryService";
 import { flashSaleService } from "../../../services/flashSaleService";
 import { productService, type Product } from "../../../services/productService";
+import { formatStoreCurrency as formatCurrency, resolveStoreImageUrl as resolveImageUrl } from "../utils/storeFormatting";
 
 const STORE_BRAND_KEY = "rioshop-default";
-const apiBaseUrl = (import.meta.env.VITE_API_BASE_URL ?? "http://localhost:5000").replace(/\/$/, "");
 
 const FALLBACK_CATEGORY_IMAGES = [
   "https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?auto=format&fit=crop&w=900&q=80",
@@ -41,13 +41,6 @@ const FALLBACK_PRODUCT_IMAGES = [
   "https://images.unsplash.com/photo-1581655353564-df123a1eb820?auto=format&fit=crop&w=900&q=80",
   "https://images.unsplash.com/photo-1516257984-b1b4d707412e?auto=format&fit=crop&w=900&q=80",
 ];
-
-const formatCurrency = (value: number) =>
-  new Intl.NumberFormat("vi-VN", {
-    style: "currency",
-    currency: "VND",
-    maximumFractionDigits: 0,
-  }).format(value);
 
 type ProductRuntime = Product & {
   ratings?: {
@@ -244,19 +237,6 @@ const iconByKey = {
   return: <ReloadOutlined />,
   shield: <SafetyCertificateOutlined />,
   flash: <ThunderboltOutlined />,
-};
-
-const resolveImageUrl = (url?: string): string | undefined => {
-  if (!url) {
-    return undefined;
-  }
-
-  if (/^https?:\/\//i.test(url)) {
-    return url;
-  }
-
-  const normalizedPath = url.startsWith("/") ? url : `/${url}`;
-  return `${apiBaseUrl}${normalizedPath}`;
 };
 
 const getProductImage = (product: ProductRuntime, fallbackIndex = 0) => {

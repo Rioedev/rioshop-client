@@ -114,13 +114,13 @@ export function StoreLayout() {
       <div className="store-promo-bar">Freeship toan quoc cho don tu 299K | Doi tra mien phi trong 60 ngay</div>
 
       <header className="store-header">
-        <div className="mx-auto w-full max-w-[1880px] px-3 py-4 sm:px-4 xl:px-6">
+        <div className="mx-auto w-full max-w-470 px-3 py-4 sm:px-4 xl:px-6">
           <div className="flex flex-wrap items-center gap-3 lg:flex-nowrap">
             <Link to="/" className="store-logo">
               Rio<span>Shop</span>
             </Link>
 
-            <div className="order-3 w-full lg:order-none lg:flex-1">
+            <div className="order-3 w-full lg:order-0 lg:flex-1">
               <Input
                 allowClear
                 value={searchKeyword}
@@ -245,7 +245,7 @@ export function StoreLayout() {
       </header>
 
       <div className="store-policy-strip">
-        <div className="mx-auto w-full max-w-[1880px] px-3 sm:px-4 xl:px-6">
+        <div className="mx-auto w-full max-w-470 px-3 sm:px-4 xl:px-6">
           <div className="flex flex-wrap items-center gap-3 py-3">
             {policyItems.map((item) => (
               <div key={item} className="store-policy-item">
@@ -257,12 +257,12 @@ export function StoreLayout() {
         </div>
       </div>
 
-      <main className={`mx-auto w-full max-w-[1880px] px-3 sm:px-4 xl:px-6 ${isHomePage ? "pt-0 pb-6 md:pb-8" : "py-6 md:py-8"}`}>
+      <main className={`mx-auto w-full max-w-470 px-3 sm:px-4 xl:px-6 ${isHomePage ? "pt-0 pb-6 md:pb-8" : "py-6 md:py-8"}`}>
         <Outlet />
       </main>
 
       <footer className="store-footer">
-        <div className="mx-auto grid w-full max-w-[1880px] gap-8 px-3 py-10 sm:px-4 lg:grid-cols-4 xl:px-6">
+        <div className="mx-auto grid w-full max-w-470 gap-8 px-3 py-10 sm:px-4 lg:grid-cols-4 xl:px-6">
           <div>
             <h4 className="store-footer-title">RioShop</h4>
             <p className="store-footer-text">Thời trang tối giản, dễ mặc, dễ sống mỗi ngày.</p>

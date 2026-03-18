@@ -1,18 +1,20 @@
-import { Alert, Button, Input, Select, Typography, message } from "antd";
+import { Button, Input, Select, message } from "antd";
 import { useMemo, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
+import {
+  StoreEmptyState,
+  StoreInlineNote,
+  StoreMetricGrid,
+  StorePageShell,
+  StoreHeroSection,
+  StorePanelFrame,
+  StoreSectionHeader,
+  storeButtonClassNames,
+} from "../components/StorePageChrome";
+import { formatStoreCurrency } from "../utils/storeFormatting";
 import { orderService } from "../../../services/orderService";
 import { useAuthStore } from "../../../stores/authStore";
 import { useCartStore } from "../../../stores/cartStore";
-
-const { Paragraph, Title } = Typography;
-
-const formatCurrency = (value: number) =>
-  new Intl.NumberFormat("vi-VN", {
-    style: "currency",
-    currency: "VND",
-    maximumFractionDigits: 0,
-  }).format(value);
 
 const objectIdPattern = /^[0-9a-fA-F]{24}$/;
 
@@ -50,37 +52,35 @@ export function StoreCheckoutPage() {
 
   if (!isAuthenticated) {
     return (
-      <section className="cart-empty-state">
-        <Title level={3} className="m-0! mb-2!">
-          Ban can dang nhap de thanh toan
-        </Title>
-        <Paragraph className="mb-4! text-slate-600!">
-          Vui long dang nhap de tiep tuc dat hang va theo doi lich su don mua.
-        </Paragraph>
-        <Link to="/login">
-          <Button type="primary" className="rounded-full! bg-slate-900! px-6! shadow-none!">
-            Dang nhap ngay
-          </Button>
-        </Link>
-      </section>
+      <StoreEmptyState
+        kicker="Checkout"
+        title="Ban can dang nhap de thanh toan"
+        description="Vui long dang nhap de tiep tuc dat hang, luu dia chi nhan va theo doi lich su don mua."
+        action={
+          <Link to="/login">
+            <Button type="primary" className={storeButtonClassNames.primary}>
+              Dang nhap ngay
+            </Button>
+          </Link>
+        }
+      />
     );
   }
 
   if (cartItems.length === 0) {
     return (
-      <section className="cart-empty-state">
-        <Title level={3} className="m-0! mb-2!">
-          Gio hang dang trong
-        </Title>
-        <Paragraph className="mb-4! text-slate-600!">
-          Chon them san pham truoc khi tien hanh thanh toan.
-        </Paragraph>
-        <Link to="/products">
-          <Button type="primary" className="rounded-full! bg-slate-900! px-6! shadow-none!">
-            Di mua sam
-          </Button>
-        </Link>
-      </section>
+      <StoreEmptyState
+        kicker="Checkout"
+        title="Gio hang dang trong"
+        description="Chon them san pham truoc khi tien hanh thanh toan va xac nhan don hang."
+        action={
+          <Link to="/products">
+            <Button type="primary" className={storeButtonClassNames.primary}>
+              Di mua sam
+            </Button>
+          </Link>
+        }
+      />
     );
   }
 
@@ -143,150 +143,177 @@ export function StoreCheckoutPage() {
     }
   };
 
+  const checkoutMetrics = [
+    {
+      label: "Tam tinh",
+      value: formatStoreCurrency(subtotal),
+      description: "Gia tri hang hoa truoc phi giao va cac uu dai.",
+    },
+    {
+      label: "Van chuyen",
+      value: formatStoreCurrency(shippingFee),
+      description: "Phi tam tinh dua tren cach giao hang ban dang chon.",
+    },
+    {
+      label: "Thanh toan",
+      value: formatStoreCurrency(total),
+      description: "Tong so tien du kien can thanh toan cho don nay.",
+    },
+  ];
+
   return (
-    <div className="cart-page-grid">
+    <StorePageShell>
       {contextHolder}
 
-      <section className="cart-list-wrap space-y-4">
-        <Title level={3} className="m-0!">
-          Thong tin thanh toan
-        </Title>
+      <StoreHeroSection
+        kicker="Checkout"
+        title="Hoan tat don hang"
+        description="Xac nhan thong tin nguoi nhan, phuong thuc giao va cach thanh toan truoc khi dat hang."
+        action={
+          <Link to="/cart">
+            <Button className={storeButtonClassNames.secondary}>Quay lai gio hang</Button>
+          </Link>
+        }
+      >
+        <StoreMetricGrid items={checkoutMetrics} />
+      </StoreHeroSection>
 
-        {invalidProductIds.length > 0 ? (
-          <Alert
-            type="warning"
-            showIcon
-            message="Co san pham du lieu cu trong gio hang"
-            description="He thong yeu cau productId hop le (Mongo ObjectId). Vui long xoa item cu va them lai tu trang chi tiet san pham."
-          />
-        ) : null}
+      <div className="cart-page-grid">
+        <StorePanelFrame className="cart-list-wrap space-y-4">
+          <StoreSectionHeader kicker="Thong tin giao nhan" title="Dia chi va lien he" />
 
-        <div className="grid gap-3 md:grid-cols-2">
-          <div>
-            <p className="mb-1 text-sm font-semibold text-slate-600">Ho va ten</p>
-            <Input value={fullName} onChange={(event) => setFullName(event.target.value)} />
-          </div>
-          <div>
-            <p className="mb-1 text-sm font-semibold text-slate-600">So dien thoai</p>
-            <Input value={phone} onChange={(event) => setPhone(event.target.value)} />
-          </div>
-          <div>
-            <p className="mb-1 text-sm font-semibold text-slate-600">Email</p>
-            <Input value={email} onChange={(event) => setEmail(event.target.value)} />
-          </div>
-          <div>
-            <p className="mb-1 text-sm font-semibold text-slate-600">Thanh pho</p>
-            <Select
-              value={city}
-              options={[
-                { value: "Ho Chi Minh", label: "Ho Chi Minh" },
-                { value: "Ha Noi", label: "Ha Noi" },
-                { value: "Da Nang", label: "Da Nang" },
-              ]}
-              onChange={(value) => setCity(value)}
-              className="w-full"
+          {invalidProductIds.length > 0 ? (
+            <StoreInlineNote
+              tone="warning"
+              title="Co san pham du lieu cu trong gio hang"
+              description="He thong yeu cau productId hop le. Vui long xoa item cu va them lai tu trang chi tiet san pham."
             />
+          ) : null}
+
+          <div className="grid gap-3 md:grid-cols-2">
+            <div>
+              <p className="mb-1 text-sm font-semibold text-slate-600">Ho va ten</p>
+              <Input value={fullName} onChange={(event) => setFullName(event.target.value)} />
+            </div>
+            <div>
+              <p className="mb-1 text-sm font-semibold text-slate-600">So dien thoai</p>
+              <Input value={phone} onChange={(event) => setPhone(event.target.value)} />
+            </div>
+            <div>
+              <p className="mb-1 text-sm font-semibold text-slate-600">Email</p>
+              <Input value={email} onChange={(event) => setEmail(event.target.value)} />
+            </div>
+            <div>
+              <p className="mb-1 text-sm font-semibold text-slate-600">Thanh pho</p>
+              <Select
+                value={city}
+                options={[
+                  { value: "Ho Chi Minh", label: "Ho Chi Minh" },
+                  { value: "Ha Noi", label: "Ha Noi" },
+                  { value: "Da Nang", label: "Da Nang" },
+                ]}
+                onChange={(value) => setCity(value)}
+                className="w-full"
+              />
+            </div>
           </div>
-        </div>
 
-        <div>
-          <p className="mb-1 text-sm font-semibold text-slate-600">Quan/Huyen</p>
-          <Input value={district} onChange={(event) => setDistrict(event.target.value)} />
-        </div>
-
-        <div>
-          <p className="mb-1 text-sm font-semibold text-slate-600">Dia chi nhan hang</p>
-          <Input.TextArea rows={3} value={address} onChange={(event) => setAddress(event.target.value)} />
-        </div>
-
-        <div className="grid gap-3 md:grid-cols-2">
           <div>
-            <p className="mb-1 text-sm font-semibold text-slate-600">Hinh thuc van chuyen</p>
-            <Select
-              value={shippingMethod}
-              options={[
-                { value: "standard", label: "Tieu chuan (2-4 ngay)" },
-                { value: "express", label: "Nhanh (1-2 ngay)" },
-                { value: "same_day", label: "Trong ngay (noi thanh)" },
-              ]}
-              onChange={(value) => setShippingMethod(value)}
-              className="w-full"
-            />
+            <p className="mb-1 text-sm font-semibold text-slate-600">Quan/Huyen</p>
+            <Input value={district} onChange={(event) => setDistrict(event.target.value)} />
           </div>
+
           <div>
-            <p className="mb-1 text-sm font-semibold text-slate-600">Hinh thuc thanh toan</p>
-            <Select
-              value={paymentMethod}
-              options={[
-                { value: "cod", label: "Thanh toan khi nhan hang" },
-                { value: "momo", label: "MoMo" },
-                { value: "vnpay", label: "VNPay" },
-                { value: "bank_transfer", label: "Chuyen khoan ngan hang" },
-              ]}
-              onChange={(value) => setPaymentMethod(value)}
-              className="w-full"
-            />
+            <p className="mb-1 text-sm font-semibold text-slate-600">Dia chi nhan hang</p>
+            <Input.TextArea rows={3} value={address} onChange={(event) => setAddress(event.target.value)} />
           </div>
-        </div>
 
-        <div>
-          <p className="mb-1 text-sm font-semibold text-slate-600">Ghi chu don hang</p>
-          <Input.TextArea rows={2} value={note} onChange={(event) => setNote(event.target.value)} />
-        </div>
+          <div className="grid gap-3 md:grid-cols-2">
+            <div>
+              <p className="mb-1 text-sm font-semibold text-slate-600">Hinh thuc van chuyen</p>
+              <Select
+                value={shippingMethod}
+                options={[
+                  { value: "standard", label: "Tieu chuan (2-4 ngay)" },
+                  { value: "express", label: "Nhanh (1-2 ngay)" },
+                  { value: "same_day", label: "Trong ngay (noi thanh)" },
+                ]}
+                onChange={(value) => setShippingMethod(value)}
+                className="w-full"
+              />
+            </div>
+            <div>
+              <p className="mb-1 text-sm font-semibold text-slate-600">Hinh thuc thanh toan</p>
+              <Select
+                value={paymentMethod}
+                options={[
+                  { value: "cod", label: "Thanh toan khi nhan hang" },
+                  { value: "momo", label: "MoMo" },
+                  { value: "vnpay", label: "VNPay" },
+                  { value: "bank_transfer", label: "Chuyen khoan ngan hang" },
+                ]}
+                onChange={(value) => setPaymentMethod(value)}
+                className="w-full"
+              />
+            </div>
+          </div>
 
-        <div className="space-y-2">
-          {cartItems.map((item) => (
-            <article key={item.productId} className="cart-item-card">
-              <div className="cart-item-image">
-                {item.imageUrl ? (
-                  <img src={item.imageUrl} alt={item.name} className="h-full w-full object-cover" />
-                ) : (
-                  <div className="product-main-fallback">RIO</div>
-                )}
-              </div>
-              <div className="cart-item-info">
-                <p className="m-0 text-sm font-semibold text-slate-900">{item.name}</p>
-                <p className="m-0 mt-1 text-xs text-slate-500">So luong: {item.quantity}</p>
-              </div>
-              <div className="cart-item-price">{formatCurrency(item.price * item.quantity)}</div>
-            </article>
-          ))}
-        </div>
-      </section>
+          <div>
+            <p className="mb-1 text-sm font-semibold text-slate-600">Ghi chu don hang</p>
+            <Input.TextArea rows={2} value={note} onChange={(event) => setNote(event.target.value)} />
+          </div>
 
-      <aside className="cart-summary-card">
-        <Title level={4} className="mb-4! mt-0!">
-          Tom tat don hang
-        </Title>
+          <div className="space-y-2">
+            {cartItems.map((item) => (
+              <article key={item.productId} className="cart-item-card">
+                <div className="cart-item-image">
+                  {item.imageUrl ? (
+                    <img src={item.imageUrl} alt={item.name} className="h-full w-full object-cover" />
+                  ) : (
+                    <div className="product-main-fallback">RIO</div>
+                  )}
+                </div>
+                <div className="cart-item-info">
+                  <p className="m-0 text-sm font-semibold text-slate-900">{item.name}</p>
+                  <p className="m-0 mt-1 text-xs text-slate-500">So luong: {item.quantity}</p>
+                </div>
+                <div className="cart-item-price">{formatStoreCurrency(item.price * item.quantity)}</div>
+              </article>
+            ))}
+          </div>
+        </StorePanelFrame>
 
-        <div className="cart-summary-row">
-          <span>Tam tinh</span>
-          <strong>{formatCurrency(subtotal)}</strong>
-        </div>
-        <div className="cart-summary-row">
-          <span>Phi van chuyen</span>
-          <strong>{formatCurrency(shippingFee)}</strong>
-        </div>
-        <div className="cart-summary-row is-total">
-          <span>Tong cong</span>
-          <strong>{formatCurrency(total)}</strong>
-        </div>
+        <StorePanelFrame className="cart-summary-card">
+          <StoreSectionHeader kicker="Payment summary" title="Tom tat don hang" />
 
-        <Button
-          type="primary"
-          block
-          size="large"
-          loading={submitting}
-          className="mt-4! h-11! rounded-full! bg-slate-900! shadow-none!"
-          onClick={() => void onPlaceOrder()}
-        >
-          Dat hang
-        </Button>
-        <Link to="/cart" className="mt-3 block text-center text-sm text-slate-600 hover:text-slate-900">
-          Quay lai gio hang
-        </Link>
-      </aside>
-    </div>
+          <div className="cart-summary-row">
+            <span>Tam tinh</span>
+            <strong>{formatStoreCurrency(subtotal)}</strong>
+          </div>
+          <div className="cart-summary-row">
+            <span>Phi van chuyen</span>
+            <strong>{formatStoreCurrency(shippingFee)}</strong>
+          </div>
+          <div className="cart-summary-row is-total">
+            <span>Tong cong</span>
+            <strong>{formatStoreCurrency(total)}</strong>
+          </div>
+
+          <Button
+            type="primary"
+            block
+            size="large"
+            loading={submitting}
+            className="store-home-v3-primary-btn mt-5! h-11! rounded-full! font-bold! shadow-none!"
+            onClick={() => void onPlaceOrder()}
+          >
+            Dat hang
+          </Button>
+          <Link to="/cart" className="mt-3 block text-center text-sm text-slate-600 hover:text-slate-900">
+            Quay lai gio hang
+          </Link>
+        </StorePanelFrame>
+      </div>
+    </StorePageShell>
   );
 }
-

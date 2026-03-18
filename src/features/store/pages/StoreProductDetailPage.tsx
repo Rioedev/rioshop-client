@@ -11,30 +11,9 @@ import { Link, useParams } from "react-router-dom";
 import { productService, type Product } from "../../../services/productService";
 import { reviewService, type ReviewItem } from "../../../services/reviewService";
 import { useCartStore } from "../../../stores/cartStore";
+import { formatStoreCurrency as formatCurrency, resolveStoreImageUrl as resolveImageUrl } from "../utils/storeFormatting";
 
 const { Paragraph, Title } = Typography;
-
-const apiBaseUrl = (import.meta.env.VITE_API_BASE_URL ?? "http://localhost:5000").replace(/\/$/, "");
-
-const formatCurrency = (value: number) =>
-  new Intl.NumberFormat("vi-VN", {
-    style: "currency",
-    currency: "VND",
-    maximumFractionDigits: 0,
-  }).format(value);
-
-const resolveImageUrl = (url?: string): string | undefined => {
-  if (!url) {
-    return undefined;
-  }
-
-  if (/^https?:\/\//i.test(url)) {
-    return url;
-  }
-
-  const normalizedPath = url.startsWith("/") ? url : `/${url}`;
-  return `${apiBaseUrl}${normalizedPath}`;
-};
 
 type ProductRuntime = Product & {
   ratings?: {

@@ -1,8 +1,15 @@
-import { Button, Card, Typography } from "antd";
+import { Button } from "antd";
 import { Link } from "react-router-dom";
+import {
+  StoreEmptyState,
+  StoreHeroSection,
+  StoreInfoGrid,
+  StoreInlineNote,
+  StorePageShell,
+  StorePanelSection,
+  storeButtonClassNames,
+} from "../components/StorePageChrome";
 import { useAuthStore } from "../../../stores/authStore";
-
-const { Paragraph, Title } = Typography;
 
 export function StoreAccountPage() {
   const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
@@ -11,56 +18,78 @@ export function StoreAccountPage() {
 
   if (!isAuthenticated || !user) {
     return (
-      <section className="cart-empty-state">
-        <Title level={3} className="m-0! mb-2!">
-          Ban chua dang nhap
-        </Title>
-        <Paragraph className="mb-4! text-slate-600!">
-          Dang nhap de xem thong tin tai khoan va quan ly don hang.
-        </Paragraph>
-        <Link to="/login">
-          <Button type="primary" className="rounded-full! bg-slate-900! px-6! shadow-none!">
-            Dang nhap
-          </Button>
-        </Link>
-      </section>
+      <StoreEmptyState
+        kicker="Tai khoan Rio"
+        title="Ban chua dang nhap"
+        description="Dang nhap de quan ly thong tin tai khoan, dia chi giao hang va lich su mua sam."
+        action={
+          <Link to="/login">
+            <Button type="primary" className={storeButtonClassNames.primary}>
+              Dang nhap
+            </Button>
+          </Link>
+        }
+      />
     );
   }
 
-  return (
-    <section className="space-y-4">
-      <Card className="rounded-2xl!">
-        <Title level={3} className="mt-0!">
-          Tai khoan cua toi
-        </Title>
-        <div className="grid gap-2 text-sm text-slate-700">
-          <p className="m-0">
-            <strong>Ho ten:</strong> {user.fullName}
-          </p>
-          <p className="m-0">
-            <strong>Email:</strong> {user.email}
-          </p>
-          <p className="m-0">
-            <strong>So dien thoai:</strong> {user.phone || "Dang cap nhat"}
-          </p>
-          <p className="m-0">
-            <strong>Loai tai khoan:</strong> {user.accountType}
-          </p>
-        </div>
+  const profileCards = [
+    {
+      label: "Ho ten",
+      value: user.fullName,
+      description: "Ten hien thi duoc su dung cho hoa don va thong bao.",
+    },
+    {
+      label: "Email",
+      value: user.email,
+      description: "Kenh nhan cap nhat don hang va thong tin uu dai.",
+    },
+    {
+      label: "So dien thoai",
+      value: user.phone || "Dang cap nhat",
+      description: "Su dung cho xac nhan giao hang va ho tro nhanh.",
+    },
+    {
+      label: "Loai tai khoan",
+      value: user.accountType,
+      description: "Trang thai hien tai cua tai khoan tren he thong RioShop.",
+    },
+  ];
 
-        <div className="mt-4 flex flex-wrap gap-2">
+  return (
+    <StorePageShell>
+      <StoreHeroSection
+        kicker="Tai khoan Rio"
+        title={`Xin chao, ${user.fullName}`}
+        description="Theo doi don hang, cap nhat thong tin ca nhan va quay lai nhanh voi cac san pham ban da luu."
+      >
+        <div className="store-page-actions">
           <Link to="/orders">
-            <Button className="rounded-full!">Don hang cua toi</Button>
+            <Button type="primary" className={storeButtonClassNames.primary}>
+              Don hang cua toi
+            </Button>
           </Link>
           <Link to="/wishlist">
-            <Button className="rounded-full!">San pham yeu thich</Button>
+            <Button className={storeButtonClassNames.secondary}>San pham yeu thich</Button>
           </Link>
-          <Button danger className="rounded-full!" onClick={() => void logout()}>
+          <Button className={storeButtonClassNames.danger} onClick={() => void logout()}>
             Dang xuat
           </Button>
         </div>
-      </Card>
-    </section>
+      </StoreHeroSection>
+
+      <StorePanelSection
+        kicker="Thong tin ca nhan"
+        title="Ho so tai khoan"
+        action={
+          <StoreInlineNote
+            title="Tai khoan dang hoat dong"
+            description="Thong tin nay duoc su dung de dong bo dia chi giao hang, lich su mua va cac thong bao uu dai."
+          />
+        }
+      >
+        <StoreInfoGrid items={profileCards} />
+      </StorePanelSection>
+    </StorePageShell>
   );
 }
-

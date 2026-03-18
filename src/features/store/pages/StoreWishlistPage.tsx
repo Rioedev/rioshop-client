@@ -1,16 +1,17 @@
-import { Button, Typography } from "antd";
+import { Button } from "antd";
 import { Link } from "react-router-dom";
+import { StoreProductGridCard } from "../components/StoreProductGridCard";
+import {
+  StoreEmptyState,
+  StoreMetricGrid,
+  StorePageShell,
+  StorePanelSection,
+  StoreHeroSection,
+  storeButtonClassNames,
+} from "../components/StorePageChrome";
+import { formatStoreCurrency } from "../utils/storeFormatting";
 import { useCartStore } from "../../../stores/cartStore";
 import { useWishlistStore } from "../../../stores/wishlistStore";
-
-const { Paragraph, Title } = Typography;
-
-const formatCurrency = (value: number) =>
-  new Intl.NumberFormat("vi-VN", {
-    style: "currency",
-    currency: "VND",
-    maximumFractionDigits: 0,
-  }).format(value);
 
 export function StoreWishlistPage() {
   const items = useWishlistStore((state) => state.items);
@@ -20,79 +21,91 @@ export function StoreWishlistPage() {
 
   if (items.length === 0) {
     return (
-      <section className="cart-empty-state">
-        <Title level={3} className="m-0! mb-2!">
-          Danh sach yeu thich dang trong
-        </Title>
-        <Paragraph className="mb-4! text-slate-600!">
-          Luu san pham yeu thich de quay lai mua nhanh hon.
-        </Paragraph>
-        <Link to="/products">
-          <Button type="primary" className="rounded-full! bg-slate-900! px-6! shadow-none!">
-            Kham pha san pham
-          </Button>
-        </Link>
-      </section>
+      <StoreEmptyState
+        kicker="Wishlist"
+        title="Danh sach yeu thich dang trong"
+        description="Luu san pham ban muon quay lai sau va them vao gio hang bat cu luc nao."
+        action={
+          <Link to="/products">
+            <Button type="primary" className={storeButtonClassNames.primary}>
+              Kham pha san pham
+            </Button>
+          </Link>
+        }
+      />
     );
   }
 
+  const metrics = [
+    {
+      label: "Da luu",
+      value: items.length,
+      description: "San pham san sang de dua vao gio hang.",
+    },
+    {
+      label: "Gia tri tam tinh",
+      value: formatStoreCurrency(items.reduce((sum, item) => sum + item.price, 0)),
+      description: "Tong muc gia hien tai cua danh sach yeu thich.",
+    },
+    {
+      label: "Trang thai",
+      value: "Dong bo",
+      description: "Danh sach se duoc cap nhat ngay khi ban them hoac xoa san pham.",
+    },
+  ];
+
   return (
-    <section className="rounded-2xl border border-slate-200 bg-white p-4 md:p-5">
-      <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
-        <Title level={3} className="m-0!">
-          Danh sach yeu thich
-        </Title>
-        <Button className="rounded-full!" onClick={clear}>
-          Xoa tat ca
-        </Button>
-      </div>
+    <StorePageShell>
+      <StoreHeroSection
+        kicker="Wishlist"
+        title="San pham ban dang de mat toi"
+        description="Tat ca mon hang ban da luu se o day de so sanh nhanh, them vao gio va quay lai mua sau."
+        action={
+          <Button className={storeButtonClassNames.secondary} onClick={clear}>
+            Xoa tat ca
+          </Button>
+        }
+      >
+        <StoreMetricGrid items={metrics} />
+      </StoreHeroSection>
 
-      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-        {items.map((item) => (
-          <article key={item.productId} className="cool-product-card">
-            <Link to={`/products/${item.slug}`} className="block">
-              <div className="cool-product-media">
-                {item.imageUrl ? (
-                  <img src={item.imageUrl} alt={item.name} className="h-full w-full object-cover" />
-                ) : (
-                  <div className="cool-product-fallback">RIO</div>
-                )}
-              </div>
-            </Link>
-
-            <div className="p-3">
-              <Link to={`/products/${item.slug}`} className="text-sm font-semibold text-slate-900 hover:text-slate-700">
-                {item.name}
-              </Link>
-              <p className="m-0 mt-2 text-base font-extrabold text-slate-900">{formatCurrency(item.price)}</p>
-
-              <div className="mt-3 flex gap-2">
-                <Button
-                  size="small"
-                  type="primary"
-                  className="rounded-full! bg-slate-900! shadow-none!"
-                  onClick={() =>
-                    addCartItem({
-                      productId: item.productId,
-                      slug: item.slug,
-                      name: item.name,
-                      price: item.price,
-                      imageUrl: item.imageUrl,
-                      quantity: 1,
-                    })
-                  }
-                >
-                  Them gio
-                </Button>
-                <Button size="small" className="rounded-full!" onClick={() => removeItem(item.productId)}>
-                  Xoa
-                </Button>
-              </div>
-            </div>
-          </article>
-        ))}
-      </div>
-    </section>
+      <StorePanelSection kicker="Da luu gan day" title="Chon lai va mua nhanh">
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+          {items.map((item) => (
+            <StoreProductGridCard
+              key={item.productId}
+              href={`/products/${item.slug}`}
+              imageUrl={item.imageUrl}
+              name={item.name}
+              price={formatStoreCurrency(item.price)}
+              footer={
+                <>
+                  <Button
+                    size="small"
+                    type="primary"
+                    className={storeButtonClassNames.primaryCompact}
+                    onClick={() =>
+                      addCartItem({
+                        productId: item.productId,
+                        slug: item.slug,
+                        name: item.name,
+                        price: item.price,
+                        imageUrl: item.imageUrl,
+                        quantity: 1,
+                      })
+                    }
+                  >
+                    Them gio
+                  </Button>
+                  <Button size="small" className={storeButtonClassNames.secondaryCompact} onClick={() => removeItem(item.productId)}>
+                    Xoa
+                  </Button>
+                </>
+              }
+            />
+          ))}
+        </div>
+      </StorePanelSection>
+    </StorePageShell>
   );
 }
-

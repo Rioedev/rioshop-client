@@ -1,33 +1,20 @@
 import { HeartOutlined, ShoppingCartOutlined } from "@ant-design/icons";
 import { Button, Input, Select, message } from "antd";
 import { useEffect, useMemo, useState } from "react";
-import { Link, useSearchParams } from "react-router-dom";
+import { useSearchParams } from "react-router-dom";
+import { StoreProductGridCard } from "../components/StoreProductGridCard";
+import {
+  StoreInlineNote,
+  StorePageShell,
+  StorePanelFrame,
+  StoreSectionHeader,
+  storeButtonClassNames,
+} from "../components/StorePageChrome";
+import { formatStoreCurrency, resolveStoreImageUrl } from "../utils/storeFormatting";
 import { categoryService, type Category } from "../../../services/categoryService";
 import { productService, type Product } from "../../../services/productService";
 import { useCartStore } from "../../../stores/cartStore";
 import { useWishlistStore } from "../../../stores/wishlistStore";
-
-const apiBaseUrl = (import.meta.env.VITE_API_BASE_URL ?? "http://localhost:5000").replace(/\/$/, "");
-
-const formatCurrency = (value: number) =>
-  new Intl.NumberFormat("vi-VN", {
-    style: "currency",
-    currency: "VND",
-    maximumFractionDigits: 0,
-  }).format(value);
-
-const resolveImageUrl = (url?: string): string | undefined => {
-  if (!url) {
-    return undefined;
-  }
-
-  if (/^https?:\/\//i.test(url)) {
-    return url;
-  }
-
-  const normalizedPath = url.startsWith("/") ? url : `/${url}`;
-  return `${apiBaseUrl}${normalizedPath}`;
-};
 
 const sortOptions = [
   { value: "featured", label: "Noi bat" },
@@ -179,7 +166,7 @@ export function StoreProductsPage() {
   };
 
   const onAddToCart = (item: Product) => {
-    const image = resolveImageUrl(item.media?.find((media) => media.type === "image")?.url);
+    const image = resolveStoreImageUrl(item.media?.find((media) => media.type === "image")?.url);
     addCartItem({
       productId: item._id,
       slug: item.slug,
@@ -192,10 +179,16 @@ export function StoreProductsPage() {
   };
 
   return (
-    <div className="space-y-5">
-      <section className="rounded-2xl border border-slate-200 bg-white p-4 md:p-5">
+    <StorePageShell>
+      <StorePanelFrame>
+        <StoreSectionHeader
+          kicker="Catalog control"
+          title="Tim nhanh san pham"
+          description="Loc theo danh muc, tu khoa va kieu sap xep de tim mon do phu hop nhanh hon."
+        />
+
         <div className="flex flex-wrap items-end gap-3">
-          <div className="min-w-[220px] flex-1">
+          <div className="min-w-55 flex-1">
             <p className="m-0 mb-1 text-xs font-bold uppercase tracking-[0.14em] text-slate-500">Tim kiem</p>
             <Input
               value={keywordInput}
@@ -205,7 +198,7 @@ export function StoreProductsPage() {
               placeholder="Nhap ten san pham, thuong hieu..."
             />
           </div>
-          <div className="min-w-[220px]">
+          <div className="min-w-55">
             <p className="m-0 mb-1 text-xs font-bold uppercase tracking-[0.14em] text-slate-500">Danh muc</p>
             <Select
               value={categorySlug}
@@ -214,7 +207,7 @@ export function StoreProductsPage() {
               className="w-full"
             />
           </div>
-          <div className="min-w-[220px]">
+          <div className="min-w-55">
             <p className="m-0 mb-1 text-xs font-bold uppercase tracking-[0.14em] text-slate-500">Sap xep</p>
             <Select
               value={sort}
@@ -223,11 +216,11 @@ export function StoreProductsPage() {
               className="w-full"
             />
           </div>
-          <Button type="primary" className="rounded-full! bg-slate-900! shadow-none!" onClick={onSearchSubmit}>
+          <Button type="primary" className={storeButtonClassNames.primary} onClick={onSearchSubmit}>
             Ap dung
           </Button>
           <Button
-            className="rounded-full!"
+            className={storeButtonClassNames.secondary}
             onClick={() => {
               setKeywordInput("");
               setSearchParams(new URLSearchParams());
@@ -236,18 +229,20 @@ export function StoreProductsPage() {
             Dat lai
           </Button>
         </div>
-      </section>
+      </StorePanelFrame>
 
-      <section className="rounded-2xl border border-slate-200 bg-white p-4 md:p-5">
-        <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
-          <h1 className="m-0 text-2xl font-black text-slate-900 md:text-3xl">San pham</h1>
-          <p className="m-0 text-sm text-slate-500">{loading ? "Dang tai..." : `${totalDocs} san pham`}</p>
-        </div>
+      <StorePanelFrame>
+        <StoreSectionHeader
+          kicker="Danh sach san pham"
+          title="San pham"
+          description={loading ? "Dang tai danh sach san pham..." : `${totalDocs} san pham dang hien thi`}
+        />
 
         {products.length === 0 && !loading ? (
-          <div className="rounded-xl border border-slate-200 bg-slate-50 p-6 text-sm text-slate-500">
-            Khong tim thay san pham phu hop voi bo loc hien tai.
-          </div>
+          <StoreInlineNote
+            title="Khong tim thay san pham phu hop."
+            description="Thu thay doi bo loc, tu khoa hoac quay lai cac danh muc khac de xem them san pham."
+          />
         ) : loading ? (
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
             {Array.from({ length: 8 }).map((_, index) => (
@@ -258,44 +253,27 @@ export function StoreProductsPage() {
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
             {products.map((item) => {
               const hasDiscount = item.pricing.basePrice > item.pricing.salePrice;
-              const image = resolveImageUrl(item.media?.find((media) => media.type === "image")?.url);
+              const image = resolveStoreImageUrl(item.media?.find((media) => media.type === "image")?.url);
               const inWishlist = wishlistItems.some((wishlist) => wishlist.productId === item._id);
+              const discountLabel = hasDiscount
+                ? `-${Math.round(((item.pricing.basePrice - item.pricing.salePrice) / item.pricing.basePrice) * 100)}%`
+                : undefined;
 
               return (
-                <article key={item._id} className="cool-product-card">
-                  <Link to={`/products/${item.slug}`} className="block">
-                    <div className="cool-product-media">
-                      {image ? (
-                        <img src={image} alt={item.name} className="h-full w-full object-cover" />
-                      ) : (
-                        <div className="cool-product-fallback">RIO</div>
-                      )}
-                      <span className="cool-product-badge">{item.category?.name ?? "San pham"}</span>
-                      {hasDiscount ? (
-                        <span className="cool-product-discount">
-                          -
-                          {Math.round(
-                            ((item.pricing.basePrice - item.pricing.salePrice) / item.pricing.basePrice) * 100,
-                          )}
-                          %
-                        </span>
-                      ) : null}
-                    </div>
-                  </Link>
-                  <div className="p-3">
-                    <Link to={`/products/${item.slug}`} className="text-sm font-semibold text-slate-900 hover:text-slate-700">
-                      {item.name}
-                    </Link>
-                    <div className="mt-2 flex items-end gap-2">
-                      <span className="text-base font-extrabold text-slate-900">{formatCurrency(item.pricing.salePrice)}</span>
-                      {hasDiscount ? (
-                        <span className="text-sm text-slate-400 line-through">{formatCurrency(item.pricing.basePrice)}</span>
-                      ) : null}
-                    </div>
-                    <div className="mt-3 flex gap-2">
+                <StoreProductGridCard
+                  key={item._id}
+                  href={`/products/${item.slug}`}
+                  imageUrl={image}
+                  name={item.name}
+                  price={formatStoreCurrency(item.pricing.salePrice)}
+                  originalPrice={hasDiscount ? formatStoreCurrency(item.pricing.basePrice) : undefined}
+                  categoryLabel={item.category?.name ?? "San pham"}
+                  badge={discountLabel}
+                  footer={
+                    <>
                       <Button
                         size="small"
-                        className={`rounded-full! ${inWishlist ? "border-rose-200! text-rose-600!" : ""}`}
+                        className={inWishlist ? "rounded-full! border-rose-200! text-rose-600!" : storeButtonClassNames.secondaryCompact}
                         icon={<HeartOutlined />}
                         onClick={() =>
                           toggleWishlist({
@@ -312,41 +290,32 @@ export function StoreProductsPage() {
                       <Button
                         size="small"
                         type="primary"
-                        className="rounded-full! bg-slate-900! shadow-none!"
+                        className={storeButtonClassNames.primaryCompact}
                         icon={<ShoppingCartOutlined />}
                         onClick={() => onAddToCart(item)}
                       >
                         Them gio
                       </Button>
-                    </div>
-                  </div>
-                </article>
+                    </>
+                  }
+                />
               );
             })}
           </div>
         )}
 
         <div className="mt-4 flex items-center justify-end gap-2">
-          <Button
-            disabled={page <= 1 || loading}
-            className="rounded-full!"
-            onClick={() => onParamChange({ page: String(page - 1) })}
-          >
+          <Button disabled={page <= 1 || loading} className={storeButtonClassNames.ghostCompact} onClick={() => onParamChange({ page: String(page - 1) })}>
             Truoc
           </Button>
           <span className="text-sm text-slate-500">
             Trang {page} / {Math.max(1, totalPages)}
           </span>
-          <Button
-            disabled={page >= totalPages || loading}
-            className="rounded-full!"
-            onClick={() => onParamChange({ page: String(page + 1) })}
-          >
+          <Button disabled={page >= totalPages || loading} className={storeButtonClassNames.ghostCompact} onClick={() => onParamChange({ page: String(page + 1) })}>
             Sau
           </Button>
         </div>
-      </section>
-    </div>
+      </StorePanelFrame>
+    </StorePageShell>
   );
 }
-

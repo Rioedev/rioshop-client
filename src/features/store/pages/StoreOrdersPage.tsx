@@ -1,27 +1,19 @@
-import { Alert, Button, Tag, Typography, message } from "antd";
+import { Button, message } from "antd";
 import { useEffect, useMemo, useState } from "react";
 import { Link, useLocation } from "react-router-dom";
+import {
+  StoreEmptyState,
+  StoreInlineNote,
+  StoreMetricGrid,
+  StorePageShell,
+  StorePanelSection,
+  StoreHeroSection,
+  StoreStatusPill,
+  storeButtonClassNames,
+} from "../components/StorePageChrome";
+import { formatStoreCurrency } from "../utils/storeFormatting";
 import { orderService, type OrderRecord } from "../../../services/orderService";
 import { useAuthStore } from "../../../stores/authStore";
-
-const { Paragraph, Title } = Typography;
-
-const formatCurrency = (value: number) =>
-  new Intl.NumberFormat("vi-VN", {
-    style: "currency",
-    currency: "VND",
-    maximumFractionDigits: 0,
-  }).format(value);
-
-const statusColorMap: Record<string, string> = {
-  pending: "gold",
-  confirmed: "blue",
-  packing: "cyan",
-  shipping: "purple",
-  delivered: "green",
-  cancelled: "red",
-  returned: "volcano",
-};
 
 const statusLabelMap: Record<string, string> = {
   pending: "Cho xac nhan",
@@ -47,6 +39,29 @@ export function StoreOrdersPage() {
     () => (location.state as { orderId?: string } | null)?.orderId,
     [location.state],
   );
+
+  const orderMetrics = useMemo(() => {
+    const pendingCount = orders.filter((item) => ["pending", "confirmed", "packing", "shipping"].includes(item.status)).length;
+    const deliveredCount = orders.filter((item) => item.status === "delivered").length;
+
+    return [
+      {
+        label: "Tong don",
+        value: orders.length,
+        description: "So don hang dang hien thi trong tai khoan.",
+      },
+      {
+        label: "Dang xu ly",
+        value: pendingCount,
+        description: "Bao gom don cho xac nhan, dong goi va dang giao.",
+      },
+      {
+        label: "Hoan tat",
+        value: deliveredCount,
+        description: "Cac don da giao thanh cong.",
+      },
+    ];
+  }, [orders]);
 
   const loadOrders = async (nextPage = page) => {
     setLoading(true);
@@ -89,107 +104,104 @@ export function StoreOrdersPage() {
 
   if (!isAuthenticated) {
     return (
-      <section className="cart-empty-state">
-        <Title level={3} className="m-0! mb-2!">
-          Ban can dang nhap de xem don hang
-        </Title>
-        <Paragraph className="mb-4! text-slate-600!">Dang nhap de theo doi trang thai van chuyen va lich su mua sam.</Paragraph>
-        <Link to="/login">
-          <Button type="primary" className="rounded-full! bg-slate-900! px-6! shadow-none!">
-            Dang nhap
-          </Button>
-        </Link>
-      </section>
+      <StoreEmptyState
+        kicker="Don hang"
+        title="Ban can dang nhap de xem don hang"
+        description="Dang nhap de theo doi trang thai van chuyen, lich su mua sam va cap nhat moi nhat cho tung don."
+        action={
+          <Link to="/login">
+            <Button type="primary" className={storeButtonClassNames.primary}>
+              Dang nhap
+            </Button>
+          </Link>
+        }
+      />
     );
   }
 
   return (
-    <section className="rounded-2xl border border-slate-200 bg-white p-4 md:p-5">
+    <StorePageShell>
       {contextHolder}
-      <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
-        <Title level={3} className="m-0!">
-          Don hang cua toi
-        </Title>
-        <Button className="rounded-full!" onClick={() => void loadOrders(page)} loading={loading}>
-          Tai lai
-        </Button>
-      </div>
 
-      {orders.length === 0 && !loading ? (
-        <Alert type="info" showIcon message="Ban chua co don hang nao." />
-      ) : null}
+      <StoreHeroSection
+        kicker="Order hub"
+        title="Don hang cua toi"
+        description="Kiem tra nhanh tien do giao hang, tong gia tri va hanh dong tiep theo cho moi don trong tai khoan cua ban."
+        action={
+          <Button className={storeButtonClassNames.secondary} onClick={() => void loadOrders(page)} loading={loading}>
+            Tai lai
+          </Button>
+        }
+      >
+        <StoreMetricGrid items={orderMetrics} />
+      </StoreHeroSection>
 
-      <div className="space-y-3">
-        {orders.map((order) => {
-          const canCancel = ["pending", "confirmed"].includes(order.status);
-          const highlighted = highlightedOrderId && highlightedOrderId === order.id;
+      <StorePanelSection kicker="Lich su mua sam" title="Danh sach don gan day">
+        {orders.length === 0 && !loading ? (
+          <StoreInlineNote
+            title="Ban chua co don hang nao."
+            description="San pham ban mua sau nay se xuat hien o day de theo doi trang thai va giao hang."
+          />
+        ) : null}
 
-          return (
-            <article
-              key={order.id}
-              className={`rounded-2xl border p-4 ${highlighted ? "border-blue-300 bg-blue-50" : "border-slate-200 bg-white"}`}
-            >
-              <div className="flex flex-wrap items-start justify-between gap-3">
-                <div>
-                  <p className="m-0 text-xs uppercase tracking-[0.16em] text-slate-500">Ma don</p>
-                  <h4 className="m-0 mt-1 text-lg font-black text-slate-900">{order.orderNumber}</h4>
-                  <p className="m-0 mt-1 text-sm text-slate-500">
-                    Dat luc:{" "}
-                    {order.createdAt
-                      ? new Date(order.createdAt).toLocaleString("vi-VN")
-                      : "Dang cap nhat"}
-                  </p>
-                </div>
-                <div className="text-right">
-                  <Tag color={statusColorMap[order.status] ?? "default"} className="m-0! rounded-full! px-3! py-1!">
-                    {statusLabelMap[order.status] ?? order.status}
-                  </Tag>
-                  <p className="m-0 mt-2 text-base font-extrabold text-slate-900">{formatCurrency(order.pricing.total)}</p>
-                </div>
-              </div>
+        <div className="space-y-3">
+          {orders.map((order) => {
+            const canCancel = ["pending", "confirmed"].includes(order.status);
+            const highlighted = highlightedOrderId && highlightedOrderId === order.id;
 
-              <div className="mt-3 grid gap-2">
-                {order.items.slice(0, 3).map((item, index) => (
-                  <div key={`${order.id}-${item.productId ?? index}`} className="flex items-center justify-between gap-2 text-sm">
-                    <span className="truncate text-slate-700">{item.productName ?? "San pham"}</span>
-                    <span className="text-slate-500">x{item.quantity}</span>
+            return (
+              <article key={order.id} className={`store-order-card ${highlighted ? "is-highlighted" : ""}`}>
+                <div className="flex flex-wrap items-start justify-between gap-3">
+                  <div>
+                    <p className="m-0 text-xs font-bold uppercase tracking-[0.16em] text-slate-500">Ma don</p>
+                    <h3 className="m-0 mt-1 text-xl font-black tracking-[-0.04em] text-slate-900">{order.orderNumber}</h3>
+                    <p className="m-0 mt-2 text-sm text-slate-500">
+                      Dat luc {order.createdAt ? new Date(order.createdAt).toLocaleString("vi-VN") : "Dang cap nhat"}
+                    </p>
                   </div>
-                ))}
-              </div>
 
-              <div className="mt-3 flex flex-wrap gap-2">
-                {canCancel ? (
-                  <Button danger className="rounded-full!" onClick={() => void onCancelOrder(order)}>
-                    Huy don
-                  </Button>
-                ) : null}
-                <Button className="rounded-full!">Theo doi van chuyen</Button>
-              </div>
-            </article>
-          );
-        })}
-      </div>
+                  <div className="text-right">
+                    <StoreStatusPill status={order.status} label={statusLabelMap[order.status] ?? order.status} />
+                    <p className="m-0 mt-2 text-lg font-black tracking-[-0.04em] text-slate-900">
+                      {formatStoreCurrency(order.pricing.total)}
+                    </p>
+                  </div>
+                </div>
 
-      <div className="mt-4 flex items-center justify-end gap-2">
-        <Button
-          disabled={page <= 1 || loading}
-          className="rounded-full!"
-          onClick={() => void loadOrders(page - 1)}
-        >
-          Truoc
-        </Button>
-        <span className="text-sm text-slate-500">
-          Trang {page} / {Math.max(1, totalPages)}
-        </span>
-        <Button
-          disabled={page >= totalPages || loading}
-          className="rounded-full!"
-          onClick={() => void loadOrders(page + 1)}
-        >
-          Sau
-        </Button>
-      </div>
-    </section>
+                <div className="mt-4 space-y-2">
+                  {order.items.slice(0, 3).map((item, index) => (
+                    <div key={`${order.id}-${item.productId ?? index}`} className="flex items-center justify-between gap-2 text-sm">
+                      <span className="truncate text-slate-700">{item.productName ?? "San pham"}</span>
+                      <span className="text-slate-500">x{item.quantity}</span>
+                    </div>
+                  ))}
+                </div>
+
+                <div className="mt-4 flex flex-wrap gap-2">
+                  {canCancel ? (
+                    <Button className={storeButtonClassNames.dangerCompact} onClick={() => void onCancelOrder(order)}>
+                      Huy don
+                    </Button>
+                  ) : null}
+                  <Button className={storeButtonClassNames.secondaryCompact}>Theo doi van chuyen</Button>
+                </div>
+              </article>
+            );
+          })}
+        </div>
+
+        <div className="mt-5 flex items-center justify-end gap-2">
+          <Button disabled={page <= 1 || loading} className={storeButtonClassNames.ghostCompact} onClick={() => void loadOrders(page - 1)}>
+            Truoc
+          </Button>
+          <span className="text-sm text-slate-500">
+            Trang {page} / {Math.max(1, totalPages)}
+          </span>
+          <Button disabled={page >= totalPages || loading} className={storeButtonClassNames.ghostCompact} onClick={() => void loadOrders(page + 1)}>
+            Sau
+          </Button>
+        </div>
+      </StorePanelSection>
+    </StorePageShell>
   );
 }
-
