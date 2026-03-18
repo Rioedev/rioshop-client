@@ -15,8 +15,13 @@ import { AdminUsersPage } from "../features/admin/pages/AdminUsersPage";
 import { AdminAccountsPage } from "../features/admin/pages/AdminAccountsPage";
 import { AdminBrandConfigPage } from "../features/admin/pages/AdminBrandConfigPage";
 import { StoreHomePage } from "../features/store/pages/StoreHomePage";
+import { StoreProductsPage } from "../features/store/pages/StoreProductsPage";
 import { StoreProductDetailPage } from "../features/store/pages/StoreProductDetailPage";
 import { StoreCartPage } from "../features/store/pages/StoreCartPage";
+import { StoreWishlistPage } from "../features/store/pages/StoreWishlistPage";
+import { StoreCheckoutPage } from "../features/store/pages/StoreCheckoutPage";
+import { StoreOrdersPage } from "../features/store/pages/StoreOrdersPage";
+import { StoreAccountPage } from "../features/store/pages/StoreAccountPage";
 import { LoginPage } from "../features/auth/pages/LoginPage";
 import { RegisterPage } from "../features/auth/pages/RegisterPage";
 import { AdminLoginPage } from "../features/auth/pages/AdminLoginPage";
@@ -41,8 +46,13 @@ export const appRouter = createBrowserRouter([
     element: <StoreLayout />,
     children: [
       { index: true, element: <StoreHomePage /> },
+      { path: "products", element: <StoreProductsPage /> },
       { path: "products/:slug", element: <StoreProductDetailPage /> },
       { path: "cart", element: <StoreCartPage /> },
+      { path: "wishlist", element: <StoreWishlistPage /> },
+      { path: "checkout", element: <StoreCheckoutPage /> },
+      { path: "orders", element: <StoreOrdersPage /> },
+      { path: "account", element: <StoreAccountPage /> },
     ],
   },
   {

@@ -9,6 +9,7 @@ import { Button, InputNumber, Progress, Rate, Typography, message } from "antd";
 import { useEffect, useMemo, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { productService, type Product } from "../../../services/productService";
+import { reviewService, type ReviewItem } from "../../../services/reviewService";
 import { useCartStore } from "../../../stores/cartStore";
 
 const { Paragraph, Title } = Typography;
@@ -42,20 +43,6 @@ type ProductRuntime = Product & {
     dist?: Record<string, number>;
   };
   totalSold?: number;
-};
-
-type MockProduct = {
-  id: string;
-  slug: string;
-  name: string;
-  category: string;
-  basePrice: number;
-  salePrice: number;
-  shortDescription: string;
-  description: string;
-  materials: string[];
-  care: string[];
-  images: string[];
 };
 
 const demoColors = [
@@ -95,123 +82,11 @@ const techCards = [
   },
 ];
 
-const mockProducts: MockProduct[] = [
-  {
-    id: "mock-1",
-    slug: "ao-thun-airflex-pique",
-    name: "Ao Thun AirFlex Pique",
-    category: "Ao thun",
-    basePrice: 329000,
-    salePrice: 259000,
-    shortDescription: "Vai pique thoang, mem va gon dang. Hop cho mac hang ngay.",
-    description:
-      "Ao su dung chat lieu cotton pha spandex giup co do co gian nhe, tham hut tot va thoang khi mac ca ngay.",
-    materials: ["95% Cotton", "5% Spandex", "Xu ly khang mui"],
-    care: ["Giat may che do nhe", "Khong su dung thuoc tay", "Ui nhiet do thap"],
-    images: [
-      "https://images.unsplash.com/photo-1516826957135-700dedea698c?auto=format&fit=crop&w=1400&q=80",
-      "https://images.unsplash.com/photo-1618354691373-d851c5c3a990?auto=format&fit=crop&w=1400&q=80",
-      "https://images.unsplash.com/photo-1556906781-9a412961c28c?auto=format&fit=crop&w=1400&q=80",
-      "https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?auto=format&fit=crop&w=1400&q=80",
-    ],
-  },
-  {
-    id: "mock-2",
-    slug: "quan-short-everyday-fit",
-    name: "Quan Short Everyday Fit",
-    category: "Quan short",
-    basePrice: 359000,
-    salePrice: 289000,
-    shortDescription: "Form regular fit, de phoi voi ao thun va polo.",
-    description:
-      "Quan short cho mua he voi chat lieu mem nhe, co gian nhe, phu hop di choi, di cafe hoac du lich.",
-    materials: ["Cotton twill", "Co gian 2 chieu", "Mem va mau ben"],
-    care: ["Giat voi nuoc lanh", "Phoi trong bong ram", "Khong say nhiet cao"],
-    images: [
-      "https://images.unsplash.com/photo-1595341888016-a392ef81b7de?auto=format&fit=crop&w=1400&q=80",
-      "https://images.unsplash.com/photo-1582552938357-32b906df40cb?auto=format&fit=crop&w=1400&q=80",
-      "https://images.unsplash.com/photo-1611312449408-fcece27cdbb7?auto=format&fit=crop&w=1400&q=80",
-    ],
-  },
-  {
-    id: "mock-3",
-    slug: "combo-3-quan-lot-modal",
-    name: "Combo 3 Quan Lot Modal",
-    category: "Quan lot",
-    basePrice: 389000,
-    salePrice: 299000,
-    shortDescription: "Mem mat, tham hut tot, de mac ca ngay.",
-    description:
-      "Combo tiet kiem voi vai modal mem nhe, co do dan hoi vua phai, thich hop cho sinh hoat hang ngay.",
-    materials: ["Modal bamboo", "Cotton", "Khang mui nhe"],
-    care: ["Giat tui luoi", "Khong dung nuoc nong", "Phoi ngang"],
-    images: [
-      "https://images.unsplash.com/photo-1603251578711-3290ca1a0181?auto=format&fit=crop&w=1400&q=80",
-      "https://images.unsplash.com/photo-1617137984095-74e4e5e3613f?auto=format&fit=crop&w=1400&q=80",
-      "https://images.unsplash.com/photo-1617692855027-33b14f061079?auto=format&fit=crop&w=1400&q=80",
-    ],
-  },
-];
-
-const toMockProduct = (product: MockProduct): ProductRuntime => ({
-  _id: product.id,
-  sku: `SKU-${product.id.toUpperCase()}`,
-  slug: product.slug,
-  name: product.name,
-  brand: "RioShop",
-  shortDescription: product.shortDescription,
-  description: product.description,
-  category: {
-    _id: `cat-${product.category.toLowerCase().replace(/\s+/g, "-")}`,
-    name: product.category,
-    slug: product.category.toLowerCase().replace(/\s+/g, "-"),
-  },
-  pricing: {
-    basePrice: product.basePrice,
-    salePrice: product.salePrice,
-    currency: "VND",
-  },
-  media: product.images.map((image, index) => ({
-    url: image,
-    type: "image",
-    isPrimary: index === 0,
-  })),
-  material: product.materials,
-  care: product.care,
-  status: "active",
-  isFeatured: true,
-  isNew: true,
-  isBestseller: product.salePrice < product.basePrice,
-  ratings: {
-    avg: 4.8,
-    count: 214,
-    dist: {
-      5: 168,
-      4: 31,
-      3: 10,
-      2: 4,
-      1: 1,
-    },
-  },
-  totalSold: 1860,
-});
-
-const findMockBySlug = (slug?: string): ProductRuntime | null => {
-  if (!slug) {
-    return toMockProduct(mockProducts[0]);
-  }
-
-  const found = mockProducts.find((item) => item.slug === slug);
-  return found ? toMockProduct(found) : toMockProduct(mockProducts[0]);
-};
-
 const toProductCardImage = (item: ProductRuntime, fallback = "RIO") =>
   resolveImageUrl(item.media?.find((media) => media.type === "image")?.url) ??
   `https://dummyimage.com/800x1000/e2e8f0/0f172a&text=${encodeURIComponent(fallback)}`;
 
-const generateReviewPercents = (product: ProductRuntime) => {
-  const dist = product.ratings?.dist;
-  const count = product.ratings?.count ?? 0;
+const generateReviewPercents = (dist?: Record<string, number>, count = 0) => {
 
   if (dist && count > 0) {
     return [5, 4, 3, 2, 1].map((star) => ({
@@ -236,8 +111,17 @@ export function StoreProductDetailPage() {
   const [product, setProduct] = useState<ProductRuntime | null>(null);
   const [relatedProducts, setRelatedProducts] = useState<ProductRuntime[]>([]);
   const [catalogProducts, setCatalogProducts] = useState<ProductRuntime[]>([]);
+  const [recentReviews, setRecentReviews] = useState<ReviewItem[]>([]);
+  const [reviewStats, setReviewStats] = useState<{
+    avg: number;
+    count: number;
+    dist: Record<string, number>;
+  }>({
+    avg: 0,
+    count: 0,
+    dist: { 5: 0, 4: 0, 3: 0, 2: 0, 1: 0 },
+  });
   const [loading, setLoading] = useState(true);
-  const [usingMock, setUsingMock] = useState(false);
   const [quantity, setQuantity] = useState(1);
   const [selectedImage, setSelectedImage] = useState<string | undefined>(undefined);
   const [selectedColor, setSelectedColor] = useState(demoColors[0].name);
@@ -248,16 +132,14 @@ export function StoreProductDetailPage() {
 
     const fetchProduct = async () => {
       setLoading(true);
-      setUsingMock(false);
-
-      const fallbackProduct = findMockBySlug(slug);
 
       if (!slug) {
         if (active) {
-          setProduct(fallbackProduct);
-          setRelatedProducts(mockProducts.slice(1).map((item) => toMockProduct(item)));
-          setCatalogProducts(mockProducts.map((item) => toMockProduct(item)));
-          setUsingMock(true);
+          setProduct(null);
+          setRelatedProducts([]);
+          setCatalogProducts([]);
+          setRecentReviews([]);
+          setReviewStats({ avg: 0, count: 0, dist: { 5: 0, 4: 0, 3: 0, 2: 0, 1: 0 } });
           setLoading(false);
         }
         return;
@@ -271,7 +153,7 @@ export function StoreProductDetailPage() {
 
         setProduct(result);
 
-        const [relatedResult, catalogResult] = await Promise.allSettled([
+        const [relatedResult, catalogResult, reviewResult] = await Promise.allSettled([
           productService.getRelatedProducts(result._id),
           productService.getProducts({
             page: 1,
@@ -279,23 +161,36 @@ export function StoreProductDetailPage() {
             status: "active",
             sort: { isFeatured: -1, totalSold: -1, createdAt: -1 },
           }),
+          reviewService.getReviewsForProduct(result._id, { page: 1, limit: 6 }),
         ]);
 
         if (active) {
           if (relatedResult.status === "fulfilled") {
             setRelatedProducts((relatedResult.value as ProductRuntime[]).filter((item) => item._id !== result._id));
           } else {
-            setRelatedProducts(
-              mockProducts
-                .filter((item) => item.slug !== slug)
-                .map((item) => toMockProduct(item)),
-            );
+            setRelatedProducts([]);
           }
 
           if (catalogResult.status === "fulfilled") {
             setCatalogProducts((catalogResult.value.docs as ProductRuntime[]).filter((item) => item._id !== result._id));
           } else {
-            setCatalogProducts(mockProducts.filter((item) => item.slug !== slug).map((item) => toMockProduct(item)));
+            setCatalogProducts([]);
+          }
+
+          if (reviewResult?.status === "fulfilled") {
+            setRecentReviews(reviewResult.value.docs);
+            setReviewStats({
+              avg: reviewResult.value.stats?.avg ?? 0,
+              count: reviewResult.value.stats?.count ?? 0,
+              dist: reviewResult.value.stats?.dist ?? { 5: 0, 4: 0, 3: 0, 2: 0, 1: 0 },
+            });
+          } else {
+            setRecentReviews([]);
+            setReviewStats({
+              avg: result.ratings?.avg ?? 0,
+              count: result.ratings?.count ?? 0,
+              dist: result.ratings?.dist ?? { 5: 0, 4: 0, 3: 0, 2: 0, 1: 0 },
+            });
           }
         }
       } catch {
@@ -303,10 +198,11 @@ export function StoreProductDetailPage() {
           return;
         }
 
-        setProduct(fallbackProduct);
-        setRelatedProducts(mockProducts.filter((item) => item.slug !== slug).map((item) => toMockProduct(item)));
-        setCatalogProducts(mockProducts.filter((item) => item.slug !== slug).map((item) => toMockProduct(item)));
-        setUsingMock(true);
+        setProduct(null);
+        setRelatedProducts([]);
+        setCatalogProducts([]);
+        setRecentReviews([]);
+        setReviewStats({ avg: 0, count: 0, dist: { 5: 0, 4: 0, 3: 0, 2: 0, 1: 0 } });
       } finally {
         if (active) {
           setLoading(false);
@@ -388,10 +284,13 @@ export function StoreProductDetailPage() {
 
   const displayImage = selectedImage ?? imageList[0];
   const hasDiscount = product.pricing.basePrice > product.pricing.salePrice;
-  const ratingValue = product.ratings?.avg ?? 4.8;
-  const ratingCount = product.ratings?.count ?? 0;
+  const ratingValue = reviewStats.avg > 0 ? reviewStats.avg : product.ratings?.avg ?? 4.8;
+  const ratingCount = reviewStats.count > 0 ? reviewStats.count : product.ratings?.count ?? 0;
   const soldText = product.totalSold ? `${product.totalSold.toLocaleString("vi-VN")} da ban` : "Moi cap nhat";
-  const reviewPercents = generateReviewPercents(product);
+  const reviewPercents = generateReviewPercents(
+    reviewStats.count > 0 ? reviewStats.dist : product.ratings?.dist,
+    reviewStats.count > 0 ? reviewStats.count : product.ratings?.count ?? 0,
+  );
 
   const onAddToCart = () => {
     addItem({
@@ -438,7 +337,6 @@ export function StoreProductDetailPage() {
           <span className="mx-2">/</span>
           <span>{product.name}</span>
         </div>
-        {usingMock ? <span className="product-mock-badge">Demo UI mode</span> : null}
       </div>
 
       <section className="pdpv2-main-wrap">
@@ -682,6 +580,24 @@ export function StoreProductDetailPage() {
               </div>
             ))}
           </div>
+        </div>
+
+        <div className="mt-5 space-y-3">
+          {recentReviews.length > 0 ? (
+            recentReviews.slice(0, 3).map((review) => (
+              <article key={review.id} className="rounded-xl border border-slate-200 bg-white p-3">
+                <div className="flex items-center justify-between gap-2">
+                  <p className="m-0 text-sm font-semibold text-slate-900">
+                    {review.user?.fullName || "Khach hang da mua"}
+                  </p>
+                  <Rate disabled value={review.rating} className="!text-xs" />
+                </div>
+                <p className="m-0 mt-2 text-sm text-slate-600">{review.body}</p>
+              </article>
+            ))
+          ) : (
+            <p className="m-0 text-sm text-slate-500">Chua co danh gia chi tiet cho san pham nay.</p>
+          )}
         </div>
       </section>
 

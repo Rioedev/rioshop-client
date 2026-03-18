@@ -1,6 +1,7 @@
 import { Button, Input, InputNumber, Progress, Typography } from "antd";
 import { Link } from "react-router-dom";
-import { useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { productService, type Product } from "../../../services/productService";
 import { useCartStore } from "../../../stores/cartStore";
 
 const { Paragraph, Title } = Typography;
@@ -12,32 +13,28 @@ const formatCurrency = (value: number) =>
     maximumFractionDigits: 0,
   }).format(value);
 
-const cartRecommendations = [
-  {
-    id: "rec-1",
-    name: "Combo Vo Co Ngan",
-    price: 99000,
-    image: "https://images.unsplash.com/photo-1586350977771-b3b0abd50c82?auto=format&fit=crop&w=800&q=80",
-  },
-  {
-    id: "rec-2",
-    name: "That Lung Canvas",
-    price: 149000,
-    image: "https://images.unsplash.com/photo-1618886487325-f665032b6350?auto=format&fit=crop&w=800&q=80",
-  },
-  {
-    id: "rec-3",
-    name: "Mu Luoi Trai",
-    price: 179000,
-    image: "https://images.unsplash.com/photo-1521369909029-2afed882baee?auto=format&fit=crop&w=800&q=80",
-  },
-];
+const apiBaseUrl = (import.meta.env.VITE_API_BASE_URL ?? "http://localhost:5000").replace(/\/$/, "");
+
+const resolveImageUrl = (url?: string): string | undefined => {
+  if (!url) {
+    return undefined;
+  }
+
+  if (/^https?:\/\//i.test(url)) {
+    return url;
+  }
+
+  const normalizedPath = url.startsWith("/") ? url : `/${url}`;
+  return `${apiBaseUrl}${normalizedPath}`;
+};
 
 export function StoreCartPage() {
   const items = useCartStore((state) => state.items);
   const updateQuantity = useCartStore((state) => state.updateQuantity);
   const removeItem = useCartStore((state) => state.removeItem);
   const clearCart = useCartStore((state) => state.clearCart);
+  const addCartItem = useCartStore((state) => state.addItem);
+  const [recommendations, setRecommendations] = useState<Product[]>([]);
 
   const { subtotal, shippingFee, total, freeShipProgress, amountToFreeShip } = useMemo(() => {
     const subtotalValue = items.reduce((sum, item) => sum + item.price * item.quantity, 0);
@@ -51,6 +48,38 @@ export function StoreCartPage() {
       total: subtotalValue + shipping,
       freeShipProgress: progress,
       amountToFreeShip: Math.max(0, threshold - subtotalValue),
+    };
+  }, [items]);
+
+  useEffect(() => {
+    let active = true;
+
+    const loadRecommendations = async () => {
+      try {
+        const result = await productService.getProducts({
+          page: 1,
+          limit: 8,
+          status: "active",
+          sort: { isFeatured: -1, totalSold: -1, createdAt: -1 },
+        });
+
+        if (!active) {
+          return;
+        }
+
+        const inCartIds = new Set(items.map((item) => item.productId));
+        setRecommendations(result.docs.filter((item) => !inCartIds.has(item._id)).slice(0, 3));
+      } catch {
+        if (active) {
+          setRecommendations([]);
+        }
+      }
+    };
+
+    void loadRecommendations();
+
+    return () => {
+      active = false;
     };
   }, [items]);
 
@@ -136,20 +165,40 @@ export function StoreCartPage() {
         </div>
 
         <div className="cart-recommend-grid">
-          {cartRecommendations.map((item) => (
-            <article key={item.id} className="cart-rec-card">
+          {recommendations.map((item) => {
+            const image = resolveImageUrl(item.media?.find((media) => media.type === "image")?.url);
+            return (
+            <article key={item._id} className="cart-rec-card">
               <div className="cart-rec-image">
-                <img src={item.image} alt={item.name} className="h-full w-full object-cover" />
+                {image ? (
+                  <img src={image} alt={item.name} className="h-full w-full object-cover" />
+                ) : (
+                  <div className="product-main-fallback">RIO</div>
+                )}
               </div>
               <div>
                 <p className="m-0 text-sm font-semibold text-slate-900">{item.name}</p>
-                <p className="m-0 mt-1 text-sm font-bold text-slate-700">{formatCurrency(item.price)}</p>
+                <p className="m-0 mt-1 text-sm font-bold text-slate-700">{formatCurrency(item.pricing.salePrice)}</p>
               </div>
-              <Button size="small" className="!rounded-full">
+              <Button
+                size="small"
+                className="!rounded-full"
+                onClick={() =>
+                  addCartItem({
+                    productId: item._id,
+                    slug: item.slug,
+                    name: item.name,
+                    price: item.pricing.salePrice,
+                    imageUrl: image,
+                    quantity: 1,
+                  })
+                }
+              >
                 Them
               </Button>
             </article>
-          ))}
+            );
+          })}
         </div>
       </section>
 
@@ -172,16 +221,18 @@ export function StoreCartPage() {
         </div>
 
         <div className="mt-4">
-          <p className="mb-2 text-xs font-bold uppercase tracking-[0.12em] text-slate-500">Ma giam gia (demo)</p>
+          <p className="mb-2 text-xs font-bold uppercase tracking-[0.12em] text-slate-500">Ma giam gia</p>
           <div className="flex gap-2">
             <Input placeholder="Nhap ma" className="!rounded-full" />
             <Button className="!rounded-full">Ap dung</Button>
           </div>
         </div>
 
-        <Button type="primary" block size="large" className="!mt-4 !h-11 !rounded-full !bg-slate-900 !shadow-none">
-          Thanh toan (demo)
-        </Button>
+        <Link to="/checkout" className="mt-4 block">
+          <Button type="primary" block size="large" className="!h-11 !rounded-full !bg-slate-900 !shadow-none">
+            Thanh toan
+          </Button>
+        </Link>
         <Link to="/" className="mt-3 block text-center text-sm text-slate-600 hover:text-slate-900">
           Tiep tuc mua sam
         </Link>

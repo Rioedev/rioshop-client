@@ -138,10 +138,44 @@ export type UpdateOrderStatusPayload = {
   paymentStatus?: PaymentStatus;
 };
 
+export type CreateOrderPayload = {
+  customerSnapshot?: {
+    name: string;
+    email?: string;
+    phone?: string;
+  };
+  items: Array<{
+    productId: string;
+    variantSku: string;
+    productName: string;
+    variantLabel?: string;
+    image: string;
+    unitPrice: number;
+    quantity: number;
+    totalPrice?: number;
+  }>;
+  shippingAddress: Record<string, unknown>;
+  shippingFee?: number;
+  pricing?: {
+    shippingFee?: number;
+    currency?: string;
+  };
+  couponCode?: string;
+  couponDiscount?: number;
+  loyaltyPointsUsed?: number;
+  loyaltyPointsEarned?: number;
+  paymentMethod: PaymentMethod;
+  paymentStatus?: PaymentStatus;
+  shippingMethod: "standard" | "express" | "same_day";
+  shippingCarrier?: string;
+  note?: string;
+  source?: "web" | "mobile" | "pos" | "admin";
+};
+
 const normalizeOrder = (item: OrderApiItem): OrderRecord => ({
   id: item.id ?? item._id ?? "",
   orderNumber: item.orderNumber,
-  customerName: item.customerSnapshot?.name ?? "Khách hàng",
+  customerName: item.customerSnapshot?.name ?? "Khach hang",
   customerEmail: item.customerSnapshot?.email,
   customerPhone: item.customerSnapshot?.phone,
   items: (item.items ?? []).map((line) => ({
@@ -196,6 +230,16 @@ export const orderService = {
     });
 
     return normalizeOrdersPage(response.data.data);
+  },
+
+  async getOrderById(id: string): Promise<OrderRecord> {
+    const response = await apiClient.get<ApiResponse<OrderApiItem>>(`/api/orders/${id}`);
+    return normalizeOrder(response.data.data);
+  },
+
+  async createOrder(payload: CreateOrderPayload): Promise<OrderRecord> {
+    const response = await apiClient.post<ApiResponse<OrderApiItem>>("/api/orders", payload);
+    return normalizeOrder(response.data.data);
   },
 
   async updateOrderStatus(id: string, payload: UpdateOrderStatusPayload): Promise<OrderRecord> {

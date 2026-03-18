@@ -1,5 +1,4 @@
 import {
-  ArrowRightOutlined,
   ClockCircleOutlined,
   FireOutlined,
   ReloadOutlined,
@@ -72,6 +71,9 @@ type HomeProduct = {
   name: string;
   slug: string;
   category: string;
+  categoryId?: string;
+  categoryName?: string;
+  categorySlug?: string;
   price: number;
   originalPrice?: number;
   badge?: string;
@@ -156,85 +158,85 @@ type ResolvedHomeContent = {
 
 const DEFAULT_HOME_CONTENT: ResolvedHomeContent = {
   hero: {
-    kicker: "Bộ sưu tập Xuân Hè 2026",
-    titleLine1: "Giao diện bán hàng",
-    titleLine2: "đẹp, rõ ràng và chuyển đổi.",
+    kicker: "B? s?u t?p Xu?n H? 2026",
+    titleLine1: "Mua s?m hi?n ??i,",
+    titleLine2: "r? r?ng v? ch?t ??n nhanh.",
     description:
-      "Trang chủ RioShop được làm mới theo flow mua sắm thực tế: ưu đãi nổi bật, danh mục rõ ràng, deal trong ngày, sản phẩm bán chạy và CTA đăng ký thành viên.",
+      "Trang ch? RioShop ???c thi?t k? theo flow mua s?m th?c t?: chi?n d?ch n?i b?t, danh m?c d? duy?t, deal trong ng?y, s?n ph?m b?n ch?y v? CTA r? r?ng ?? kh?ch v?o l? bi?t n?n mua g?.",
     primaryCtaLabel: "Mua ngay",
-    secondaryCtaLabel: "Xem bộ sưu tập",
-    dealDescription: "Giá tốt trong khung giờ vàng, số lượng giới hạn và cập nhật liên tục theo chương trình.",
-    sideKicker: "Cập nhật mỗi tuần",
-    sideTitleLine1: "Nhiều sản phẩm mới",
-    sideTitleLine2: "dành cho mùa mới",
+    secondaryCtaLabel: "Xem b? s?u t?p",
+    dealDescription: "Gi? t?t trong khung gi? v?ng, s? l??ng gi?i h?n v? ???c l?m n?i b?t ?? kh?ch d? quy?t ??nh h?n.",
+    sideKicker: "C?p nh?t m?i tu?n",
+    sideTitleLine1: "Nhi?u s?n ph?m m?i",
+    sideTitleLine2: "cho t? ?? m?a n?y",
     sideDescription:
-      "Tập trung vào form dễ mặc, chất liệu thoáng và bảng màu trung tính để phối đồ nhanh mỗi ngày.",
-    dealCtaLabel: "Mua deal này",
-    sideCtaLabel: "Khám phá ngay",
+      "T?p trung v?o form d? m?c, ch?t li?u tho?ng v? b?ng m?u trung t?nh ?? ph?i nhanh m?i ng?y.",
+    dealCtaLabel: "Mua deal n?y",
+    sideCtaLabel: "Kh?m ph? ngay",
     metrics: [
-      { value: "4.9/5", label: "Đánh giá trung bình từ khách hàng mua sắm" },
-      { value: "24h", label: "Xử lý đơn hàng trong ngày trên toàn hệ thống" },
-      { value: "60 ngày", label: "Đổi trả linh hoạt nếu sản phẩm chưa vừa ý" },
+      { value: "4.9/5", label: "??nh gi? trung b?nh t? kh?ch h?ng mua s?m" },
+      { value: "24h", label: "X? l? ??n h?ng nhanh trong ng?y tr?n to?n h? th?ng" },
+      { value: "60 ng?y", label: "??i tr? linh ho?t n?u s?n ph?m ch?a v?a ?" },
     ],
   },
   sections: {
-    categoriesMiniTitle: "Danh mục mua nhiều",
-    categoriesTitle: "Chọn nhanh theo nhu cầu",
-    categoriesLinkLabel: "Xem thêm",
-    flashSaleMiniTitle: "Deal hôm nay",
-    flashSaleTitle: "Khuyến mãi giờ vàng",
-    flashSaleLinkLabel: "Tất cả deal",
+    categoriesMiniTitle: "Danh m?c mua nhi?u",
+    categoriesTitle: "Ch?n nhanh theo nhu c?u",
+    categoriesLinkLabel: "Xem th?m",
+    flashSaleMiniTitle: "Deal h?m nay",
+    flashSaleTitle: "Khuy?n m?i gi? v?ng",
+    flashSaleLinkLabel: "T?t c? deal",
     productsMiniTitle: "Best seller",
-    productsTitle: "Sản phẩm nổi bật tuần này",
-    productsLinkLabel: "Xem tất cả",
+    productsTitle: "S?n ph?m n?i b?t tu?n n?y",
+    productsLinkLabel: "Xem t?t c?",
   },
   labels: {
     flashDeal: "Flash Deal",
-    soldPercentPrefix: "Đã bán",
-    soldOutSoon: "Sắp hết hàng",
-    dealFallbackTitle: "Ưu đãi trong ngày",
-    buyDeal: "Mua deal này",
-    exploreNow: "Khám phá ngay",
-    noCategories: "Chưa có danh mục phù hợp để hiển thị.",
-    noFlashSales: "Hiện chưa có flash sale đang diễn ra.",
-    noProducts: "Chưa có sản phẩm nổi bật để hiển thị.",
-    loadingCategories: "Đang tải danh mục...",
-    loadingFlashSales: "Đang tải flash sale...",
-    loadingProducts: "Đang tải sản phẩm nổi bật...",
+    soldPercentPrefix: "?? b?n",
+    soldOutSoon: "S?p h?t h?ng",
+    dealFallbackTitle: "?u ??i trong ng?y",
+    buyDeal: "Mua deal n?y",
+    exploreNow: "Kh?m ph? ngay",
+    noCategories: "Ch?a c? danh m?c ph? h?p ?? hi?n th?.",
+    noFlashSales: "Hi?n ch?a c? flash sale ?ang di?n ra.",
+    noProducts: "Ch?a c? s?n ph?m n?i b?t ?? hi?n th?.",
+    loadingCategories: "?ang t?i danh m?c...",
+    loadingFlashSales: "?ang t?i flash sale...",
+    loadingProducts: "?ang t?i s?n ph?m n?i b?t...",
   },
   valueProps: [
     {
-      title: "Giao nhanh 2h nội thành",
-      text: "Hỗ trợ giao nhanh tại Hà Nội và TP.HCM với đơn hàng đặt trước 16:00.",
+      title: "Giao nhanh 2h n?i th?nh",
+      text: "H? tr? giao nhanh t?i H? N?i v? TP.HCM v?i ??n h?ng ??t tr??c 16:00.",
       iconKey: "truck",
     },
     {
-      title: "Đổi trả 60 ngày",
-      text: "Đổi size, đổi màu hoặc hoàn tiền linh hoạt nếu sản phẩm chưa vừa ý.",
+      title: "??i tr? 60 ng?y",
+      text: "??i size, ??i m?u ho?c ho?n ti?n linh ho?t n?u s?n ph?m ch?a v?a ?.",
       iconKey: "return",
     },
     {
-      title: "Cam kết chính hãng",
-      text: "Hoàn 200% nếu phát hiện sản phẩm không đúng chất lượng đã công bố.",
+      title: "Cam k?t ch?nh h?ng",
+      text: "Ho?n 200% n?u ph?t hi?n s?n ph?m kh?ng ??ng ch?t l??ng ?? c?ng b?.",
       iconKey: "shield",
     },
   ],
   journal: {
     kicker: "Rio Journal",
-    titleLine1: "Mặc đẹp mỗi ngày,",
-    titleLine2: "đơn giản hơn.",
-    description: "Gợi ý outfit theo tình huống thực tế: đi làm, đi chơi, tập luyện và du lịch cuối tuần.",
+    titleLine1: "M?c ??p m?i ng?y,",
+    titleLine2: "??n gi?n h?n.",
+    description: "G?i ? outfit theo t?nh hu?ng th?c t?: ?i l?m, ?i ch?i, t?p luy?n v? du l?ch cu?i tu?n.",
     ctaLabel: "Xem lookbook",
   },
   member: {
     kicker: "Rio Member",
-    title: "Nhận ưu đãi 10% cho đơn đầu",
-    description: "Đăng ký để nhận mã giảm giá, thông báo deal mới và các đợt mở bán sớm cho thành viên.",
-    emailPlaceholder: "Nhập email của bạn",
-    ctaLabel: "Đăng ký",
+    title: "Nh?n ?u ??i 10% cho ??n ??u",
+    description: "??ng k? ?? nh?n m? gi?m gi?, th?ng b?o deal m?i v? c?c ??t m? b?n s?m cho th?nh vi?n.",
+    emailPlaceholder: "Nh?p email c?a b?n",
+    ctaLabel: "??ng k?",
   },
   apiNotice:
-    "Một phần dữ liệu trang chủ đang tạm thời dùng phương án dự phòng do API chưa phản hồi đầy đủ.",
+    "M?t ph?n d? li?u trang ch? ?ang t?m th?i d?ng ph??ng ?n d? ph?ng do API ch?a ph?n h?i ??y ??.",
 };
 
 const iconByKey = {
@@ -322,6 +324,9 @@ const mapHomeProduct = (product: ProductRuntime, index: number): HomeProduct => 
   name: product.name,
   slug: product.slug,
   category: getCategoryBadge(product),
+  categoryId: product.category?._id,
+  categoryName: product.category?.name,
+  categorySlug: product.category?.slug,
   price: product.pricing.salePrice,
   originalPrice: product.pricing.basePrice > product.pricing.salePrice ? product.pricing.basePrice : undefined,
   badge: getDiscountBadge(product.pricing.salePrice, product.pricing.basePrice),
@@ -409,16 +414,17 @@ export function StoreHomePage() {
   const [homeContent, setHomeContent] = useState<ResolvedHomeContent>(DEFAULT_HOME_CONTENT);
   const [quickCategories, setQuickCategories] = useState<HomeCategory[]>([]);
   const [featuredProducts, setFeaturedProducts] = useState<HomeProduct[]>([]);
+  const [catalogPool, setCatalogPool] = useState<HomeProduct[]>([]);
   const [flashDeals, setFlashDeals] = useState<FlashDeal[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [showApiNotice, setShowApiNotice] = useState(false);
+  const [activeHeroIndex, setActiveHeroIndex] = useState(0);
+  const [activeQuickCategoryId, setActiveQuickCategoryId] = useState("");
 
   useEffect(() => {
     let active = true;
 
     const loadHomeData = async () => {
       setIsLoading(true);
-      setShowApiNotice(false);
 
       const [brandConfigResult, categoryResult, featuredResult, latestResult, flashSaleResult] =
         await Promise.allSettled([
@@ -443,13 +449,6 @@ export function StoreHomePage() {
         return;
       }
 
-      const hasAnyApiError =
-        brandConfigResult.status === "rejected" ||
-        categoryResult.status === "rejected" ||
-        featuredResult.status === "rejected" ||
-        latestResult.status === "rejected" ||
-        flashSaleResult.status === "rejected";
-
       if (brandConfigResult.status === "fulfilled") {
         setHomeContent(mergeHomeContent(brandConfigResult.value.storefront?.home));
       } else {
@@ -471,9 +470,9 @@ export function StoreHomePage() {
       const highlightedProducts = (featuredDocs.length > 0 ? featuredDocs : uniqueProducts)
         .slice(0, 8)
         .map((item, index) => mapHomeProduct(item, index));
+      const mappedCatalogPool = uniqueProducts.slice(0, 80).map((item, index) => mapHomeProduct(item, index));
 
       const categoryCountMap = new Map<string, number>();
-      const categorySlugMap = new Map<string, string>();
 
       uniqueProducts.forEach((product) => {
         const categoryId = product.category?._id;
@@ -483,9 +482,6 @@ export function StoreHomePage() {
 
         categoryCountMap.set(categoryId, (categoryCountMap.get(categoryId) ?? 0) + 1);
 
-        if (!categorySlugMap.has(categoryId) && product.slug) {
-          categorySlugMap.set(categoryId, product.slug);
-        }
       });
 
       let mappedCategories: HomeCategory[] = [];
@@ -499,7 +495,7 @@ export function StoreHomePage() {
               id: category._id,
               name: category.name,
               count: productCount > 0 ? `${productCount} sản phẩm` : "Đang cập nhật",
-              slug: categorySlugMap.get(category._id) ?? highlightedProducts[0]?.slug ?? "ao-thun-airflex-pique",
+              slug: category.slug || "",
               image:
                 resolveImageUrl(category.image) ??
                 FALLBACK_CATEGORY_IMAGES[index % FALLBACK_CATEGORY_IMAGES.length],
@@ -508,7 +504,13 @@ export function StoreHomePage() {
           })
           .sort((a, b) => b.productCount - a.productCount)
           .slice(0, 6)
-          .map(({ productCount: _productCount, ...rest }) => rest);
+          .map((item) => ({
+            id: item.id,
+            name: item.name,
+            count: item.count,
+            slug: item.slug,
+            image: item.image,
+          }));
       } else {
         const derived = new Map<string, HomeCategory & { productCount: number }>();
 
@@ -531,7 +533,7 @@ export function StoreHomePage() {
             id: categoryId,
             name: categoryName,
             count: "1 sản phẩm",
-            slug: product.slug,
+            slug: product.category?.slug ?? "",
             image: getProductImage(product, index),
             productCount: 1,
           });
@@ -540,7 +542,13 @@ export function StoreHomePage() {
         mappedCategories = Array.from(derived.values())
           .sort((a, b) => b.productCount - a.productCount)
           .slice(0, 6)
-          .map(({ productCount: _productCount, ...rest }) => rest);
+          .map((item) => ({
+            id: item.id,
+            name: item.name,
+            count: item.count,
+            slug: item.slug,
+            image: item.image,
+          }));
       }
 
       const mappedFlashDeals: FlashDeal[] = [];
@@ -602,9 +610,9 @@ export function StoreHomePage() {
       }
 
       setFeaturedProducts(highlightedProducts);
+      setCatalogPool(mappedCatalogPool.length > 0 ? mappedCatalogPool : highlightedProducts);
       setQuickCategories(mappedCategories);
       setFlashDeals(mappedFlashDeals);
-      setShowApiNotice(hasAnyApiError);
       setIsLoading(false);
     };
 
@@ -615,258 +623,283 @@ export function StoreHomePage() {
     };
   }, []);
 
-  const primarySlug = useMemo(
-    () => featuredProducts[0]?.slug ?? flashDeals[0]?.slug ?? "ao-thun-airflex-pique",
-    [featuredProducts, flashDeals],
-  );
+  const primarySlug = useMemo(() => featuredProducts[0]?.slug ?? flashDeals[0]?.slug ?? "", [featuredProducts, flashDeals]);
+  const secondarySlug = useMemo(() => featuredProducts[1]?.slug ?? featuredProducts[0]?.slug ?? "", [featuredProducts]);
+  const productPool = useMemo(() => (catalogPool.length > 0 ? catalogPool : featuredProducts), [catalogPool, featuredProducts]);
+  const primaryCtaLink = primarySlug ? `/products/${primarySlug}` : "/products";
+  const secondaryCtaLink = secondarySlug ? `/products/${secondarySlug}` : "/products";
+  const campaignImage =
+    featuredProducts[0]?.image ??
+    "https://images.unsplash.com/photo-1523381210434-271e8be1f52b?auto=format&fit=crop&w=1800&q=80";
+  const bestsellingProducts = productPool.slice(4, 8).length > 0 ? productPool.slice(4, 8) : productPool.slice(0, 4);
+  const curatedProducts = productPool.slice(8, 12).length > 0 ? productPool.slice(8, 12) : productPool.slice(0, 4);
+  const spotlightCategories = quickCategories.slice(0, 5);
+  const serviceHighlights = homeContent.valueProps.slice(0, 3);
+  const socialStats = [
+    { value: `${productPool.length}+`, label: "Sản phẩm đang mở bán" },
+    { value: `${quickCategories.length}`, label: "Danh mục mua sắm" },
+    { value: flashDeals.length > 0 ? `${flashDeals.length}` : "24h", label: flashDeals.length > 0 ? "Deal đang chạy" : "Xử lý đơn trong ngày" },
+    { value: homeContent.hero.metrics[0]?.value ?? "4.9/5", label: homeContent.hero.metrics[0]?.label ?? "Khách hàng đánh giá cao" },
+  ];
 
-  const secondarySlug = useMemo(
-    () => featuredProducts[1]?.slug ?? featuredProducts[0]?.slug ?? primarySlug,
-    [featuredProducts, primarySlug],
-  );
+  const categoryCollections = useMemo(() => {
+    const grouped = new Map<string, HomeProduct[]>();
 
-  const heroDeal = flashDeals[0];
+    productPool.forEach((item) => {
+      if (!item.categoryId) {
+        return;
+      }
+      const current = grouped.get(item.categoryId) ?? [];
+      if (current.length < 12) {
+        current.push(item);
+      }
+      grouped.set(item.categoryId, current);
+    });
+
+    return quickCategories
+      .slice(0, 4)
+      .map((category, index) => {
+        let products = (grouped.get(category.id) ?? []).slice(0, 4);
+
+        if (products.length < 4) {
+          const fallback = productPool
+            .filter((item) => item.categoryId !== category.id)
+            .slice(index * 4, index * 4 + (4 - products.length));
+          products = [...products, ...fallback].slice(0, 4);
+        }
+
+        return { category, products };
+      })
+      .filter((item) => item.products.length > 0);
+  }, [productPool, quickCategories]);
+
+  const editorialCards = quickCategories.slice(0, 3).map((category, index) => ({
+    id: category.id,
+    title: category.name,
+    image: category.image,
+    href: category.slug ? `/products?category=${encodeURIComponent(category.slug)}` : "/products",
+    description:
+      [
+        "Nh?ng thi?t k? d? m?c, g?n g?ng v? h?p nh?p s?ng h?ng ng?y.",
+        "T?p trung v?o ch?t li?u tho?ng, b?ng m?u d? ph?i v? phom m?c th?c t?.",
+        "G?i ? nhanh ?? b?n ?i l?m, ?i ch?i ho?c l?n outfit cu?i tu?n.",
+      ][index] ?? "Kh?m ph? th?m c?c g?i ? ph?i ?? v? s?n ph?m ph? h?p nh?t.",
+  }));
+
+  const heroSlides = useMemo(() => {
+    const source = (featuredProducts.length > 0 ? featuredProducts : productPool).slice(0, 3);
+
+    return source.map((product, index) => ({
+      id: product.id,
+      image: product.image,
+      href: `/products/${product.slug}`,
+      secondaryHref: product.categorySlug ? `/products?category=${encodeURIComponent(product.categorySlug)}` : "/products",
+      kicker: index === 0 ? homeContent.hero.kicker : product.categoryName ?? homeContent.hero.sideKicker,
+      titleLine1: index === 0 ? homeContent.hero.titleLine1 : product.name,
+      titleLine2:
+        index === 0
+          ? homeContent.hero.titleLine2
+          : product.categoryName
+            ? `${product.categoryName} chọn lọc cho mùa này`
+            : homeContent.hero.sideTitleLine2,
+      description:
+        index === 0
+          ? homeContent.hero.description
+          : `${product.categoryName ?? "Bộ sưu tập"} có phom dễ mặc, giá tốt và đang được khách hàng quan tâm nhiều trong tuần này.`,
+      primaryLabel: index === 0 ? homeContent.hero.primaryCtaLabel : homeContent.labels.buyDeal,
+      secondaryLabel: index === 0 ? homeContent.hero.secondaryCtaLabel : "Xem danh mục",
+      priceLabel: formatCurrency(product.price),
+      meta: product.sold,
+      badge: product.badge ?? (index === 0 ? homeContent.labels.flashDeal : homeContent.labels.exploreNow),
+    }));
+  }, [featuredProducts, homeContent, productPool]);
+
+  useEffect(() => {
+    if (heroSlides.length <= 1) {
+      return;
+    }
+
+    const intervalId = window.setInterval(() => {
+      setActiveHeroIndex((current) => (current + 1) % heroSlides.length);
+    }, 5200);
+
+    return () => {
+      window.clearInterval(intervalId);
+    };
+  }, [heroSlides.length]);
+
+  const normalizedHeroIndex = heroSlides.length > 0 ? activeHeroIndex % heroSlides.length : 0;
+  const activeHeroSlide = heroSlides[normalizedHeroIndex] ?? heroSlides[0];
+  const activeQuickCategory = quickCategories.find((item) => item.id === activeQuickCategoryId) ?? quickCategories[0];
+
+  const showcaseProducts = useMemo(() => {
+    const preferredCategoryId = activeQuickCategory?.id;
+    const preferred = preferredCategoryId ? productPool.filter((item) => item.categoryId === preferredCategoryId) : productPool;
+    const fallback = productPool.filter((item) => item.categoryId !== preferredCategoryId);
+    const merged = [...preferred, ...fallback.filter((item) => !preferred.some((entry) => entry.id === item.id))];
+
+    return merged.slice(0, 5);
+  }, [activeQuickCategory, productPool]);
+
+  const showcaseLeadProduct = showcaseProducts[0];
+  const showcaseRailProducts = showcaseProducts.slice(1, 5);
+
+  const renderProductCard = (product: HomeProduct, large = false) => {
+    const hasDiscount = typeof product.originalPrice === "number" && product.originalPrice > product.price;
+
+    return (
+      <Link to={`/products/${product.slug}`} className={`store-home-v3-product-card ${large ? "is-large" : ""}`}>
+        <div className="store-home-v3-product-media">
+          <img src={product.image} alt={product.name} className="h-full w-full object-cover" />
+          <span className="store-home-v3-product-chip">{product.categoryName ?? product.category}</span>
+          {hasDiscount && product.badge ? <span className="store-home-v3-product-sale">{product.badge}</span> : null}
+        </div>
+        <div className="store-home-v3-product-body">
+          <p className="store-home-v3-product-meta">{product.category}</p>
+          <h3>{product.name}</h3>
+          <div className="store-home-v3-price-row">
+            <strong>{formatCurrency(product.price)}</strong>
+            {hasDiscount ? <span>{formatCurrency(product.originalPrice ?? product.price)}</span> : null}
+          </div>
+          <div className="store-home-v3-product-foot">
+            <span className="inline-flex items-center gap-1 text-amber-500">
+              <StarFilled />
+              {product.rating.toFixed(1)}
+            </span>
+            <span>{product.sold}</span>
+          </div>
+        </div>
+      </Link>
+    );
+  };
+
+  const renderShowcaseCard = (product: HomeProduct) => {
+    const hasDiscount = typeof product.originalPrice === "number" && product.originalPrice > product.price;
+
+    return (
+      <Link key={`showcase-${product.id}`} to={`/products/${product.slug}`} className="store-home-v3-showcase-item">
+        <div className="store-home-v3-showcase-item-media">
+          <img src={product.image} alt={product.name} className="h-full w-full object-cover" />
+        </div>
+        <div className="store-home-v3-showcase-item-copy">
+          <p>{product.categoryName ?? product.category}</p>
+          <h3>{product.name}</h3>
+          <div className="store-home-v3-showcase-item-price">
+            <strong>{formatCurrency(product.price)}</strong>
+            {hasDiscount ? <span>{formatCurrency(product.originalPrice ?? product.price)}</span> : null}
+          </div>
+          <div className="store-home-v3-showcase-item-foot">
+            <span className="inline-flex items-center gap-1 text-amber-500">
+              <StarFilled />
+              {product.rating.toFixed(1)}
+            </span>
+            <span>{product.sold}</span>
+          </div>
+        </div>
+      </Link>
+    );
+  };
 
   return (
-    <div className="home-v2 space-y-8 md:space-y-10">
-      {showApiNotice ? (
-        <div className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
-          {homeContent.apiNotice}
-        </div>
+    <div className="store-home-v3 space-y-8 md:space-y-12">
+      {isLoading ? (
+        <div className="store-home-v3-notice">Đang tải dữ liệu trang chủ...</div>
       ) : null}
 
-      <section className="home-v2-hero">
-        <div className="home-v2-hero-main">
-          <p className="home-v2-kicker">{homeContent.hero.kicker}</p>
-          <h1 className="m-0 mt-3 text-4xl font-black leading-[1.06] text-white md:text-6xl">
-            {homeContent.hero.titleLine1}
-            <br />
-            {homeContent.hero.titleLine2}
-          </h1>
-          <p className="mt-4 max-w-2xl text-base leading-7 text-slate-200 md:text-lg">
-            {homeContent.hero.description}
-          </p>
-
-          <div className="mt-7 flex flex-wrap gap-3">
-            <Link to={`/products/${primarySlug}`}>
-              <Button type="primary" className="home-v2-btn-primary !h-11 !rounded-full !px-7 !font-bold">
-                {homeContent.hero.primaryCtaLabel}
-              </Button>
-            </Link>
-            <Link to={`/products/${secondarySlug}`}>
-              <Button className="home-v2-btn-secondary !h-11 !rounded-full !px-7 !font-bold">
-                {homeContent.hero.secondaryCtaLabel}
-              </Button>
-            </Link>
-          </div>
-
-          <div className="home-v2-hero-metrics">
-            {homeContent.hero.metrics.map((metric) => (
-              <div key={`${metric.value}-${metric.label}`} className="home-v2-metric-card">
-                <p className="home-v2-metric-value">{metric.value}</p>
-                <p className="home-v2-metric-label">{metric.label}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        <aside className="home-v2-hero-side">
-          <article className="home-v2-side-card">
-            <div className="home-v2-side-head">
-              <span className="home-v2-side-badge">
-                <FireOutlined />
-                {homeContent.labels.flashDeal}
-              </span>
-              <span className="home-v2-side-time">
-                <ClockCircleOutlined />
-                {heroDeal?.timeLeft ?? "00:00:00"}
-              </span>
+      <section
+        className="store-home-v3-hero store-home-v3-bleed"
+        style={{
+          backgroundImage: `linear-gradient(118deg, rgba(7, 12, 23, 0.88), rgba(7, 12, 23, 0.32)), url(${activeHeroSlide?.image ?? campaignImage})`,
+        }}
+      >
+        <div className="store-home-v3-hero-inner">
+          <div className="store-home-v3-hero-copy">
+            <div className="store-home-v3-hero-copy-top">
+              <p className="store-home-v3-kicker">{activeHeroSlide?.kicker ?? homeContent.hero.kicker}</p>
+              <span className="store-home-v3-hero-badge">{activeHeroSlide?.badge ?? homeContent.labels.flashDeal}</span>
             </div>
-            <h3 className="m-0 mt-4 text-xl font-black text-slate-900">
-              {heroDeal?.title ?? homeContent.labels.dealFallbackTitle}
-            </h3>
-            <p className="m-0 mt-2 text-sm text-slate-600">{homeContent.hero.dealDescription}</p>
-            <div className="mt-4 flex items-end gap-2">
-              <strong className="text-2xl font-black text-slate-900">
-                {formatCurrency(heroDeal?.salePrice ?? 0)}
-              </strong>
-              {heroDeal?.basePrice ? (
-                <span className="text-sm text-slate-400 line-through">
-                  {formatCurrency(heroDeal.basePrice)}
-                </span>
-              ) : null}
-            </div>
-            <Link to={`/products/${heroDeal?.slug ?? primarySlug}`} className="home-v2-inline-link">
-              {homeContent.hero.dealCtaLabel || homeContent.labels.buyDeal} <ArrowRightOutlined />
-            </Link>
-          </article>
-
-          <article className="home-v2-side-card home-v2-side-card-dark">
-            <p className="m-0 text-xs font-bold uppercase tracking-[0.18em] text-slate-300">
-              {homeContent.hero.sideKicker}
-            </p>
-            <h3 className="m-0 mt-3 text-2xl font-black text-white">
-              {homeContent.hero.sideTitleLine1}
+            <h1>
+              {activeHeroSlide?.titleLine1 ?? homeContent.hero.titleLine1}
               <br />
-              {homeContent.hero.sideTitleLine2}
-            </h3>
-            <p className="m-0 mt-2 text-sm leading-6 text-slate-300">{homeContent.hero.sideDescription}</p>
-            <Link to={`/products/${secondarySlug}`} className="home-v2-inline-link home-v2-inline-link-light">
-              {homeContent.hero.sideCtaLabel || homeContent.labels.exploreNow} <ArrowRightOutlined />
-            </Link>
-          </article>
-        </aside>
-      </section>
-
-      <section>
-        <div className="home-v2-head">
-          <div>
-            <p className="home-v2-mini-title">{homeContent.sections.categoriesMiniTitle}</p>
-            <h2 className="m-0 mt-1 text-3xl font-black text-slate-900">{homeContent.sections.categoriesTitle}</h2>
-          </div>
-          <button type="button" className="home-v2-head-link">
-            {homeContent.sections.categoriesLinkLabel} <ArrowRightOutlined />
-          </button>
-        </div>
-
-        {quickCategories.length > 0 ? (
-          <div className="home-v2-category-grid">
-            {quickCategories.map((item) => (
-              <Link key={item.id} to={`/products/${item.slug}`} className="home-v2-category-card">
-                <div className="home-v2-category-image">
-                  <img src={item.image} alt={item.name} className="h-full w-full object-cover" />
-                </div>
-                <div className="p-4">
-                  <p className="m-0 text-base font-bold text-slate-900">{item.name}</p>
-                  <p className="m-0 mt-1 text-sm text-slate-500">{item.count}</p>
-                </div>
+              {activeHeroSlide?.titleLine2 ?? homeContent.hero.titleLine2}
+            </h1>
+            <p className="store-home-v3-hero-text">{activeHeroSlide?.description ?? homeContent.hero.description}</p>
+            <div className="store-home-v3-hero-actions">
+              <Link to={activeHeroSlide?.href ?? primaryCtaLink}>
+                <Button type="primary" className="store-home-v3-primary-btn !h-12 !rounded-full !px-7 !font-bold !shadow-none">
+                  {activeHeroSlide?.primaryLabel ?? homeContent.hero.primaryCtaLabel}
+                </Button>
               </Link>
-            ))}
-          </div>
-        ) : (
-          <div className="rounded-2xl border border-slate-200 bg-white px-4 py-6 text-sm text-slate-500">
-            {isLoading ? homeContent.labels.loadingCategories : homeContent.labels.noCategories}
-          </div>
-        )}
-      </section>
+              <Link to={activeHeroSlide?.secondaryHref ?? secondaryCtaLink}>
+                <Button className="store-home-v3-secondary-btn !h-12 !rounded-full !px-7 !font-bold">
+                  {activeHeroSlide?.secondaryLabel ?? homeContent.hero.secondaryCtaLabel}
+                </Button>
+              </Link>
+            </div>
 
-      <section className="home-v2-deal-shell">
-        <div className="home-v2-head">
-          <div>
-            <p className="home-v2-mini-title">{homeContent.sections.flashSaleMiniTitle}</p>
-            <h2 className="m-0 mt-1 text-3xl font-black text-slate-900">{homeContent.sections.flashSaleTitle}</h2>
-          </div>
-          <button type="button" className="home-v2-head-link">
-            {homeContent.sections.flashSaleLinkLabel} <ArrowRightOutlined />
-          </button>
-        </div>
+            <div className="store-home-v3-hero-panel">
+              <div className="store-home-v3-hero-panel-item">
+                <span>Giá nổi bật</span>
+                <strong>{activeHeroSlide?.priceLabel ?? formatCurrency(featuredProducts[0]?.price ?? 0)}</strong>
+              </div>
+              <div className="store-home-v3-hero-panel-item">
+                <span>Tín hiệu mua sắm</span>
+                <strong>{activeHeroSlide?.meta ?? homeContent.hero.metrics[0]?.value ?? "Đang cập nhật"}</strong>
+              </div>
+            </div>
 
-        {flashDeals.length > 0 ? (
-          <div className="home-v2-deal-grid">
-            {flashDeals.map((deal) => (
-              <Link key={deal.id} to={`/products/${deal.slug}`} className="home-v2-deal-card">
-                <div className="flex items-center justify-between gap-3">
-                  <span className="home-v2-chip">
-                    <ThunderboltOutlined />
-                    {homeContent.labels.flashDeal}
-                  </span>
-                  <span className="text-xs font-semibold text-slate-500">
-                    <ClockCircleOutlined /> {deal.timeLeft}
-                  </span>
-                </div>
-                <h3 className="m-0 mt-4 text-lg font-black text-slate-900">{deal.title}</h3>
-                <div className="mt-3 flex items-end gap-2">
-                  <strong className="text-2xl font-black text-slate-900">{formatCurrency(deal.salePrice)}</strong>
-                  <span className="text-sm text-slate-400 line-through">{formatCurrency(deal.basePrice)}</span>
-                </div>
-                <div className="mt-4">
-                  <div className="mb-1 flex items-center justify-between text-xs text-slate-500">
-                    <span>
-                      {homeContent.labels.soldPercentPrefix} {deal.soldPercent}%
-                    </span>
-                    <span>{homeContent.labels.soldOutSoon}</span>
-                  </div>
-                  <Progress
-                    percent={deal.soldPercent}
-                    showInfo={false}
-                    strokeColor="#0f172a"
-                    trailColor="#e2e8f0"
+            {heroSlides.length > 1 ? (
+              <div className="store-home-v3-hero-dots" aria-label="Chọn slide hero">
+                {heroSlides.map((slide, index) => (
+                  <button
+                    key={`hero-dot-${slide.id}`}
+                    type="button"
+                    className={`store-home-v3-hero-dot ${index === normalizedHeroIndex ? "is-active" : ""}`}
+                    aria-label={`Hiển thị slide ${index + 1}`}
+                    onClick={() => setActiveHeroIndex(index)}
                   />
+                ))}
+              </div>
+            ) : null}
+          </div>
+
+          <div className="store-home-v3-hero-rail">
+            {heroSlides.map((slide, index) => (
+              <button
+                key={`hero-${slide.id}`}
+                type="button"
+                className={`store-home-v3-hero-mini ${index === normalizedHeroIndex ? "is-active" : ""}`}
+                onClick={() => setActiveHeroIndex(index)}
+              >
+                <div className="store-home-v3-hero-mini-media">
+                  <img src={slide.image} alt={slide.titleLine1} className="h-full w-full object-cover" />
                 </div>
-              </Link>
+                <div>
+                  <p>{slide.kicker}</p>
+                  <h3>{slide.titleLine1}</h3>
+                  <strong>{slide.priceLabel}</strong>
+                </div>
+              </button>
             ))}
           </div>
-        ) : (
-          <div className="rounded-2xl border border-slate-200 bg-white px-4 py-6 text-sm text-slate-500">
-            {isLoading ? homeContent.labels.loadingFlashSales : homeContent.labels.noFlashSales}
-          </div>
-        )}
-      </section>
-
-      <section className="home-v2-product-shell">
-        <div className="home-v2-head">
-          <div>
-            <p className="home-v2-mini-title">{homeContent.sections.productsMiniTitle}</p>
-            <h2 className="m-0 mt-1 text-3xl font-black text-slate-900">{homeContent.sections.productsTitle}</h2>
-          </div>
-          <button type="button" className="home-v2-head-link">
-            {homeContent.sections.productsLinkLabel} <ArrowRightOutlined />
-          </button>
         </div>
-
-        {featuredProducts.length > 0 ? (
-          <div className="home-v2-product-grid">
-            {featuredProducts.map((product) => {
-              const hasDiscount =
-                typeof product.originalPrice === "number" && product.originalPrice > product.price;
-
-              return (
-                <Link key={product.id} to={`/products/${product.slug}`} className="home-v2-product-card">
-                  <div className="home-v2-product-image">
-                    <img src={product.image} alt={product.name} className="h-full w-full object-cover" />
-                    <span className="home-v2-product-badge">{product.category}</span>
-                    {hasDiscount && product.badge ? (
-                      <span className="home-v2-product-discount">{product.badge}</span>
-                    ) : null}
-                  </div>
-
-                  <div className="p-4">
-                    <h3 className="m-0 min-h-[44px] text-sm font-semibold text-slate-900 md:text-base">
-                      {product.name}
-                    </h3>
-                    <div className="mt-2 flex items-end gap-2">
-                      <strong className="text-base font-black text-slate-900 md:text-lg">
-                        {formatCurrency(product.price)}
-                      </strong>
-                      {hasDiscount ? (
-                        <span className="text-sm text-slate-400 line-through">
-                          {formatCurrency(product.originalPrice ?? product.price)}
-                        </span>
-                      ) : null}
-                    </div>
-                    <div className="mt-2 flex items-center justify-between text-xs text-slate-500">
-                      <span className="inline-flex items-center gap-1 text-amber-500">
-                        <StarFilled />
-                        {product.rating.toFixed(1)}
-                      </span>
-                      <span>{product.sold}</span>
-                    </div>
-                  </div>
-                </Link>
-              );
-            })}
-          </div>
-        ) : (
-          <div className="rounded-2xl border border-slate-200 bg-white px-4 py-6 text-sm text-slate-500">
-            {isLoading ? homeContent.labels.loadingProducts : homeContent.labels.noProducts}
-          </div>
-        )}
       </section>
 
-      <section className="home-v2-value-grid">
-        {homeContent.valueProps.map((item) => (
-          <article key={item.title} className="home-v2-value-card">
-            <div className="home-v2-value-icon">{iconByKey[item.iconKey as keyof typeof iconByKey] ?? <ThunderboltOutlined />}</div>
+      <section className="store-home-v3-metric-grid">
+        {socialStats.map((item) => (
+          <article key={`${item.value}-${item.label}`} className="store-home-v3-metric-card">
+            <p>{item.value}</p>
+            <span>{item.label}</span>
+          </article>
+        ))}
+      </section>
+
+      <section className="store-home-v3-service-grid">
+        {serviceHighlights.map((item) => (
+          <article key={item.title} className="store-home-v3-service-card">
+            <div className="store-home-v3-service-icon">
+              {iconByKey[item.iconKey as keyof typeof iconByKey] ?? <ThunderboltOutlined />}
+            </div>
             <div>
               <h3>{item.title}</h3>
               <p>{item.text}</p>
@@ -875,34 +908,294 @@ export function StoreHomePage() {
         ))}
       </section>
 
-      <section className="home-v2-bottom-grid">
-        <article className="home-v2-journal">
-          <p className="home-v2-mini-title !text-slate-300">{homeContent.journal.kicker}</p>
-          <h2 className="m-0 mt-2 text-4xl font-black leading-tight text-white">
-            {homeContent.journal.titleLine1}
-            <br />
-            {homeContent.journal.titleLine2}
-          </h2>
-          <p className="m-0 mt-3 max-w-xl text-sm leading-7 text-slate-300 md:text-base">
-            {homeContent.journal.description}
-          </p>
-          <Link to={`/products/${primarySlug}`}>
-            <Button className="!mt-6 !h-11 !rounded-full !border-0 !px-7 !font-bold">{homeContent.journal.ctaLabel}</Button>
-          </Link>
-        </article>
+      {spotlightCategories.length > 0 ? (
+        <section className="store-home-v3-section">
+          <div className="store-home-v3-section-head">
+            <div>
+              <p>Khám phá theo danh mục</p>
+              <h2>{homeContent.sections.categoriesTitle}</h2>
+            </div>
+            <Link to="/products" className="store-home-v3-text-link">
+              {homeContent.sections.categoriesLinkLabel}
+            </Link>
+          </div>
 
-        <article className="home-v2-member-card">
-          <p className="m-0 text-xs font-bold uppercase tracking-[0.16em] text-slate-500">{homeContent.member.kicker}</p>
-          <h3 className="m-0 mt-2 text-3xl font-black text-slate-900">{homeContent.member.title}</h3>
-          <p className="m-0 mt-2 text-sm leading-7 text-slate-600">{homeContent.member.description}</p>
-          <form className="home-v2-newsletter-form" onSubmit={(event) => event.preventDefault()}>
-            <input className="home-v2-newsletter-input" placeholder={homeContent.member.emailPlaceholder} />
-            <Button type="primary" className="!h-11 !rounded-full !bg-slate-900 !px-6 !font-bold !shadow-none">
+          <div className="store-home-v3-category-mosaic">
+            <Link
+              to={spotlightCategories[0].slug ? `/products?category=${encodeURIComponent(spotlightCategories[0].slug)}` : "/products"}
+              className="store-home-v3-category-lead"
+              style={{
+                backgroundImage: `linear-gradient(130deg, rgba(15, 23, 42, 0.8), rgba(15, 23, 42, 0.16)), url(${spotlightCategories[0].image})`,
+              }}
+            >
+              <span>{spotlightCategories[0].count}</span>
+              <h3>{spotlightCategories[0].name}</h3>
+            </Link>
+
+            <div className="store-home-v3-category-side">
+              {spotlightCategories.slice(1).map((category) => (
+                <Link
+                  key={`spotlight-${category.id}`}
+                  to={category.slug ? `/products?category=${encodeURIComponent(category.slug)}` : "/products"}
+                  className="store-home-v3-category-card"
+                >
+                  <div className="store-home-v3-category-thumb">
+                    <img src={category.image} alt={category.name} className="h-full w-full object-cover" />
+                  </div>
+                  <div>
+                    <h3>{category.name}</h3>
+                    <p>{category.count}</p>
+                  </div>
+                </Link>
+              ))}
+            </div>
+          </div>
+        </section>
+      ) : null}
+
+      {showcaseLeadProduct ? (
+        <section className="store-home-v3-section store-home-v3-showcase">
+          <div className="store-home-v3-section-head">
+            <div>
+              <p>Mua nhanh hôm nay</p>
+              <h2>Sản phẩm dễ chọn, dễ mua và đúng nhu cầu đang xem</h2>
+            </div>
+            <div className="store-home-v3-pill-row">
+              {quickCategories.slice(0, 6).map((item) => (
+                <button
+                  key={`pill-${item.id}`}
+                  type="button"
+                  className={`store-home-v3-pill ${item.id === activeQuickCategory?.id ? "is-active" : ""}`}
+                  onClick={() => setActiveQuickCategoryId(item.id)}
+                >
+                  {item.name}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div className="store-home-v3-showcase-layout">
+            <Link to={`/products/${showcaseLeadProduct.slug}`} className="store-home-v3-showcase-feature">
+              <div className="store-home-v3-showcase-copy">
+                <span className="store-home-v3-showcase-badge">
+                  {activeQuickCategory?.name ?? showcaseLeadProduct.categoryName ?? showcaseLeadProduct.category}
+                </span>
+                <h3>{showcaseLeadProduct.name}</h3>
+                <p>
+                  Gợi ý nổi bật trong danh mục đang được xem, ưu tiên sản phẩm có giá tốt, phom dễ mặc và tỷ lệ chuyển
+                  đổi cao hơn cho khu vực đầu trang.
+                </p>
+                <div className="store-home-v3-showcase-price">
+                  <strong>{formatCurrency(showcaseLeadProduct.price)}</strong>
+                  {typeof showcaseLeadProduct.originalPrice === "number" &&
+                  showcaseLeadProduct.originalPrice > showcaseLeadProduct.price ? (
+                    <span>{formatCurrency(showcaseLeadProduct.originalPrice)}</span>
+                  ) : null}
+                </div>
+                <div className="store-home-v3-showcase-meta">
+                  <span className="inline-flex items-center gap-1 text-amber-500">
+                    <StarFilled />
+                    {showcaseLeadProduct.rating.toFixed(1)}
+                  </span>
+                  <span>{showcaseLeadProduct.sold}</span>
+                </div>
+              </div>
+              <div className="store-home-v3-showcase-media">
+                <img src={showcaseLeadProduct.image} alt={showcaseLeadProduct.name} className="h-full w-full object-cover" />
+              </div>
+            </Link>
+
+            <div className="store-home-v3-showcase-side">
+              {showcaseRailProducts.map((product) => renderShowcaseCard(product))}
+            </div>
+          </div>
+        </section>
+      ) : null}
+
+      {flashDeals.length > 0 ? (
+        <section className="store-home-v3-flash-shell">
+          <div className="store-home-v3-section-head is-light">
+            <div>
+              <p>{homeContent.sections.flashSaleMiniTitle}</p>
+              <h2>{homeContent.sections.flashSaleTitle}</h2>
+            </div>
+            <Link to="/products" className="store-home-v3-text-link is-light">
+              {homeContent.sections.flashSaleLinkLabel}
+            </Link>
+          </div>
+
+          <div className="store-home-v3-flash-layout">
+            <article className="store-home-v3-flash-feature">
+              <span className="store-home-v3-kicker is-light">{homeContent.labels.flashDeal}</span>
+              <h3>{flashDeals[0]?.title ?? homeContent.labels.dealFallbackTitle}</h3>
+              <p>{homeContent.hero.dealDescription}</p>
+              <div className="store-home-v3-flash-price">
+                <strong>{formatCurrency(flashDeals[0]?.salePrice ?? 0)}</strong>
+                {flashDeals[0]?.basePrice ? <span>{formatCurrency(flashDeals[0].basePrice)}</span> : null}
+              </div>
+              <div className="store-home-v3-flash-time">
+                <ClockCircleOutlined /> {flashDeals[0]?.timeLeft ?? "00:00:00"}
+              </div>
+              <Progress
+                percent={flashDeals[0]?.soldPercent ?? 0}
+                showInfo={false}
+                strokeColor="#f97316"
+                trailColor="rgba(255,255,255,0.16)"
+              />
+            </article>
+
+            <div className="store-home-v3-flash-list">
+              {flashDeals.slice(0, 3).map((deal) => (
+                <Link key={`deal-${deal.id}`} to={`/products/${deal.slug}`} className="store-home-v3-flash-card">
+                  <div className="store-home-v3-flash-card-head">
+                    <span>
+                      <FireOutlined /> {homeContent.labels.flashDeal}
+                    </span>
+                    <small>{deal.timeLeft}</small>
+                  </div>
+                  <h3>{deal.title}</h3>
+                  <div className="store-home-v3-flash-card-price">
+                    <strong>{formatCurrency(deal.salePrice)}</strong>
+                    <span>{formatCurrency(deal.basePrice)}</span>
+                  </div>
+                  <Progress percent={deal.soldPercent} showInfo={false} strokeColor="#fb923c" trailColor="#1f2937" />
+                </Link>
+              ))}
+            </div>
+          </div>
+        </section>
+      ) : null}
+
+      {editorialCards.length > 0 ? (
+        <section className="store-home-v3-editorial">
+          <div className="store-home-v3-editorial-copy">
+            <p>{homeContent.journal.kicker}</p>
+            <h2>
+              {homeContent.journal.titleLine1}
+              <br />
+              {homeContent.journal.titleLine2}
+            </h2>
+            <p>{homeContent.journal.description}</p>
+            <Link to={primaryCtaLink}>
+              <Button className="store-home-v3-primary-ghost !h-11 !rounded-full !px-7 !font-bold">
+                {homeContent.journal.ctaLabel}
+              </Button>
+            </Link>
+          </div>
+
+          <div className="store-home-v3-editorial-grid">
+            {editorialCards.map((card) => (
+              <Link
+                key={`editorial-${card.id}`}
+                to={card.href}
+                className="store-home-v3-editorial-card"
+                style={{
+                  backgroundImage: `linear-gradient(140deg, rgba(15, 23, 42, 0.72), rgba(15, 23, 42, 0.14)), url(${card.image})`,
+                }}
+              >
+                <h3>{card.title}</h3>
+                <p>{card.description}</p>
+              </Link>
+            ))}
+          </div>
+        </section>
+      ) : null}
+
+      {bestsellingProducts.length > 0 ? (
+        <section className="store-home-v3-section">
+          <div className="store-home-v3-section-head">
+            <div>
+              <p>{homeContent.sections.productsMiniTitle}</p>
+              <h2>{homeContent.sections.productsTitle}</h2>
+            </div>
+            <Link to="/products" className="store-home-v3-text-link">
+              {homeContent.sections.productsLinkLabel}
+            </Link>
+          </div>
+
+          <div className="store-home-v3-product-grid">
+            {bestsellingProducts.map((product) => (
+              <div key={`best-${product.id}`}>{renderProductCard(product)}</div>
+            ))}
+          </div>
+        </section>
+      ) : null}
+
+      {curatedProducts.length > 0 ? (
+        <section className="store-home-v3-curated">
+          <div className="store-home-v3-curated-copy">
+            <p className="store-home-v3-kicker">Chọn sẵn cho bạn</p>
+            <h2>Phối nhanh, mua gọn, hợp nhiều tình huống sử dụng</h2>
+            <p>
+              Từ đồ mặc hằng ngày tới các lựa chọn thoải mái cho cuối tuần, homepage gợi ý sẵn những nhóm sản phẩm
+              dễ mua nhất để bạn vào là chọn được ngay.
+            </p>
+            <Link to={secondaryCtaLink}>
+              <Button className="store-home-v3-secondary-ghost !h-11 !rounded-full !px-7 !font-bold">
+                Khám phá thêm
+              </Button>
+            </Link>
+          </div>
+
+          <div className="store-home-v3-product-grid">
+            {curatedProducts.map((product) => (
+              <div key={`curated-${product.id}`}>{renderProductCard(product)}</div>
+            ))}
+          </div>
+        </section>
+      ) : null}
+
+      {categoryCollections.map((block) => (
+        <section key={`collection-${block.category.id}`} className="store-home-v3-collection">
+          <div
+            className="store-home-v3-collection-banner"
+            style={{
+              backgroundImage: `linear-gradient(135deg, rgba(15, 23, 42, 0.8), rgba(15, 23, 42, 0.16)), url(${block.category.image})`,
+            }}
+          >
+            <div>
+              <p>Danh mục nổi bật</p>
+              <h2>{block.category.name}</h2>
+              <span>{block.category.count}</span>
+            </div>
+            <Link to={block.category.slug ? `/products?category=${encodeURIComponent(block.category.slug)}` : "/products"}>
+              <Button className="store-home-v3-primary-ghost !h-11 !rounded-full !px-7 !font-bold">
+                Xem danh mục
+              </Button>
+            </Link>
+          </div>
+
+          <div className="store-home-v3-product-grid">
+            {block.products.map((product) => (
+              <div key={`category-${block.category.id}-${product.id}`}>{renderProductCard(product)}</div>
+            ))}
+          </div>
+        </section>
+      ))}
+
+      <section className="store-home-v3-member-shell">
+        <article className="store-home-v3-member-card">
+          <p>{homeContent.member.kicker}</p>
+          <h2>{homeContent.member.title}</h2>
+          <p>{homeContent.member.description}</p>
+          <form className="store-home-v3-member-form" onSubmit={(event) => event.preventDefault()}>
+            <input placeholder={homeContent.member.emailPlaceholder} />
+            <Button type="primary" className="store-home-v3-primary-btn !h-11 !rounded-full !px-6 !font-bold !shadow-none">
               {homeContent.member.ctaLabel}
             </Button>
           </form>
         </article>
+
+        <div className="store-home-v3-proof-list">
+          {homeContent.hero.metrics.map((metric) => (
+            <article key={`proof-${metric.value}-${metric.label}`} className="store-home-v3-proof-card">
+              <strong>{metric.value}</strong>
+              <p>{metric.label}</p>
+            </article>
+          ))}
+        </div>
       </section>
+
     </div>
   );
 }
