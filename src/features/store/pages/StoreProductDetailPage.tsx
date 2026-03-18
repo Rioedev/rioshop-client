@@ -267,14 +267,14 @@ export function StoreProductDetailPage() {
   if (!product) {
     return (
       <section className="product-empty-state">
-        <Title level={3} className="!mb-2 !mt-0">
+        <Title level={3} className="mb-2! mt-0!">
           Khong tim thay san pham
         </Title>
-        <Paragraph className="!mb-4 !text-slate-600">
+        <Paragraph className="mb-4! text-slate-600!">
           San pham co the da bi an hoac duong dan khong hop le.
         </Paragraph>
         <Link to="/">
-          <Button type="primary" className="!rounded-full !bg-slate-900 !px-6 !shadow-none">
+          <Button type="primary" className="rounded-full! bg-slate-900! px-6! shadow-none!">
             Quay ve trang chu
           </Button>
         </Link>
@@ -369,7 +369,7 @@ export function StoreProductDetailPage() {
 
         <div className="pdpv2-buy-panel">
           <p className="product-info-category">{product.category?.name ?? "San pham moi"}</p>
-          <Title level={2} className="!mb-2 !mt-1 !text-3xl !text-slate-900 md:!text-[34px]">
+          <Title level={2} className="mb-2! mt-1! text-3xl! text-slate-900! md:text-[34px]!">
             {product.name}
           </Title>
 
@@ -393,7 +393,7 @@ export function StoreProductDetailPage() {
             ) : null}
           </div>
 
-          <Paragraph className="!mb-4 !text-base !leading-7 !text-slate-600">
+          <Paragraph className="mb-4! text-base! leading-7! text-slate-600!">
             {product.shortDescription ?? product.description ?? "San pham toi gian, de mac, de phoi."}
           </Paragraph>
 
@@ -455,7 +455,7 @@ export function StoreProductDetailPage() {
               min={1}
               value={quantity}
               onChange={(value) => setQuantity(Math.max(1, Number(value ?? 1)))}
-              className="!w-28 !rounded-xl"
+              className="w-28! rounded-xl!"
             />
           </div>
 
@@ -463,13 +463,13 @@ export function StoreProductDetailPage() {
             <Button
               type="primary"
               size="large"
-              className="!h-11 !rounded-full !bg-slate-900 !px-8 !font-bold !shadow-none"
+              className="h-11! rounded-full! bg-slate-900! px-8! font-bold! shadow-none!"
               onClick={onAddToCart}
             >
               Them vao gio
             </Button>
             <Link to="/cart">
-              <Button size="large" className="!h-11 !rounded-full !border-slate-300 !px-7 !font-semibold">
+              <Button size="large" className="h-11! rounded-full! border-slate-300! px-7! font-semibold!">
                 Mua ngay
               </Button>
             </Link>
@@ -510,7 +510,7 @@ export function StoreProductDetailPage() {
               </li>
             </ul>
 
-            <Paragraph className="!mb-0 !mt-4 !text-sm !leading-7 !text-slate-600">
+            <Paragraph className="mb-0! mt-4! text-sm! leading-7! text-slate-600!">
               {product.description ?? "San pham duoc phat trien theo huong toi gian, de mac, de phoi va de bao quan."}
             </Paragraph>
           </div>
@@ -568,7 +568,7 @@ export function StoreProductDetailPage() {
         <div className="pdpv2-review-grid">
           <div className="pdpv2-review-score">
             <p className="pdpv2-score-number">{ratingValue.toFixed(1)}</p>
-            <Rate allowHalf disabled value={ratingValue} className="!text-base" />
+            <Rate allowHalf disabled value={ratingValue} className="text-base!" />
             <p className="m-0 text-sm text-slate-500">{ratingCount} danh gia tu khach hang</p>
           </div>
 
@@ -590,7 +590,7 @@ export function StoreProductDetailPage() {
                   <p className="m-0 text-sm font-semibold text-slate-900">
                     {review.user?.fullName || "Khach hang da mua"}
                   </p>
-                  <Rate disabled value={review.rating} className="!text-xs" />
+                  <Rate disabled value={review.rating} className="text-xs!" />
                 </div>
                 <p className="m-0 mt-2 text-sm text-slate-600">{review.body}</p>
               </article>
@@ -642,7 +642,7 @@ export function StoreProductDetailPage() {
           <p className="pdpv2-mini-kicker">Dac quyen thanh vien</p>
           <h4>Uu dai rieng cho don tiep theo</h4>
         </div>
-        <Button className="!h-11 !rounded-full !border-0 !px-7 !font-bold">Dang ky ngay</Button>
+        <Button className="h-11! rounded-full! border-0! px-7! font-bold!">Dang ky ngay</Button>
       </div>
     </div>
   );

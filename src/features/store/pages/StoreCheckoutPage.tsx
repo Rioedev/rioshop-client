@@ -51,14 +51,14 @@ export function StoreCheckoutPage() {
   if (!isAuthenticated) {
     return (
       <section className="cart-empty-state">
-        <Title level={3} className="!m-0 !mb-2">
+        <Title level={3} className="m-0! mb-2!">
           Ban can dang nhap de thanh toan
         </Title>
-        <Paragraph className="!mb-4 !text-slate-600">
+        <Paragraph className="mb-4! text-slate-600!">
           Vui long dang nhap de tiep tuc dat hang va theo doi lich su don mua.
         </Paragraph>
         <Link to="/login">
-          <Button type="primary" className="!rounded-full !bg-slate-900 !px-6 !shadow-none">
+          <Button type="primary" className="rounded-full! bg-slate-900! px-6! shadow-none!">
             Dang nhap ngay
           </Button>
         </Link>
@@ -69,14 +69,14 @@ export function StoreCheckoutPage() {
   if (cartItems.length === 0) {
     return (
       <section className="cart-empty-state">
-        <Title level={3} className="!m-0 !mb-2">
+        <Title level={3} className="m-0! mb-2!">
           Gio hang dang trong
         </Title>
-        <Paragraph className="!mb-4 !text-slate-600">
+        <Paragraph className="mb-4! text-slate-600!">
           Chon them san pham truoc khi tien hanh thanh toan.
         </Paragraph>
         <Link to="/products">
-          <Button type="primary" className="!rounded-full !bg-slate-900 !px-6 !shadow-none">
+          <Button type="primary" className="rounded-full! bg-slate-900! px-6! shadow-none!">
             Di mua sam
           </Button>
         </Link>
@@ -148,7 +148,7 @@ export function StoreCheckoutPage() {
       {contextHolder}
 
       <section className="cart-list-wrap space-y-4">
-        <Title level={3} className="!m-0">
+        <Title level={3} className="m-0!">
           Thong tin thanh toan
         </Title>
 
@@ -255,7 +255,7 @@ export function StoreCheckoutPage() {
       </section>
 
       <aside className="cart-summary-card">
-        <Title level={4} className="!mb-4 !mt-0">
+        <Title level={4} className="mb-4! mt-0!">
           Tom tat don hang
         </Title>
 
@@ -277,7 +277,7 @@ export function StoreCheckoutPage() {
           block
           size="large"
           loading={submitting}
-          className="!mt-4 !h-11 !rounded-full !bg-slate-900 !shadow-none"
+          className="mt-4! h-11! rounded-full! bg-slate-900! shadow-none!"
           onClick={() => void onPlaceOrder()}
         >
           Dat hang

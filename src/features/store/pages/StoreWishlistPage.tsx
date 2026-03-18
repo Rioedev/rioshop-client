@@ -21,14 +21,14 @@ export function StoreWishlistPage() {
   if (items.length === 0) {
     return (
       <section className="cart-empty-state">
-        <Title level={3} className="!m-0 !mb-2">
+        <Title level={3} className="m-0! mb-2!">
           Danh sach yeu thich dang trong
         </Title>
-        <Paragraph className="!mb-4 !text-slate-600">
+        <Paragraph className="mb-4! text-slate-600!">
           Luu san pham yeu thich de quay lai mua nhanh hon.
         </Paragraph>
         <Link to="/products">
-          <Button type="primary" className="!rounded-full !bg-slate-900 !px-6 !shadow-none">
+          <Button type="primary" className="rounded-full! bg-slate-900! px-6! shadow-none!">
             Kham pha san pham
           </Button>
         </Link>
@@ -39,10 +39,10 @@ export function StoreWishlistPage() {
   return (
     <section className="rounded-2xl border border-slate-200 bg-white p-4 md:p-5">
       <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
-        <Title level={3} className="!m-0">
+        <Title level={3} className="m-0!">
           Danh sach yeu thich
         </Title>
-        <Button className="!rounded-full" onClick={clear}>
+        <Button className="rounded-full!" onClick={clear}>
           Xoa tat ca
         </Button>
       </div>
@@ -70,7 +70,7 @@ export function StoreWishlistPage() {
                 <Button
                   size="small"
                   type="primary"
-                  className="!rounded-full !bg-slate-900 !shadow-none"
+                  className="rounded-full! bg-slate-900! shadow-none!"
                   onClick={() =>
                     addCartItem({
                       productId: item.productId,
@@ -84,7 +84,7 @@ export function StoreWishlistPage() {
                 >
                   Them gio
                 </Button>
-                <Button size="small" className="!rounded-full" onClick={() => removeItem(item.productId)}>
+                <Button size="small" className="rounded-full!" onClick={() => removeItem(item.productId)}>
                   Xoa
                 </Button>
               </div>

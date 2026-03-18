@@ -112,13 +112,13 @@ export function RegisterPage() {
           loading={isLoading}
           block
           size="large"
-          className="!h-11 !rounded-xl !border-0 !bg-[#0f3d66] hover:!bg-[#155086]"
+          className="h-11! rounded-xl! border-0! bg-[#0f3d66]! hover:bg-[#155086]!"
         >
           Tạo tài khoản
         </Button>
       </Form>
 
-      <Paragraph className="!mb-0 !mt-4 text-center !text-slate-500">
+      <Paragraph className="mb-0! mt-4! text-center text-slate-500!">
         Đã có tài khoản?{" "}
         <Link to="/login" className="font-medium text-cyan-700">
           Đăng nhập ngay

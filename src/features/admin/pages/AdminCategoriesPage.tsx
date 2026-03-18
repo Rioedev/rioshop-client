@@ -431,7 +431,7 @@ export function AdminCategoriesPage() {
         cancelText="Hủy"
         okButtonProps={{
           loading: saving,
-          className: "!bg-sky-700 hover:!bg-sky-800",
+          className: "bg-sky-700! hover:bg-sky-800!",
         }}
         width={760}
         destroyOnHidden

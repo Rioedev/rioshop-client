@@ -348,10 +348,10 @@ export function AdminOrdersPage() {
       {contextHolder}
 
       <div>
-        <Title level={3} className="!mb-1 !mt-0">
+        <Title level={3} className="mb-1! mt-0!">
           Quản lý đơn hàng
         </Title>
-        <Paragraph className="!mb-0" type="secondary">
+        <Paragraph className="mb-0!" type="secondary">
           Theo dõi đơn hàng theo thời gian thực, cập nhật trạng thái xử lý và thanh toán trực tiếp tại bảng.
         </Paragraph>
       </div>
@@ -360,7 +360,7 @@ export function AdminOrdersPage() {
         <Col xs={24} md={8}>
           <Card>
             <Text type="secondary">Chờ xác nhận (trang hiện tại)</Text>
-            <Title level={3} className="!mb-0 !mt-1">
+            <Title level={3} className="mb-0! mt-1!">
               {pendingCount}
             </Title>
           </Card>
@@ -368,7 +368,7 @@ export function AdminOrdersPage() {
         <Col xs={24} md={8}>
           <Card>
             <Text type="secondary">Đang giao (trang hiện tại)</Text>
-            <Title level={3} className="!mb-0 !mt-1">
+            <Title level={3} className="mb-0! mt-1!">
               {shippingCount}
             </Title>
           </Card>
@@ -376,7 +376,7 @@ export function AdminOrdersPage() {
         <Col xs={24} md={8}>
           <Card>
             <Text type="secondary">Đã giao (trang hiện tại)</Text>
-            <Title level={3} className="!mb-0 !mt-1 !text-emerald-600">
+            <Title level={3} className="mb-0! mt-1! text-emerald-600!">
               {completedCount}
             </Title>
           </Card>

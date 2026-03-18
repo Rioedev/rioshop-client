@@ -90,12 +90,12 @@ export function StoreOrdersPage() {
   if (!isAuthenticated) {
     return (
       <section className="cart-empty-state">
-        <Title level={3} className="!m-0 !mb-2">
+        <Title level={3} className="m-0! mb-2!">
           Ban can dang nhap de xem don hang
         </Title>
-        <Paragraph className="!mb-4 !text-slate-600">Dang nhap de theo doi trang thai van chuyen va lich su mua sam.</Paragraph>
+        <Paragraph className="mb-4! text-slate-600!">Dang nhap de theo doi trang thai van chuyen va lich su mua sam.</Paragraph>
         <Link to="/login">
-          <Button type="primary" className="!rounded-full !bg-slate-900 !px-6 !shadow-none">
+          <Button type="primary" className="rounded-full! bg-slate-900! px-6! shadow-none!">
             Dang nhap
           </Button>
         </Link>
@@ -107,10 +107,10 @@ export function StoreOrdersPage() {
     <section className="rounded-2xl border border-slate-200 bg-white p-4 md:p-5">
       {contextHolder}
       <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
-        <Title level={3} className="!m-0">
+        <Title level={3} className="m-0!">
           Don hang cua toi
         </Title>
-        <Button className="!rounded-full" onClick={() => void loadOrders(page)} loading={loading}>
+        <Button className="rounded-full!" onClick={() => void loadOrders(page)} loading={loading}>
           Tai lai
         </Button>
       </div>
@@ -141,7 +141,7 @@ export function StoreOrdersPage() {
                   </p>
                 </div>
                 <div className="text-right">
-                  <Tag color={statusColorMap[order.status] ?? "default"} className="!m-0 !rounded-full !px-3 !py-1">
+                  <Tag color={statusColorMap[order.status] ?? "default"} className="m-0! rounded-full! px-3! py-1!">
                     {statusLabelMap[order.status] ?? order.status}
                   </Tag>
                   <p className="m-0 mt-2 text-base font-extrabold text-slate-900">{formatCurrency(order.pricing.total)}</p>
@@ -159,11 +159,11 @@ export function StoreOrdersPage() {
 
               <div className="mt-3 flex flex-wrap gap-2">
                 {canCancel ? (
-                  <Button danger className="!rounded-full" onClick={() => void onCancelOrder(order)}>
+                  <Button danger className="rounded-full!" onClick={() => void onCancelOrder(order)}>
                     Huy don
                   </Button>
                 ) : null}
-                <Button className="!rounded-full">Theo doi van chuyen</Button>
+                <Button className="rounded-full!">Theo doi van chuyen</Button>
               </div>
             </article>
           );
@@ -173,7 +173,7 @@ export function StoreOrdersPage() {
       <div className="mt-4 flex items-center justify-end gap-2">
         <Button
           disabled={page <= 1 || loading}
-          className="!rounded-full"
+          className="rounded-full!"
           onClick={() => void loadOrders(page - 1)}
         >
           Truoc
@@ -183,7 +183,7 @@ export function StoreOrdersPage() {
         </span>
         <Button
           disabled={page >= totalPages || loading}
-          className="!rounded-full"
+          className="rounded-full!"
           onClick={() => void loadOrders(page + 1)}
         >
           Sau

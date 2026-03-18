@@ -12,14 +12,14 @@ export function StoreAccountPage() {
   if (!isAuthenticated || !user) {
     return (
       <section className="cart-empty-state">
-        <Title level={3} className="!m-0 !mb-2">
+        <Title level={3} className="m-0! mb-2!">
           Ban chua dang nhap
         </Title>
-        <Paragraph className="!mb-4 !text-slate-600">
+        <Paragraph className="mb-4! text-slate-600!">
           Dang nhap de xem thong tin tai khoan va quan ly don hang.
         </Paragraph>
         <Link to="/login">
-          <Button type="primary" className="!rounded-full !bg-slate-900 !px-6 !shadow-none">
+          <Button type="primary" className="rounded-full! bg-slate-900! px-6! shadow-none!">
             Dang nhap
           </Button>
         </Link>
@@ -29,8 +29,8 @@ export function StoreAccountPage() {
 
   return (
     <section className="space-y-4">
-      <Card className="!rounded-2xl">
-        <Title level={3} className="!mt-0">
+      <Card className="rounded-2xl!">
+        <Title level={3} className="mt-0!">
           Tai khoan cua toi
         </Title>
         <div className="grid gap-2 text-sm text-slate-700">
@@ -50,12 +50,12 @@ export function StoreAccountPage() {
 
         <div className="mt-4 flex flex-wrap gap-2">
           <Link to="/orders">
-            <Button className="!rounded-full">Don hang cua toi</Button>
+            <Button className="rounded-full!">Don hang cua toi</Button>
           </Link>
           <Link to="/wishlist">
-            <Button className="!rounded-full">San pham yeu thich</Button>
+            <Button className="rounded-full!">San pham yeu thich</Button>
           </Link>
-          <Button danger className="!rounded-full" onClick={() => void logout()}>
+          <Button danger className="rounded-full!" onClick={() => void logout()}>
             Dang xuat
           </Button>
         </div>

@@ -10,7 +10,7 @@ type LowStockListProps = {
 export function LowStockList({ data }: LowStockListProps) {
   return (
     <Card>
-      <Title level={4} className="!mb-4 !mt-0">
+      <Title level={4} className="mb-4! mt-0!">
         Sản phẩm sắp hết hàng
       </Title>
       <List

@@ -7,7 +7,7 @@
 } from "@ant-design/icons";
 import { Input } from "antd";
 import { useEffect, useRef, useState } from "react";
-import { Link, Outlet, useNavigate } from "react-router-dom";
+import { Link, Outlet, useLocation, useNavigate } from "react-router-dom";
 import { categoryService } from "../services/categoryService";
 import { useAuthStore } from "../stores/authStore";
 import { useCartStore } from "../stores/cartStore";
@@ -24,6 +24,7 @@ const policyItems = ["Doi tra 60 ngay", "Mien phi ship tu 299K", "Ho tro 24/7"];
 
 export function StoreLayout() {
   const navigate = useNavigate();
+  const location = useLocation();
   const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
   const user = useAuthStore((state) => state.user);
   const accountType = useAuthStore((state) => state.accountType);
@@ -105,6 +106,8 @@ export function StoreLayout() {
     const keyword = searchKeyword.trim();
     navigate(keyword ? `/products?q=${encodeURIComponent(keyword)}` : "/products");
   };
+
+  const isHomePage = location.pathname === "/";
 
   return (
     <div className="storefront-shell min-h-screen">
@@ -254,7 +257,7 @@ export function StoreLayout() {
         </div>
       </div>
 
-      <main className="mx-auto w-full max-w-[1880px] px-3 py-6 sm:px-4 md:py-8 xl:px-6">
+      <main className={`mx-auto w-full max-w-[1880px] px-3 sm:px-4 xl:px-6 ${isHomePage ? "pt-0 pb-6 md:pb-8" : "py-6 md:py-8"}`}>
         <Outlet />
       </main>
 

@@ -223,11 +223,11 @@ export function StoreProductsPage() {
               className="w-full"
             />
           </div>
-          <Button type="primary" className="!rounded-full !bg-slate-900 !shadow-none" onClick={onSearchSubmit}>
+          <Button type="primary" className="rounded-full! bg-slate-900! shadow-none!" onClick={onSearchSubmit}>
             Ap dung
           </Button>
           <Button
-            className="!rounded-full"
+            className="rounded-full!"
             onClick={() => {
               setKeywordInput("");
               setSearchParams(new URLSearchParams());
@@ -295,7 +295,7 @@ export function StoreProductsPage() {
                     <div className="mt-3 flex gap-2">
                       <Button
                         size="small"
-                        className={`!rounded-full ${inWishlist ? "!border-rose-200 !text-rose-600" : ""}`}
+                        className={`rounded-full! ${inWishlist ? "border-rose-200! text-rose-600!" : ""}`}
                         icon={<HeartOutlined />}
                         onClick={() =>
                           toggleWishlist({
@@ -312,7 +312,7 @@ export function StoreProductsPage() {
                       <Button
                         size="small"
                         type="primary"
-                        className="!rounded-full !bg-slate-900 !shadow-none"
+                        className="rounded-full! bg-slate-900! shadow-none!"
                         icon={<ShoppingCartOutlined />}
                         onClick={() => onAddToCart(item)}
                       >
@@ -329,7 +329,7 @@ export function StoreProductsPage() {
         <div className="mt-4 flex items-center justify-end gap-2">
           <Button
             disabled={page <= 1 || loading}
-            className="!rounded-full"
+            className="rounded-full!"
             onClick={() => onParamChange({ page: String(page - 1) })}
           >
             Truoc
@@ -339,7 +339,7 @@ export function StoreProductsPage() {
           </span>
           <Button
             disabled={page >= totalPages || loading}
-            className="!rounded-full"
+            className="rounded-full!"
             onClick={() => onParamChange({ page: String(page + 1) })}
           >
             Sau
@@ -349,3 +349,4 @@ export function StoreProductsPage() {
     </div>
   );
 }
+

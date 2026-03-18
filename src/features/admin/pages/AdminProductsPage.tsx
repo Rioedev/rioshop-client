@@ -656,7 +656,7 @@ export function AdminProductsPage() {
         onOk={() => void handleSave()}
         okText={editingProduct ? "Cập nhật" : "Tạo mới"}
         cancelText="Hủy"
-        okButtonProps={{ loading: saving, className: "!bg-sky-700 hover:!bg-sky-800" }}
+        okButtonProps={{ loading: saving, className: "bg-sky-700! hover:bg-sky-800!" }}
         width="min(1280px, calc(100vw - 32px))"
         destroyOnHidden
       >

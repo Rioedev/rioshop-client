@@ -86,14 +86,14 @@ export function StoreCartPage() {
   if (items.length === 0) {
     return (
       <section className="cart-empty-state">
-        <Title level={3} className="!mb-2 !mt-0">
+        <Title level={3} className="mb-2! mt-0!">
           Gio hang dang trong
         </Title>
-        <Paragraph className="!mb-4 !text-slate-600">
+        <Paragraph className="mb-4! text-slate-600!">
           Ban chua co san pham nao trong gio. Chon them tu trang chu de tiep tuc.
         </Paragraph>
         <Link to="/">
-          <Button type="primary" className="!rounded-full !bg-slate-900 !px-6 !shadow-none">
+          <Button type="primary" className="rounded-full! bg-slate-900! px-6! shadow-none!">
             Tiep tuc mua sam
           </Button>
         </Link>
@@ -117,10 +117,10 @@ export function StoreCartPage() {
         </div>
 
         <div className="mb-2 flex flex-wrap items-center justify-between gap-3">
-          <Title level={3} className="!m-0">
+          <Title level={3} className="m-0!">
             Gio hang cua ban
           </Title>
-          <Button className="!rounded-full" onClick={clearCart}>
+          <Button className="rounded-full!" onClick={clearCart}>
             Xoa tat ca
           </Button>
         </div>
@@ -151,7 +151,7 @@ export function StoreCartPage() {
                     min={1}
                     value={item.quantity}
                     onChange={(value) => updateQuantity(item.productId, Number(value ?? 1))}
-                    className="!w-28 !rounded-xl"
+                    className="w-28! rounded-xl!"
                   />
                   <Button danger type="text" onClick={() => removeItem(item.productId)}>
                     Xoa
@@ -182,7 +182,7 @@ export function StoreCartPage() {
               </div>
               <Button
                 size="small"
-                className="!rounded-full"
+                className="rounded-full!"
                 onClick={() =>
                   addCartItem({
                     productId: item._id,
@@ -203,7 +203,7 @@ export function StoreCartPage() {
       </section>
 
       <aside className="cart-summary-card">
-        <Title level={4} className="!mb-4 !mt-0">
+        <Title level={4} className="mb-4! mt-0!">
           Tom tat don hang
         </Title>
 
@@ -223,13 +223,13 @@ export function StoreCartPage() {
         <div className="mt-4">
           <p className="mb-2 text-xs font-bold uppercase tracking-[0.12em] text-slate-500">Ma giam gia</p>
           <div className="flex gap-2">
-            <Input placeholder="Nhap ma" className="!rounded-full" />
-            <Button className="!rounded-full">Ap dung</Button>
+            <Input placeholder="Nhap ma" className="rounded-full!" />
+            <Button className="rounded-full!">Ap dung</Button>
           </div>
         </div>
 
         <Link to="/checkout" className="mt-4 block">
-          <Button type="primary" block size="large" className="!h-11 !rounded-full !bg-slate-900 !shadow-none">
+          <Button type="primary" block size="large" className="h-11! rounded-full! bg-slate-900! shadow-none!">
             Thanh toan
           </Button>
         </Link>

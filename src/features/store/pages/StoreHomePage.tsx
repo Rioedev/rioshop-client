@@ -826,12 +826,12 @@ export function StoreHomePage() {
             <p className="store-home-v3-hero-text">{activeHeroSlide?.description ?? homeContent.hero.description}</p>
             <div className="store-home-v3-hero-actions">
               <Link to={activeHeroSlide?.href ?? primaryCtaLink}>
-                <Button type="primary" className="store-home-v3-primary-btn !h-12 !rounded-full !px-7 !font-bold !shadow-none">
+                <Button type="primary" className="store-home-v3-primary-btn h-12! rounded-full! px-7! font-bold! shadow-none!">
                   {activeHeroSlide?.primaryLabel ?? homeContent.hero.primaryCtaLabel}
                 </Button>
               </Link>
               <Link to={activeHeroSlide?.secondaryHref ?? secondaryCtaLink}>
-                <Button className="store-home-v3-secondary-btn !h-12 !rounded-full !px-7 !font-bold">
+                <Button className="store-home-v3-secondary-btn h-12! rounded-full! px-7! font-bold!">
                   {activeHeroSlide?.secondaryLabel ?? homeContent.hero.secondaryCtaLabel}
                 </Button>
               </Link>
@@ -1077,7 +1077,7 @@ export function StoreHomePage() {
             </h2>
             <p>{homeContent.journal.description}</p>
             <Link to={primaryCtaLink}>
-              <Button className="store-home-v3-primary-ghost !h-11 !rounded-full !px-7 !font-bold">
+              <Button className="store-home-v3-primary-ghost h-11! rounded-full! px-7! font-bold!">
                 {homeContent.journal.ctaLabel}
               </Button>
             </Link>
@@ -1131,7 +1131,7 @@ export function StoreHomePage() {
               dễ mua nhất để bạn vào là chọn được ngay.
             </p>
             <Link to={secondaryCtaLink}>
-              <Button className="store-home-v3-secondary-ghost !h-11 !rounded-full !px-7 !font-bold">
+              <Button className="store-home-v3-secondary-ghost h-11! rounded-full! px-7! font-bold!">
                 Khám phá thêm
               </Button>
             </Link>
@@ -1159,7 +1159,7 @@ export function StoreHomePage() {
               <span>{block.category.count}</span>
             </div>
             <Link to={block.category.slug ? `/products?category=${encodeURIComponent(block.category.slug)}` : "/products"}>
-              <Button className="store-home-v3-primary-ghost !h-11 !rounded-full !px-7 !font-bold">
+              <Button className="store-home-v3-primary-ghost h-11! rounded-full! px-7! font-bold!">
                 Xem danh mục
               </Button>
             </Link>
@@ -1180,7 +1180,7 @@ export function StoreHomePage() {
           <p>{homeContent.member.description}</p>
           <form className="store-home-v3-member-form" onSubmit={(event) => event.preventDefault()}>
             <input placeholder={homeContent.member.emailPlaceholder} />
-            <Button type="primary" className="store-home-v3-primary-btn !h-11 !rounded-full !px-6 !font-bold !shadow-none">
+            <Button type="primary" className="store-home-v3-primary-btn h-11! rounded-full! px-6! font-bold! shadow-none!">
               {homeContent.member.ctaLabel}
             </Button>
           </form>

@@ -16,7 +16,7 @@ export function AdminDashboardPage() {
   return (
     <div className="space-y-6">
       <div>
-        <Title level={3} className="!mb-1 !mt-0">
+        <Title level={3} className="mb-1! mt-0!">
           Dashboard
         </Title>
         <Text type="secondary">

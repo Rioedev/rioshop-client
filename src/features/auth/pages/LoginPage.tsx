@@ -59,7 +59,7 @@ export function LoginPage() {
         </Form.Item>
 
         <div className="mb-4 flex items-center justify-between">
-          <Form.Item name="remember" valuePropName="checked" className="!mb-0">
+          <Form.Item name="remember" valuePropName="checked" className="mb-0!">
             <Checkbox>Ghi nhớ đăng nhập</Checkbox>
           </Form.Item>
           <Link to="#" className="text-sm text-cyan-700">
@@ -73,13 +73,13 @@ export function LoginPage() {
           loading={isLoading}
           block
           size="large"
-          className="!h-11 !rounded-xl !border-0 !bg-[#0f3d66] hover:!bg-[#155086]"
+          className="h-11! rounded-xl! border-0! bg-[#0f3d66]! hover:bg-[#155086]!"
         >
           Đăng nhập
         </Button>
       </Form>
 
-      <Paragraph className="!mb-0 !mt-4 text-center !text-slate-500">
+      <Paragraph className="mb-0! mt-4! text-center text-slate-500!">
         Chưa có tài khoản?{" "}
         <Link to="/register" className="font-medium text-cyan-700">
           Tạo tài khoản

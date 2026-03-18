@@ -42,10 +42,10 @@ export function AuthShell({
 
         <section className="auth-card rounded-3xl border border-white/60 bg-white/85 p-6 shadow-2xl backdrop-blur-xl md:p-8">
           <div className="mb-6">
-            <Title level={3} className="!mb-1 !mt-0 !text-slate-900">
+            <Title level={3} className="mb-1! mt-0! text-slate-900!">
               {title}
             </Title>
-            <Paragraph className="!mb-0 !text-slate-500">{subtitle}</Paragraph>
+            <Paragraph className="mb-0! text-slate-500!">{subtitle}</Paragraph>
           </div>
 
           {showAuthTabs ? (

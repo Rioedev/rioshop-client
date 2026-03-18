@@ -32,7 +32,7 @@ export function RecentOrdersTable({ data }: RecentOrdersTableProps) {
 
   return (
     <Card>
-      <Title level={4} className="!mb-4 !mt-0">
+      <Title level={4} className="mb-4! mt-0!">
         Don hang gan day
       </Title>
       <Table<OrderItem> rowKey="key" columns={columns} dataSource={data} pagination={false} />

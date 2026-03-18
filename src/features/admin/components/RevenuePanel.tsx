@@ -13,7 +13,7 @@ export function RevenuePanel({ data }: RevenuePanelProps) {
   return (
     <Card>
       <div className="mb-6 flex items-center justify-between">
-        <Title level={4} className="!m-0">
+        <Title level={4} className="m-0!">
           Doanh thu 6 thang gan nhat
         </Title>
         <Text type="secondary">Don vi: trieu VND</Text>
