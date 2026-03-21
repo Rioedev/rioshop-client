@@ -1,4 +1,5 @@
 ﻿import {
+  DownOutlined,
   HeartOutlined,
   LogoutOutlined,
   PhoneOutlined,
@@ -7,27 +8,191 @@
   UserOutlined,
 } from "@ant-design/icons";
 import { Input } from "antd";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Link, Outlet, useLocation, useNavigate } from "react-router-dom";
-import { categoryService } from "../services/categoryService";
+import { resolveStoreImageUrl } from "../features/store/utils/storeFormatting";
+import { categoryService, type Category } from "../services/categoryService";
 import { useAuthStore } from "../stores/authStore";
 import { useCartStore } from "../stores/cartStore";
 import { useWishlistStore } from "../stores/wishlistStore";
 
 const defaultMenuItems = [
-  { label: "Ao Polo", category: "ao-polo" },
-  { label: "Ao so mi", category: "ao-so-mi" },
-  { label: "Quan jeans", category: "quan-jeans" },
-  { label: "Do the thao", category: "do-the-thao" },
+  { label: "Áo polo", category: "ao-polo" },
+  { label: "Áo sơ mi", category: "ao-so-mi" },
+  { label: "Quần jeans", category: "quan-jeans" },
+  { label: "Đồ thể thao", category: "do-the-thao" },
 ];
 
-const policyItems = ["Mien phi doi tra 60 ngay", "Mien phi ship tu 499K", "Kiem tra hang truoc khi nhan", "Hotline 1900 8888"];
+const policyItems = ["Miễn phí đổi trả 60 ngày", "Miễn phí ship từ 499K", "Kiểm tra hàng trước khi nhận", "Hotline 1900 8888"];
 
 const utilityLinks = [
-  { label: "He thong cua hang", href: "/products" },
-  { label: "Tra cuu don hang", href: "/orders" },
+  { label: "Hệ thống cửa hàng", href: "/products" },
+  { label: "Tra cứu đơn hàng", href: "/orders" },
   { label: "Rio Member", href: "/account" },
 ];
+
+type MegaLeaf = {
+  key: string;
+  label: string;
+  href: string;
+};
+
+type MegaItem = {
+  key: string;
+  label: string;
+  href: string;
+  image?: string;
+  children: MegaLeaf[];
+};
+
+type MegaColumn = {
+  key: "men" | "women" | "kids";
+  title: string;
+  items: MegaItem[];
+};
+
+type MegaCollectionCard = {
+  key: string;
+  title: string;
+  href: string;
+  image: string;
+};
+
+const stripDiacritics = (value = "") =>
+  value.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+
+const toCategoryHref = (slug?: string) => (slug ? `/products?category=${encodeURIComponent(slug)}` : "/products");
+
+const flattenCategoryTree = (nodes: Category[]): Category[] =>
+  nodes.reduce<Category[]>((acc, node) => {
+    acc.push(node);
+    if (node.children && node.children.length > 0) {
+      acc.push(...flattenCategoryTree(node.children));
+    }
+    return acc;
+  }, []);
+
+const toMegaItem = (node: Category): MegaItem => ({
+  key: node._id,
+  label: node.name,
+  href: toCategoryHref(node.slug),
+  image: resolveStoreImageUrl(node.image),
+  children: (node.children ?? [])
+    .filter((child) => Boolean(child.slug))
+    .slice(0, 8)
+    .map((child) => ({
+      key: child._id,
+      label: child.name,
+      href: toCategoryHref(child.slug),
+    })),
+});
+
+const buildMegaColumns = (categoryTree: Category[]): MegaColumn[] => {
+  const rootNodes = categoryTree.filter((node) => Boolean(node.slug));
+  const allNodes = flattenCategoryTree(categoryTree).filter((node) => Boolean(node.slug));
+  const usedNodeIds = new Set<string>();
+
+  const groupConfigs: Array<{ key: MegaColumn["key"]; title: string; keywords: string[] }> = [
+    { key: "men", title: "NAM", keywords: ["nam", "men"] },
+    { key: "women", title: "NỮ", keywords: ["nu", "women", "female"] },
+    { key: "kids", title: "TRẺ EM", keywords: ["tre em", "kid", "kids", "baby", "be"] },
+  ];
+
+  const columns = groupConfigs.map((group) => {
+    const groupRoot = rootNodes.find((node) => {
+      const normalized = stripDiacritics(node.name);
+      return group.keywords.some(
+        (keyword) =>
+          normalized === keyword ||
+          normalized.startsWith(`${keyword} `) ||
+          normalized.endsWith(` ${keyword}`) ||
+          normalized.includes(keyword),
+      );
+    });
+
+    const sourceNodes = groupRoot
+      ? (groupRoot.children ?? []).length > 0
+        ? groupRoot.children ?? []
+        : [groupRoot]
+      : allNodes.filter((node) => {
+          const normalized = stripDiacritics(node.name);
+          return group.keywords.some((keyword) => normalized.includes(keyword));
+        });
+
+    const primaryItems = sourceNodes
+      .filter((node) => Boolean(node.slug) && !usedNodeIds.has(node._id))
+      .slice(0, 8)
+      .map((node) => {
+        usedNodeIds.add(node._id);
+        return toMegaItem(node);
+      });
+
+    return {
+      key: group.key,
+      title: group.title,
+      items: primaryItems,
+    };
+  });
+
+  const remaining = allNodes.filter((node) => !usedNodeIds.has(node._id));
+  let remainingIndex = 0;
+
+  columns.forEach((column) => {
+    while (column.items.length < 8 && remainingIndex < remaining.length) {
+      const candidate = remaining[remainingIndex];
+      remainingIndex += 1;
+      if (!candidate.slug) continue;
+      column.items.push(toMegaItem(candidate));
+    }
+  });
+
+  return columns;
+};
+
+const fallbackCollectionImages = [
+  "https://dummyimage.com/960x420/e2e8f0/0f172a&text=BST+M%E1%BB%9Bi",
+  "https://dummyimage.com/960x420/fde2e4/7f1d1d&text=BST+Hot",
+  "https://dummyimage.com/960x420/fee2e2/991b1b&text=BST+Flash",
+];
+
+const buildMegaCollectionCards = (categoryTree: Category[]): MegaCollectionCard[] => {
+  const imageNodes = flattenCategoryTree(categoryTree)
+    .filter((node) => Boolean(node.slug))
+    .map((node) => ({
+      ...node,
+      image: resolveStoreImageUrl(node.image),
+    }))
+    .filter((node) => Boolean(node.image))
+    .slice(0, 3);
+
+  if (imageNodes.length > 0) {
+    const cards = imageNodes.map((node, index) => ({
+      key: node._id,
+      title: `BST ${node.name}`,
+      href: toCategoryHref(node.slug),
+      image: node.image || fallbackCollectionImages[index % fallbackCollectionImages.length],
+    }));
+
+    while (cards.length < 3) {
+      const index = cards.length;
+      cards.push({
+        key: `fallback-${index}`,
+        title: `BST nổi bật ${index + 1}`,
+        href: "/products",
+        image: fallbackCollectionImages[index % fallbackCollectionImages.length],
+      });
+    }
+
+    return cards;
+  }
+
+  return fallbackCollectionImages.map((image, index) => ({
+    key: `fallback-${index}`,
+    title: `BST nổi bật ${index + 1}`,
+    href: "/products",
+    image,
+  }));
+};
 
 export function StoreLayout() {
   const navigate = useNavigate();
@@ -42,9 +207,14 @@ export function StoreLayout() {
   const cartCount = cartItems.reduce((total, item) => total + item.quantity, 0);
 
   const [isAccountMenuOpen, setIsAccountMenuOpen] = useState(false);
+  const [isMegaMenuOpen, setIsMegaMenuOpen] = useState(false);
   const [searchKeyword, setSearchKeyword] = useState("");
   const [menuItems, setMenuItems] = useState(defaultMenuItems);
+  const [categoryTree, setCategoryTree] = useState<Category[]>([]);
+  const [activeMegaItemKeys, setActiveMegaItemKeys] = useState<Partial<Record<MegaColumn["key"], string>>>({});
   const accountMenuRef = useRef<HTMLDivElement | null>(null);
+  const megaMenuRef = useRef<HTMLDivElement | null>(null);
+  const megaMenuCloseTimerRef = useRef<number | null>(null);
 
   const fullName = user?.fullName ?? "";
   const initials = fullName
@@ -60,12 +230,12 @@ export function StoreLayout() {
 
   useEffect(() => {
     const onDocumentClick = (event: MouseEvent) => {
-      if (!accountMenuRef.current) {
-        return;
+      if (accountMenuRef.current && !accountMenuRef.current.contains(event.target as Node)) {
+        setIsAccountMenuOpen(false);
       }
 
-      if (!accountMenuRef.current.contains(event.target as Node)) {
-        setIsAccountMenuOpen(false);
+      if (megaMenuRef.current && !megaMenuRef.current.contains(event.target as Node)) {
+        setIsMegaMenuOpen(false);
       }
     };
 
@@ -80,24 +250,29 @@ export function StoreLayout() {
 
     const loadCategories = async () => {
       try {
-        const result = await categoryService.getCategories({
-          page: 1,
-          limit: 8,
-          isActive: true,
-        });
+        const [listResult, treeResult] = await Promise.all([
+          categoryService.getCategories({
+            page: 1,
+            limit: 16,
+            isActive: true,
+          }),
+          categoryService.getCategoryTree(),
+        ]);
 
         if (!active) {
           return;
         }
 
-        const mapped = result.docs
+        const mapped = listResult.docs
           .filter((item) => item.slug)
           .slice(0, 8)
           .map((item) => ({ label: item.name, category: item.slug }));
         setMenuItems(mapped.length > 0 ? mapped : defaultMenuItems);
+        setCategoryTree(Array.isArray(treeResult) ? treeResult : []);
       } catch {
         if (active) {
           setMenuItems(defaultMenuItems);
+          setCategoryTree([]);
         }
       }
     };
@@ -114,11 +289,75 @@ export function StoreLayout() {
     navigate(keyword ? `/products?q=${encodeURIComponent(keyword)}` : "/products");
   };
 
+  const megaColumns = useMemo(() => buildMegaColumns(categoryTree), [categoryTree]);
+  const megaCollectionCards = useMemo(() => buildMegaCollectionCards(categoryTree), [categoryTree]);
+
+  useEffect(() => {
+    setActiveMegaItemKeys((prev) => {
+      const next = { ...prev };
+      megaColumns.forEach((column) => {
+        const previousKey = prev[column.key];
+        if (!previousKey) {
+          delete next[column.key];
+          return;
+        }
+
+        const stillExists = previousKey && column.items.some((item) => item.key === previousKey);
+        if (!stillExists) {
+          delete next[column.key];
+        }
+      });
+      return next;
+    });
+  }, [megaColumns]);
+
+  useEffect(
+    () => () => {
+      if (megaMenuCloseTimerRef.current) {
+        window.clearTimeout(megaMenuCloseTimerRef.current);
+      }
+    },
+    [],
+  );
+
+  const openMegaMenu = () => {
+    if (megaMenuCloseTimerRef.current) {
+      window.clearTimeout(megaMenuCloseTimerRef.current);
+      megaMenuCloseTimerRef.current = null;
+    }
+    setIsMegaMenuOpen(true);
+  };
+
+  const closeMegaMenu = () => {
+    if (megaMenuCloseTimerRef.current) {
+      window.clearTimeout(megaMenuCloseTimerRef.current);
+    }
+    megaMenuCloseTimerRef.current = window.setTimeout(() => {
+      setIsMegaMenuOpen(false);
+    }, 120);
+  };
+
+  const toggleMegaChildren = (columnKey: MegaColumn["key"], itemKey: string) => {
+    setActiveMegaItemKeys((prev) => {
+      const next = { ...prev };
+      if (prev[columnKey] === itemKey) {
+        delete next[columnKey];
+      } else {
+        next[columnKey] = itemKey;
+      }
+      return next;
+    });
+  };
+
+  useEffect(() => {
+    setIsMegaMenuOpen(false);
+  }, [location.pathname]);
+
   const isHomePage = location.pathname === "/";
 
   return (
     <div className="storefront-shell min-h-screen">
-      <div className="store-promo-bar">FLASH SALE 10H - 14H | Giam den 50% + Freeship toan quoc</div>
+      <div className="store-promo-bar">FLASH SALE 10H - 14H | Giảm đến 50% + Freeship toàn quốc</div>
 
       <div className="store-utility-strip">
         <div className="mx-auto flex w-full max-w-[1620px] items-center justify-between gap-3 px-3 py-2 sm:px-4 xl:px-6">
@@ -150,20 +389,20 @@ export function StoreLayout() {
                 onChange={(event) => setSearchKeyword(event.target.value)}
                 onPressEnter={onSearch}
                 className="store-search"
-                placeholder="Tim ao thun, quan short, combo..."
+                placeholder="Tìm áo thun, quần short, combo..."
               />
             </div>
 
             <div className="ml-auto flex flex-wrap items-center justify-end gap-2">
               <Link to="/wishlist" className="store-icon-link">
-                <span className="store-top-icon" title="Yeu thich" aria-label="Yeu thich">
+                <span className="store-top-icon" title="Yêu thích" aria-label="Yêu thích">
                   <HeartOutlined />
                   {wishlistItems.length > 0 ? <span className="store-cart-count">{wishlistItems.length}</span> : null}
                 </span>
               </Link>
 
               <Link to="/cart" className="store-icon-link">
-                <span className="store-top-icon" title="Gio hang" aria-label="Gio hang">
+                <span className="store-top-icon" title="Giỏ hàng" aria-label="Giỏ hàng">
                   <ShoppingCartOutlined />
                   {cartCount > 0 ? <span className="store-cart-count">{cartCount}</span> : null}
                 </span>
@@ -174,8 +413,8 @@ export function StoreLayout() {
                   <button
                     type="button"
                     className="store-account-trigger"
-                    title="Tai khoan"
-                    aria-label="Tai khoan"
+                    title="Tài khoản"
+                    aria-label="Tài khoản"
                     onClick={() => setIsAccountMenuOpen((prev) => !prev)}
                   >
                     <span className="store-avatar-wrap">
@@ -189,7 +428,7 @@ export function StoreLayout() {
                   <div className="store-user-dropdown">
                     <div className="store-user-dropdown-head">
                       <p className="store-user-dropdown-name">{fullName}</p>
-                      <p className="store-user-dropdown-role">{accountType === "admin" ? "Quan tri vien" : "Khach hang"}</p>
+                      <p className="store-user-dropdown-role">{accountType === "admin" ? "Quản trị viên" : "Khách hàng"}</p>
                     </div>
                     <Link
                       to="/account"
@@ -197,7 +436,7 @@ export function StoreLayout() {
                       onClick={() => setIsAccountMenuOpen(false)}
                     >
                       <UserOutlined />
-                      Tai khoan cua toi
+                      Tài khoản của tôi
                     </Link>
                     <Link
                       to="/orders"
@@ -205,7 +444,7 @@ export function StoreLayout() {
                       onClick={() => setIsAccountMenuOpen(false)}
                     >
                       <ProfileOutlined />
-                      Don hang cua toi
+                      Đơn hàng của tôi
                     </Link>
                     {accountType === "admin" ? (
                       <Link
@@ -214,7 +453,7 @@ export function StoreLayout() {
                         onClick={() => setIsAccountMenuOpen(false)}
                       >
                         <UserOutlined />
-                        Trang quan tri
+                        Trang quản trị
                       </Link>
                     ) : null}
                     <button
@@ -226,7 +465,7 @@ export function StoreLayout() {
                       }}
                     >
                       <LogoutOutlined />
-                      Dang xuat
+                      Đăng xuất
                     </button>
                   </div>
                 </div>
@@ -235,18 +474,18 @@ export function StoreLayout() {
                   <button
                     type="button"
                     className="store-top-icon"
-                    title="Tai khoan"
-                    aria-label="Tai khoan"
+                    title="Tài khoản"
+                    aria-label="Tài khoản"
                     onClick={() => setIsAccountMenuOpen((prev) => !prev)}
                   >
                     <UserOutlined />
                   </button>
                   <div className="store-user-dropdown">
                     <Link to="/login" className="store-user-dropdown-item" onClick={() => setIsAccountMenuOpen(false)}>
-                      Dang nhap
+                      Đăng nhập
                     </Link>
                     <Link to="/register" className="store-user-dropdown-item" onClick={() => setIsAccountMenuOpen(false)}>
-                      Dang ky
+                      Đăng ký
                     </Link>
                   </div>
                 </div>
@@ -256,22 +495,128 @@ export function StoreLayout() {
 
           <nav className="store-main-nav mt-3 flex gap-2 overflow-x-auto pb-1">
             <Link to="/" className="store-nav-pill">
-              Trang chu
+              Trang chủ
             </Link>
             <Link to="/products?sort=best_selling" className="store-nav-pill">
-              Ban chay
+              Bán chạy
             </Link>
             <Link to="/products?sort=newest" className="store-nav-pill">
-              Moi ve
+              Mới về
             </Link>
             <Link to="/products?sort=price_desc" className="store-nav-pill">
               Flash sale
             </Link>
             <Link to="/products" className="store-nav-pill">
-              Tat ca san pham
+              Tất cả sản phẩm
             </Link>
-            {menuItems.map((item) => (
-              <Link key={item.category} to={`/products?category=${item.category}`} className="store-nav-pill">
+
+            <div
+              ref={megaMenuRef}
+              className={`store-nav-mega ${isMegaMenuOpen ? "is-open" : ""}`}
+              onMouseEnter={openMegaMenu}
+              onMouseLeave={closeMegaMenu}
+            >
+              <button
+                type="button"
+                className="store-nav-pill store-nav-pill--mega"
+                aria-expanded={isMegaMenuOpen}
+                onClick={() => setIsMegaMenuOpen((prev) => !prev)}
+              >
+                Danh mục
+                <DownOutlined />
+              </button>
+
+              <div className="store-mega-panel">
+                <div className="store-mega-grid">
+                  {megaColumns.map((column) => {
+                    const activeItemKey = activeMegaItemKeys[column.key];
+                    return (
+                      <section key={column.key} className="store-mega-col">
+                        <h4 className="store-mega-heading">{column.title} ↗</h4>
+                        <div className="store-mega-list">
+                          {column.items.map((item) => {
+                            const isOpen = item.key === activeItemKey;
+                            return (
+                              <article
+                                key={item.key}
+                                className={`store-mega-item ${isOpen ? "is-open" : ""}`}
+                              >
+                                <div className="store-mega-item-trigger">
+                                  <Link
+                                    to={item.href}
+                                    className="store-mega-item-main"
+                                    onClick={() => setIsMegaMenuOpen(false)}
+                                  >
+                                    <span className="store-mega-thumb">
+                                      {item.image ? (
+                                        <img src={item.image} alt={item.label} className="h-full w-full object-cover" />
+                                      ) : (
+                                        <span>{item.label.slice(0, 1).toUpperCase()}</span>
+                                      )}
+                                    </span>
+                                    <span className="store-mega-item-label">{item.label}</span>
+                                  </Link>
+                                  {item.children.length > 0 ? (
+                                    <button
+                                      type="button"
+                                      className="store-mega-toggle"
+                                      aria-expanded={isOpen}
+                                      onClick={() => toggleMegaChildren(column.key, item.key)}
+                                    >
+                                      <DownOutlined className="store-mega-chevron" />
+                                    </button>
+                                  ) : null}
+                                </div>
+                                {isOpen && item.children.length > 0 ? (
+                                  <div className="store-mega-children">
+                                    {item.children.map((child) => (
+                                      <Link
+                                        key={child.key}
+                                        to={child.href}
+                                        onClick={() => setIsMegaMenuOpen(false)}
+                                      >
+                                        {child.label}
+                                      </Link>
+                                    ))}
+                                  </div>
+                                ) : null}
+                              </article>
+                            );
+                          })}
+                        </div>
+                      </section>
+                    );
+                  })}
+
+                  <section className="store-mega-col store-mega-col--collection">
+                    <h4 className="store-mega-heading">BỘ SƯU TẬP</h4>
+                    <div className="store-mega-collection-list">
+                      {megaCollectionCards.map((card) => (
+                        <Link
+                          key={card.key}
+                          to={card.href}
+                          className="store-mega-collection-card"
+                          onClick={() => setIsMegaMenuOpen(false)}
+                        >
+                          <div className="store-mega-collection-media">
+                            <img src={card.image} alt={card.title} className="h-full w-full object-cover" />
+                          </div>
+                          <p>{card.title}</p>
+                        </Link>
+                      ))}
+                    </div>
+                  </section>
+                </div>
+                <div className="store-mega-foot">
+                  <button type="button" onClick={() => setIsMegaMenuOpen(false)}>
+                    Đóng
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            {menuItems.slice(0, 6).map((item) => (
+              <Link key={item.category} to={`/products?category=${encodeURIComponent(item.category)}`} className="store-nav-pill">
                 {item.label}
               </Link>
             ))}
@@ -300,27 +645,27 @@ export function StoreLayout() {
         <div className="mx-auto grid w-full max-w-[1620px] gap-8 px-3 py-10 sm:px-4 lg:grid-cols-4 xl:px-6">
           <div>
             <h4 className="store-footer-title">RIO SHOP</h4>
-            <p className="store-footer-text">Thoi trang hang ngay cho gia dinh Viet.</p>
+            <p className="store-footer-text">Thời trang hằng ngày cho gia đình Việt.</p>
             <p className="store-footer-text">Hotline: 1900 8888</p>
             <p className="store-footer-text">Email: cskh@rioshop.vn</p>
           </div>
           <div>
-            <h4 className="store-footer-title">Ve chung toi</h4>
-            <p className="store-footer-text">Gioi thieu</p>
-            <p className="store-footer-text">He thong cua hang</p>
-            <p className="store-footer-text">Tuyen dung</p>
+            <h4 className="store-footer-title">Về chúng tôi</h4>
+            <p className="store-footer-text">Giới thiệu</p>
+            <p className="store-footer-text">Hệ thống cửa hàng</p>
+            <p className="store-footer-text">Tuyển dụng</p>
           </div>
           <div>
-            <h4 className="store-footer-title">Chinh sach</h4>
+            <h4 className="store-footer-title">Chính sách</h4>
             <p className="store-footer-text">Đổi trả 60 ngày</p>
             <p className="store-footer-text">Chính sách vận chuyển</p>
-            <p className="store-footer-text">Bao mat thong tin</p>
+            <p className="store-footer-text">Bảo mật thông tin</p>
           </div>
           <div>
-            <h4 className="store-footer-title">Ho tro khach hang</h4>
-            <p className="store-footer-text">Huong dan mua hang</p>
-            <p className="store-footer-text">Tra cuu don hang</p>
-            <p className="store-footer-text">Cau hoi thuong gap</p>
+            <h4 className="store-footer-title">Hỗ trợ khách hàng</h4>
+            <p className="store-footer-text">Hướng dẫn mua hàng</p>
+            <p className="store-footer-text">Tra cứu đơn hàng</p>
+            <p className="store-footer-text">Câu hỏi thường gặp</p>
           </div>
         </div>
       </footer>
