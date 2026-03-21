@@ -1,4 +1,4 @@
-import { Button } from "antd";
+import { Button, message } from "antd";
 import { Link } from "react-router-dom";
 import { StoreProductGridCard } from "../components/StoreProductGridCard";
 import {
@@ -10,14 +10,46 @@ import {
   storeButtonClassNames,
 } from "../components/StorePageChrome";
 import { formatStoreCurrency } from "../utils/storeFormatting";
+import { productService } from "../../../services/productService";
 import { useCartStore } from "../../../stores/cartStore";
 import { useWishlistStore } from "../../../stores/wishlistStore";
 
 export function StoreWishlistPage() {
+  const [messageApi, contextHolder] = message.useMessage();
   const items = useWishlistStore((state) => state.items);
   const removeItem = useWishlistStore((state) => state.removeItem);
   const clear = useWishlistStore((state) => state.clear);
   const addCartItem = useCartStore((state) => state.addItem);
+
+  const addWishlistToCart = async (item: (typeof items)[number]) => {
+    try {
+      const product = await productService.getProductBySlug(item.slug);
+      const variant = (product.variants ?? []).find((entry) => entry.isActive !== false);
+
+      if (!variant?.sku) {
+        messageApi.error("San pham nay chua co bien the hop le de dat hang.");
+        return;
+      }
+
+      const variantLabel = `${variant.color?.name?.trim() || "Mac dinh"} / ${(variant.sizeLabel || variant.size).trim()}`;
+      const price = Math.max(0, product.pricing.salePrice + Number(variant.additionalPrice || 0));
+
+      addCartItem({
+        productId: item.productId,
+        slug: item.slug,
+        name: `${product.name} - ${variantLabel}`,
+        price,
+        imageUrl: item.imageUrl,
+        variantSku: variant.sku,
+        variantLabel,
+        quantity: 1,
+      });
+
+      messageApi.success("Da them vao gio hang");
+    } catch {
+      messageApi.error("Khong the them vao gio. Vui long thu lai.");
+    }
+  };
 
   if (items.length === 0) {
     return (
@@ -56,6 +88,7 @@ export function StoreWishlistPage() {
 
   return (
     <StorePageShell>
+      {contextHolder}
       <StoreHeroSection
         kicker="Wishlist"
         title="San pham ban dang de mat toi"
@@ -84,16 +117,7 @@ export function StoreWishlistPage() {
                     size="small"
                     type="primary"
                     className={storeButtonClassNames.primaryCompact}
-                    onClick={() =>
-                      addCartItem({
-                        productId: item.productId,
-                        slug: item.slug,
-                        name: item.name,
-                        price: item.price,
-                        imageUrl: item.imageUrl,
-                        quantity: 1,
-                      })
-                    }
+                    onClick={() => void addWishlistToCart(item)}
                   >
                     Them gio
                   </Button>

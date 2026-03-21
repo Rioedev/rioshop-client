@@ -2,11 +2,14 @@ import { create } from "zustand";
 import { createJSONStorage, persist } from "zustand/middleware";
 
 export type CartItem = {
+  itemId?: string;
   productId: string;
   slug: string;
   name: string;
   price: number;
   imageUrl?: string;
+  variantSku?: string;
+  variantLabel?: string;
   quantity: number;
 };
 
@@ -17,12 +20,19 @@ type AddCartPayload = Omit<CartItem, "quantity"> & {
 type CartState = {
   items: CartItem[];
   addItem: (payload: AddCartPayload) => void;
-  removeItem: (productId: string) => void;
-  updateQuantity: (productId: string, quantity: number) => void;
+  removeItem: (itemId: string) => void;
+  updateQuantity: (itemId: string, quantity: number) => void;
   clearCart: () => void;
 };
 
 const CART_STORAGE_KEY = "rioshop_cart";
+const CART_DEFAULT_VARIANT_KEY = "__default__";
+
+const buildCartItemId = (payload: { productId: string; variantSku?: string }) =>
+  `${payload.productId}::${payload.variantSku?.trim() || CART_DEFAULT_VARIANT_KEY}`;
+
+const resolveCartItemId = (item: CartItem) =>
+  item.itemId || buildCartItemId({ productId: item.productId, variantSku: item.variantSku });
 
 export const useCartStore = create<CartState>()(
   persist(
@@ -32,12 +42,13 @@ export const useCartStore = create<CartState>()(
       addItem: (payload) =>
         set((state) => {
           const quantity = payload.quantity ?? 1;
-          const existing = state.items.find((item) => item.productId === payload.productId);
+          const itemId = buildCartItemId(payload);
+          const existing = state.items.find((item) => resolveCartItemId(item) === itemId);
 
           if (existing) {
             return {
               items: state.items.map((item) =>
-                item.productId === payload.productId
+                resolveCartItemId(item) === itemId
                   ? { ...item, quantity: item.quantity + quantity }
                   : item,
               ),
@@ -49,22 +60,23 @@ export const useCartStore = create<CartState>()(
               ...state.items,
               {
                 ...payload,
+                itemId,
                 quantity,
               },
             ],
           };
         }),
 
-      removeItem: (productId) =>
+      removeItem: (itemId) =>
         set((state) => ({
-          items: state.items.filter((item) => item.productId !== productId),
+          items: state.items.filter((item) => resolveCartItemId(item) !== itemId),
         })),
 
-      updateQuantity: (productId, quantity) =>
+      updateQuantity: (itemId, quantity) =>
         set((state) => ({
           items: state.items
             .map((item) =>
-              item.productId === productId
+              resolveCartItemId(item) === itemId
                 ? { ...item, quantity: Math.max(1, Math.floor(quantity)) }
                 : item,
             )

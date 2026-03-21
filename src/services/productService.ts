@@ -4,7 +4,7 @@ export type ProductStatus = "draft" | "active" | "archived" | "out_of_stock";
 export type ProductStatusFilter = ProductStatus | "all";
 export type ProductGender = "men" | "women" | "unisex" | "kids";
 export type ProductMediaType = "image" | "video" | "360";
-export type ProductVariantSize = "XS" | "S" | "M" | "L" | "XL" | "2XL" | "3XL";
+export type ProductVariantSize = string;
 
 export type ProductVariant = {
   variantId: string;
@@ -16,6 +16,7 @@ export type ProductVariant = {
   };
   size: ProductVariantSize;
   sizeLabel?: string;
+  stock?: number;
   additionalPrice?: number;
   barcode?: string;
   images?: string[];

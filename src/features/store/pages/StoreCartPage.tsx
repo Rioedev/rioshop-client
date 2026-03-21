@@ -10,7 +10,7 @@ import {
   StoreSectionHeader,
   storeButtonClassNames,
 } from "../components/StorePageChrome";
-import { formatStoreCurrency, resolveStoreImageUrl } from "../utils/storeFormatting";
+import { formatStoreCurrency, resolveStoreProductThumbnail } from "../utils/storeFormatting";
 import { productService, type Product } from "../../../services/productService";
 import { useCartStore } from "../../../stores/cartStore";
 
@@ -149,7 +149,7 @@ export function StoreCartPage() {
 
           <div className="space-y-3">
             {items.map((item) => (
-              <article key={item.productId} className="cart-item-card">
+              <article key={item.itemId ?? `${item.productId}-${item.variantSku ?? "default"}`} className="cart-item-card">
                 <Link to={`/products/${item.slug}`} className="cart-item-image">
                   {item.imageUrl ? (
                     <img src={item.imageUrl} alt={item.name} className="h-full w-full object-cover" />
@@ -169,10 +169,13 @@ export function StoreCartPage() {
                     <InputNumber
                       min={1}
                       value={item.quantity}
-                      onChange={(value) => updateQuantity(item.productId, Number(value ?? 1))}
+                      onChange={(value) => updateQuantity(item.itemId ?? `${item.productId}::${item.variantSku ?? "__default__"}`, Number(value ?? 1))}
                       className="w-28! rounded-xl!"
                     />
-                    <Button className={storeButtonClassNames.dangerCompact} onClick={() => removeItem(item.productId)}>
+                    <Button
+                      className={storeButtonClassNames.dangerCompact}
+                      onClick={() => removeItem(item.itemId ?? `${item.productId}::${item.variantSku ?? "__default__"}`)}
+                    >
                       Xoa
                     </Button>
                   </div>
@@ -188,7 +191,7 @@ export function StoreCartPage() {
               <StoreSectionHeader kicker="Goi y them" title="Co the ban cung thich" />
               <div className="cart-recommend-grid">
                 {recommendations.map((item) => {
-                  const image = resolveStoreImageUrl(item.media?.find((media) => media.type === "image")?.url);
+                  const image = resolveStoreProductThumbnail(item);
 
                   return (
                     <article key={item._id} className="cart-rec-card">
@@ -206,16 +209,27 @@ export function StoreCartPage() {
                       <Button
                         size="small"
                         className={storeButtonClassNames.secondaryCompact}
-                        onClick={() =>
+                        onClick={() => {
+                          const variant = (item.variants ?? []).find((entry) => entry.isActive !== false) ?? null;
+                          const variantLabel = variant
+                            ? `${variant.color?.name?.trim() || "Mac dinh"} / ${(variant.sizeLabel || variant.size).trim()}`
+                            : undefined;
+                          const price = Math.max(
+                            0,
+                            item.pricing.salePrice + Number(variant?.additionalPrice || 0),
+                          );
+
                           addCartItem({
                             productId: item._id,
                             slug: item.slug,
-                            name: item.name,
-                            price: item.pricing.salePrice,
+                            name: variantLabel ? `${item.name} - ${variantLabel}` : item.name,
+                            price,
                             imageUrl: image,
+                            variantSku: variant?.sku,
+                            variantLabel,
                             quantity: 1,
-                          })
-                        }
+                          });
+                        }}
                       >
                         Them
                       </Button>

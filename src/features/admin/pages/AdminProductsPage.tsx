@@ -1,5 +1,6 @@
-import { AxiosError } from "axios";
+﻿import { AxiosError } from "axios";
 import {
+  AutoComplete,
   Button,
   Card,
   Col,
@@ -19,15 +20,13 @@ import {
   Upload,
   message,
 } from "antd";
-import { DeleteOutlined, InboxOutlined, PlusOutlined } from "@ant-design/icons";
+import { CopyOutlined, DeleteOutlined, PlusOutlined } from "@ant-design/icons";
 import type { ColumnsType, TablePaginationConfig } from "antd/es/table";
 import type { UploadProps } from "antd/es/upload";
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
   productService,
   type Product,
-  type ProductMedia,
-  type ProductMediaType,
   type ProductPayload,
   type ProductGender,
   type ProductStatus,
@@ -37,17 +36,15 @@ import {
 } from "../../../services/productService";
 import { useProductStore } from "../../../stores/productStore";
 import { RichTextEditor } from "../../../components/editor/RichTextEditor";
+import {
+  buildProductSku,
+  buildVariantSku,
+  makeUniqueSku,
+  normalizeSkuInput,
+} from "../utils/productSku";
 
 const { Paragraph, Title, Text } = Typography;
 const REQUIRED_RULE = [{ required: true, message: "Trường bắt buộc" }];
-
-type MediaFormValue = {
-  url: string;
-  type: ProductMediaType;
-  altText?: string;
-  isPrimary?: boolean;
-  pendingFileId?: string;
-};
 
 type VariantImageFormValue = {
   url: string;
@@ -59,11 +56,30 @@ type VariantFormValue = {
   sku: string;
   size: ProductVariantSize;
   sizeLabel?: string;
+  stock?: number;
   additionalPrice?: number;
   isActive?: boolean;
   colorName?: string;
   colorHex?: string;
   imageItems?: VariantImageFormValue[];
+};
+
+type VariantSizeFormValue = {
+  variantId?: string;
+  sku?: string;
+  size: ProductVariantSize;
+  sizeLabel?: string;
+  stock?: number;
+  additionalPrice?: number;
+  isActive?: boolean;
+};
+
+type VariantGroupFormValue = {
+  colorName?: string;
+  colorHex?: string;
+  imageItems?: VariantImageFormValue[];
+  sizes: VariantSizeFormValue[];
+  bulkSizesText?: string;
 };
 
 type ProductFormValues = {
@@ -75,7 +91,6 @@ type ProductFormValues = {
   ageGroup?: "adult" | "teen" | "kids" | "baby";
   basePrice: number;
   salePrice: number;
-  stock: number;
   status: ProductStatus;
   description?: string;
   shortDescription?: string;
@@ -84,8 +99,7 @@ type ProductFormValues = {
   seoTitle?: string;
   seoDescription?: string;
   seoKeywordsText?: string;
-  media: MediaFormValue[];
-  variants: VariantFormValue[];
+  variantGroups: VariantGroupFormValue[];
 };
 
 const STATUS_LABELS: Record<ProductStatus, string> = {
@@ -125,12 +139,12 @@ const VARIANT_SIZE_OPTIONS: { value: ProductVariantSize; label: ProductVariantSi
   { value: "XL", label: "XL" },
   { value: "2XL", label: "2XL" },
   { value: "3XL", label: "3XL" },
-];
-
-const MEDIA_TYPE_OPTIONS: { value: ProductMediaType; label: string }[] = [
-  { value: "image", label: "Hình ảnh" },
-  { value: "video", label: "Video" },
-  { value: "360", label: "360" },
+  { value: "38", label: "38" },
+  { value: "39", label: "39" },
+  { value: "40", label: "40" },
+  { value: "41", label: "41" },
+  { value: "42", label: "42" },
+  { value: "43", label: "43" },
 ];
 
 const GENDER_OPTIONS: { value: ProductGender; label: string }[] = [
@@ -174,49 +188,60 @@ const toList = (value?: string) =>
     .map((item) => item.trim())
     .filter(Boolean);
 
-const defaultVariant = (index: number): VariantFormValue => ({
-  variantId: `variant-${index + 1}`,
+const defaultVariantSize = (size: ProductVariantSize = "M"): VariantSizeFormValue => ({
+  variantId: "",
   sku: "",
-  size: "M",
-  sizeLabel: "M",
+  size,
+  sizeLabel: size,
+  stock: 0,
   additionalPrice: 0,
   isActive: true,
+});
+
+const defaultVariantGroup = (): VariantGroupFormValue => ({
   colorName: "",
   colorHex: "",
   imageItems: [],
+  sizes: [defaultVariantSize("M")],
+  bulkSizesText: "",
 });
 
-const normalizeMedia = (mediaValues: MediaFormValue[]): ProductMedia[] => {
-  const media = mediaValues
-    .map((item, index) => ({
-      url: item.url?.trim(),
-      type: item.type ?? "image",
-      altText: item.altText?.trim() || "",
-      isPrimary: Boolean(item.isPrimary),
-      position: index,
-    }))
-    .filter((item) => item.url);
+const buildVariantGroupKey = (colorName?: string, colorHex?: string) =>
+  `${(colorName ?? "").trim().toLowerCase()}|${(colorHex ?? "").trim().toLowerCase()}`;
 
-  if (media.length > 0 && !media.some((item) => item.isPrimary)) {
-    media[0].isPrimary = true;
+const getUniqueVariantId = (baseVariantId: string, reservedVariantIds: Set<string>) => {
+  let candidate = baseVariantId;
+  let counter = 2;
+
+  while (reservedVariantIds.has(candidate)) {
+    candidate = `${baseVariantId}-${counter}`;
+    counter += 1;
   }
 
-  return media as ProductMedia[];
+  reservedVariantIds.add(candidate);
+  return candidate;
 };
 
 const normalizeVariants = (variantValues: VariantFormValue[]): ProductVariant[] => {
+  const reservedVariantIds = new Set<string>();
+
   return variantValues.reduce<ProductVariant[]>((acc, item, index) => {
-    const variantId = item.variantId?.trim();
-    const sku = item.sku?.trim();
-    if (!variantId || !sku) {
+    const size = item.size?.trim();
+    if (!size) {
       return acc;
     }
 
+    const rawVariantId = item.variantId?.trim();
+    const variantId = rawVariantId
+      ? getUniqueVariantId(rawVariantId, reservedVariantIds)
+      : getUniqueVariantId(`variant-${index + 1}`, reservedVariantIds);
+
     acc.push({
       variantId,
-      sku,
-      size: item.size,
-      sizeLabel: item.sizeLabel?.trim() || item.size,
+      sku: item.sku?.trim() || "",
+      size,
+      sizeLabel: item.sizeLabel?.trim() || size,
+      stock: Math.max(0, Number(item.stock ?? 0)),
       additionalPrice: item.additionalPrice ?? 0,
       isActive: item.isActive ?? true,
       position: index,
@@ -233,8 +258,151 @@ const normalizeVariants = (variantValues: VariantFormValue[]): ProductVariant[] 
   }, []);
 };
 
+type ParsedSizeEntry = {
+  size: string;
+  stock?: number;
+};
+
+const normalizeVariantComboKey = (colorName?: string, colorHex?: string, size?: string) =>
+  `${(colorName ?? "").trim().toLowerCase()}|${(colorHex ?? "").trim().toLowerCase()}|${(size ?? "")
+    .trim()
+    .toLowerCase()}`;
+
+const parseBulkSizeEntries = (raw: string): ParsedSizeEntry[] => {
+  const seen = new Set<string>();
+
+  return raw
+    .split(/[\n,;]+/)
+    .map((token) => token.trim())
+    .filter(Boolean)
+    .reduce<ParsedSizeEntry[]>((acc, token) => {
+      const match = token.match(/^(.+?)(?:\s*[:=]\s*(\d+))?$/);
+      if (!match) {
+        return acc;
+      }
+
+      const nextSize = (match[1] ?? "").trim();
+      if (!nextSize) {
+        return acc;
+      }
+
+      const dedupeKey = nextSize.toLowerCase();
+      if (seen.has(dedupeKey)) {
+        return acc;
+      }
+      seen.add(dedupeKey);
+
+      const nextStock = match[2] === undefined ? undefined : Number(match[2]);
+      acc.push({
+        size: nextSize,
+        stock: Number.isFinite(nextStock) ? nextStock : undefined,
+      });
+      return acc;
+    }, []);
+};
+
+const mapVariantsToGroups = (variants: ProductVariant[] = []): VariantGroupFormValue[] => {
+  const groupMap = new Map<string, VariantGroupFormValue>();
+
+  variants.forEach((variant) => {
+    const colorName = variant.color?.name?.trim() || "";
+    const colorHex = variant.color?.hex?.trim() || "";
+    const key = buildVariantGroupKey(colorName, colorHex);
+
+    if (!groupMap.has(key)) {
+      groupMap.set(key, {
+        colorName,
+        colorHex,
+        imageItems: (variant.images ?? []).map((url) => ({ url })),
+        sizes: [],
+        bulkSizesText: "",
+      });
+    }
+
+    const group = groupMap.get(key);
+    if (!group) {
+      return;
+    }
+
+    if ((group.imageItems?.length ?? 0) === 0 && (variant.images?.length ?? 0) > 0) {
+      group.imageItems = (variant.images ?? []).map((url) => ({ url }));
+    }
+
+    group.sizes.push({
+      variantId: variant.variantId,
+      sku: variant.sku,
+      size: variant.size,
+      sizeLabel: variant.sizeLabel || variant.size,
+      stock: variant.stock ?? 0,
+      additionalPrice: variant.additionalPrice ?? 0,
+      isActive: variant.isActive ?? true,
+    });
+  });
+
+  const groups = Array.from(groupMap.values()).map((group) => ({
+    ...group,
+    sizes: group.sizes.length > 0 ? group.sizes : [defaultVariantSize("M")],
+  }));
+
+  return groups.length > 0 ? groups : [defaultVariantGroup()];
+};
+
+const flattenVariantGroups = (variantGroups: VariantGroupFormValue[]): VariantFormValue[] =>
+  variantGroups.flatMap((group, groupIndex) => {
+    const imageItems = (group.imageItems ?? []).map((item) => ({ ...item }));
+
+    return (group.sizes ?? []).map((sizeItem, sizeIndex) => ({
+      variantId: sizeItem.variantId?.trim() || `variant-${groupIndex + 1}-${sizeIndex + 1}`,
+      sku: sizeItem.sku?.trim() || "",
+      size: sizeItem.size,
+      sizeLabel: sizeItem.sizeLabel?.trim() || sizeItem.size,
+      stock: sizeItem.stock ?? 0,
+      additionalPrice: sizeItem.additionalPrice ?? 0,
+      isActive: sizeItem.isActive ?? true,
+      colorName: group.colorName?.trim() || "",
+      colorHex: group.colorHex?.trim() || "",
+      imageItems,
+    }));
+  });
+
+const buildVariantSkuPreviewMatrix = (
+  variantGroups: VariantGroupFormValue[] = [],
+  productSku = "",
+) => {
+  const matrix: string[][] = [];
+  const reservedSkus = new Set<string>();
+  const normalizedProductSku = normalizeSkuInput(productSku);
+
+  if (normalizedProductSku) {
+    reservedSkus.add(normalizedProductSku);
+  }
+
+  let globalIndex = 0;
+  variantGroups.forEach((group, groupIndex) => {
+    matrix[groupIndex] = [];
+    (group.sizes ?? []).forEach((sizeItem, sizeIndex) => {
+      const explicitSku = normalizeSkuInput(sizeItem.sku ?? "");
+      const requestedSku =
+        explicitSku ||
+        buildVariantSku({
+          productSku,
+          colorName: group.colorName ?? "",
+          size: sizeItem.size ?? "",
+          index: globalIndex,
+        });
+
+      matrix[groupIndex][sizeIndex] = makeUniqueSku(requestedSku, reservedSkus);
+      globalIndex += 1;
+    });
+  });
+
+  return matrix;
+};
+
 const getPrimaryImage = (product: Product) =>
-  product.media?.find((item) => item.isPrimary)?.url ?? product.media?.[0]?.url;
+  product.variants?.find((variant) => (variant.images?.length ?? 0) > 0)?.images?.[0] ??
+  product.media?.find((item) => item.isPrimary)?.url ??
+  product.media?.[0]?.url;
 
 const getStock = (product: Product) =>
   product.inventorySummary?.available ?? product.inventorySummary?.total ?? 0;
@@ -244,10 +412,14 @@ export function AdminProductsPage() {
   const [messageApi, contextHolder] = message.useMessage();
   const skipFirstSearch = useRef(true);
   const pendingUploadFilesRef = useRef<Record<string, File>>({});
+  const productSkuManuallyEditedRef = useRef(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [searchText, setSearchText] = useState("");
-  const [pendingUploadCount, setPendingUploadCount] = useState(0);
+  const watchedName = Form.useWatch("name", form);
+  const watchedCategoryId = Form.useWatch("categoryId", form);
+  const watchedSku = Form.useWatch("sku", form);
+  const watchedVariantGroups = Form.useWatch("variantGroups", form);
 
   const {
     products,
@@ -305,55 +477,117 @@ export function AdminProductsPage() {
     [categoryOptions],
   );
 
+  const getSuggestedProductSku = (name = watchedName, currentCategoryId = watchedCategoryId) =>
+    buildProductSku({
+      name,
+      categoryName: currentCategoryId ? categoryLookup[currentCategoryId]?.name : "",
+    });
+
+  const variantSkuPreviewMatrix = useMemo(() => {
+    const productSkuForPreview = normalizeSkuInput(watchedSku || "") || getSuggestedProductSku();
+    return buildVariantSkuPreviewMatrix(watchedVariantGroups ?? [], productSkuForPreview);
+  }, [categoryLookup, watchedCategoryId, watchedName, watchedSku, watchedVariantGroups]);
+
+  const syncProductSku = () => {
+    const nextSku = getSuggestedProductSku();
+    if (nextSku !== (form.getFieldValue("sku") as string | undefined)) {
+      form.setFieldValue("sku", nextSku);
+    }
+    return nextSku;
+  };
+
+  const regenerateProductSku = () => {
+    productSkuManuallyEditedRef.current = false;
+    syncProductSku();
+  };
+
+  const appendSizesForGroup = (groupIndex: number) => {
+    const groups = ((form.getFieldValue("variantGroups") ?? []) as VariantGroupFormValue[]).map((group) => ({
+      ...group,
+      sizes: (group.sizes ?? []).map((sizeItem) => ({ ...sizeItem })),
+      imageItems: (group.imageItems ?? []).map((imageItem) => ({ ...imageItem })),
+    }));
+
+    const targetGroup = groups[groupIndex];
+    if (!targetGroup) {
+      return;
+    }
+
+    const parsedEntries = parseBulkSizeEntries(targetGroup.bulkSizesText ?? "");
+    if (parsedEntries.length === 0) {
+      messageApi.warning("Nhập danh sách size theo định dạng: S:5, M:8, L:3");
+      return;
+    }
+
+    const existingSizes = new Set((targetGroup.sizes ?? []).map((sizeItem) => sizeItem.size.trim().toLowerCase()));
+
+    let createdCount = 0;
+    for (const entry of parsedEntries) {
+      const nextSize = entry.size.trim();
+      if (!nextSize) {
+        continue;
+      }
+
+      const sizeKey = nextSize.toLowerCase();
+      if (existingSizes.has(sizeKey)) {
+        continue;
+      }
+
+      targetGroup.sizes.push({
+        variantId: "",
+        sku: "",
+        size: nextSize,
+        sizeLabel: nextSize,
+        stock: entry.stock ?? 0,
+        additionalPrice: 0,
+        isActive: true,
+      });
+      existingSizes.add(sizeKey);
+      createdCount += 1;
+    }
+
+    groups[groupIndex] = { ...targetGroup, bulkSizesText: "" };
+    form.setFieldValue("variantGroups", groups);
+
+    if (createdCount === 0) {
+      messageApi.warning("Không tạo được size mới (có thể bị trùng size trong màu này).");
+      return;
+    }
+
+    messageApi.success(`Đã thêm ${createdCount} size cho màu này.`);
+  };
+
+  useEffect(() => {
+    if (!isModalOpen || productSkuManuallyEditedRef.current) {
+      return;
+    }
+
+    syncProductSku();
+  }, [categoryLookup, form, isModalOpen, watchedCategoryId, watchedName]);
+
   const registerPendingFile = (file: File) => {
     // eslint-disable-next-line react-hooks/purity
     const pendingFileId = `pending-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
     pendingUploadFilesRef.current[pendingFileId] = file;
-    setPendingUploadCount(Object.keys(pendingUploadFilesRef.current).length);
     return pendingFileId;
   };
 
   const unregisterPendingFile = (pendingFileId?: string) => {
     if (!pendingFileId) return;
     delete pendingUploadFilesRef.current[pendingFileId];
-    setPendingUploadCount(Object.keys(pendingUploadFilesRef.current).length);
   };
 
   const resetPendingFiles = () => {
     pendingUploadFilesRef.current = {};
-    setPendingUploadCount(0);
   };
 
-  const handleUpload: UploadProps["customRequest"] = async ({ file, onSuccess, onError }) => {
-    try {
-      const nextFile = file as File;
-      const pendingFileId = registerPendingFile(nextFile);
-
-      const current = (form.getFieldValue("media") ?? []) as MediaFormValue[];
-      form.setFieldValue("media", [
-        ...current,
-        {
-          url: `[Local file] ${nextFile.name}`,
-          type: "image",
-          isPrimary: current.length === 0,
-          pendingFileId,
-        },
-      ]);
-      onSuccess?.("ok");
-      messageApi.success("Đã thêm ảnh, hệ thống sẽ tải lên khi bạn bấm Lưu.");
-    } catch (error) {
-      onError?.(error as Error);
-      messageApi.error(getErrorMessage(error));
-    }
-  };
-
-  const handleVariantUpload = (variantFieldName: number): UploadProps["customRequest"] =>
+  const handleVariantGroupUpload = (groupFieldName: number): UploadProps["customRequest"] =>
     async ({ file, onSuccess, onError }) => {
       try {
         const nextFile = file as File;
         const pendingFileId = registerPendingFile(nextFile);
-        const current = (form.getFieldValue(["variants", variantFieldName, "imageItems"]) ?? []) as VariantImageFormValue[];
-        form.setFieldValue(["variants", variantFieldName, "imageItems"], [
+        const current = (form.getFieldValue(["variantGroups", groupFieldName, "imageItems"]) ?? []) as VariantImageFormValue[];
+        form.setFieldValue(["variantGroups", groupFieldName, "imageItems"], [
           ...current,
           { url: `[Local file] ${nextFile.name}`, pendingFileId },
         ]);
@@ -379,10 +613,10 @@ export function AdminProductsPage() {
 
   const handleEditorImageUpload = async (file: File) => {
     if (!file.type.startsWith("image/")) {
-      throw new Error("Chi chap nhan file anh");
+      throw new Error("Chỉ chấp nhận file ảnh");
     }
     if (file.size / 1024 / 1024 > 5) {
-      throw new Error("Kich thuoc anh phai nho hon 5MB");
+      throw new Error("Kích thước ảnh phải nhỏ hơn 5MB");
     }
     return productService.uploadProductImage(file);
   };
@@ -423,12 +657,12 @@ export function AdminProductsPage() {
   const openCreateModal = () => {
     setEditingProduct(null);
     resetPendingFiles();
+    productSkuManuallyEditedRef.current = false;
     form.resetFields();
     form.setFieldsValue({
       status: "active",
-      stock: 0,
-      media: [],
-      variants: [defaultVariant(0)],
+      sku: "",
+      variantGroups: [defaultVariantGroup()],
       gender: "unisex",
       ageGroup: "adult",
     });
@@ -438,6 +672,7 @@ export function AdminProductsPage() {
   const openEditModal = (product: Product) => {
     setEditingProduct(product);
     resetPendingFiles();
+    productSkuManuallyEditedRef.current = true;
     form.setFieldsValue({
       sku: product.sku,
       name: product.name,
@@ -445,7 +680,6 @@ export function AdminProductsPage() {
       categoryId: product.category?._id,
       basePrice: product.pricing.basePrice,
       salePrice: product.pricing.salePrice,
-      stock: product.inventorySummary?.total ?? getStock(product),
       status: product.status,
       description: product.description,
       shortDescription: product.shortDescription,
@@ -456,24 +690,7 @@ export function AdminProductsPage() {
       seoTitle: product.seoMeta?.title,
       seoDescription: product.seoMeta?.description,
       seoKeywordsText: (product.seoMeta?.keywords ?? []).join(", "),
-      media: (product.media ?? []).map((item) => ({
-        url: item.url,
-        type: item.type,
-        altText: item.altText,
-        isPrimary: item.isPrimary,
-      })),
-      variants:
-        product.variants?.map((item) => ({
-          variantId: item.variantId,
-          sku: item.sku,
-          size: item.size,
-          sizeLabel: item.sizeLabel,
-          additionalPrice: item.additionalPrice,
-          isActive: item.isActive,
-          colorName: item.color?.name,
-          colorHex: item.color?.hex,
-          imageItems: (item.images ?? []).map((url) => ({ url })),
-        })) ?? [defaultVariant(0)],
+      variantGroups: mapVariantsToGroups(product.variants ?? []),
     });
     setIsModalOpen(true);
   };
@@ -488,25 +705,31 @@ export function AdminProductsPage() {
       const slug = toSlug(values.name);
       if (!slug) return messageApi.error("Tên sản phẩm không hợp lệ");
 
-      const mediaValues = values.media ?? [];
-      const resolvedMediaValues: MediaFormValue[] = [];
-      for (const item of mediaValues) {
-        if (!item.pendingFileId) {
-          resolvedMediaValues.push(item);
-          continue;
+      const variantGroups = values.variantGroups ?? [];
+      const resolvedVariantGroups: VariantGroupFormValue[] = [];
+      for (const [groupIndex, groupValue] of variantGroups.entries()) {
+        const colorName = groupValue.colorName?.trim() || "";
+        const colorHex = groupValue.colorHex?.trim() || "";
+        if (!colorName && !colorHex) {
+          return messageApi.error(`Vui lòng nhập màu cho nhóm #${groupIndex + 1}.`);
         }
-        const pendingFile = pendingUploadFilesRef.current[item.pendingFileId];
-        if (!pendingFile) {
-          return messageApi.error("Thiếu một ảnh cục bộ. Vui lòng chọn lại.");
-        }
-        const url = await productService.uploadProductImage(pendingFile);
-        resolvedMediaValues.push({ ...item, url, pendingFileId: undefined });
-      }
 
-      const variantValues = values.variants ?? [];
-      const resolvedVariantValues: VariantFormValue[] = [];
-      for (const variantValue of variantValues) {
-        const imageItems = variantValue.imageItems ?? [];
+        const normalizedSizes = (groupValue.sizes ?? [])
+          .map((sizeItem) => ({
+            ...sizeItem,
+            size: sizeItem.size?.trim() || "",
+            sizeLabel: sizeItem.sizeLabel?.trim() || sizeItem.size?.trim() || "",
+            stock: sizeItem.stock ?? 0,
+            additionalPrice: sizeItem.additionalPrice ?? 0,
+            isActive: sizeItem.isActive ?? true,
+          }))
+          .filter((sizeItem) => Boolean(sizeItem.size));
+
+        if (normalizedSizes.length === 0) {
+          return messageApi.error(`Vui lòng thêm ít nhất 1 size cho màu #${groupIndex + 1}.`);
+        }
+
+        const imageItems = groupValue.imageItems ?? [];
         const resolvedImageItems: VariantImageFormValue[] = [];
         for (const imageItem of imageItems) {
           if (!imageItem.pendingFileId) {
@@ -515,24 +738,36 @@ export function AdminProductsPage() {
           }
           const pendingFile = pendingUploadFilesRef.current[imageItem.pendingFileId];
           if (!pendingFile) {
-            return messageApi.error("Thiếu một ảnh biến thể cục bộ. Vui lòng chọn lại.");
+            return messageApi.error("Thiếu một ảnh màu cục bộ. Vui lòng chọn lại.");
           }
           const url = await productService.uploadProductImage(pendingFile);
           resolvedImageItems.push({ ...imageItem, url, pendingFileId: undefined });
         }
-        resolvedVariantValues.push({ ...variantValue, imageItems: resolvedImageItems });
+
+        resolvedVariantGroups.push({
+          colorName,
+          colorHex,
+          imageItems: resolvedImageItems,
+          sizes: normalizedSizes,
+          bulkSizesText: "",
+        });
       }
 
-      const media = normalizeMedia(resolvedMediaValues);
-      if (media.length === 0) return messageApi.error("Vui lòng thêm ít nhất 1 ảnh/video sản phẩm");
-
+      const resolvedVariantValues = flattenVariantGroups(resolvedVariantGroups);
       const variants = normalizeVariants(resolvedVariantValues);
       if (variants.length === 0) return messageApi.error("Vui lòng thêm ít nhất 1 biến thể");
 
-      const reserved = editingProduct?.inventorySummary?.reserved ?? 0;
-      const totalStock = values.stock ?? 0;
+      const comboSet = new Set<string>();
+      for (const variant of variants) {
+        const comboKey = normalizeVariantComboKey(variant.color?.name, variant.color?.hex, variant.size);
+        if (comboSet.has(comboKey)) {
+          return messageApi.error("Bị trùng biến thể cùng màu + size. Vui lòng kiểm tra lại.");
+        }
+        comboSet.add(comboKey);
+      }
+
       const payload: ProductPayload = {
-        sku: values.sku.trim(),
+        sku: values.sku?.trim() || "",
         slug,
         name: values.name.trim(),
         brand: values.brand.trim(),
@@ -540,7 +775,6 @@ export function AdminProductsPage() {
         shortDescription: values.shortDescription?.trim() || "",
         category,
         pricing: { basePrice: values.basePrice, salePrice: values.salePrice, currency: "VND" },
-        inventorySummary: { total: totalStock, available: Math.max(totalStock - reserved, 0), reserved },
         status: values.status,
         gender: values.gender,
         ageGroup: values.ageGroup,
@@ -551,7 +785,6 @@ export function AdminProductsPage() {
           description: values.seoDescription?.trim() || "",
           keywords: toList(values.seoKeywordsText),
         },
-        media,
         variants,
       };
 
@@ -561,10 +794,37 @@ export function AdminProductsPage() {
       messageApi.success(editingProduct ? "Cập nhật sản phẩm thành công" : "Tạo sản phẩm thành công");
       setIsModalOpen(false);
       setEditingProduct(null);
+      productSkuManuallyEditedRef.current = false;
       resetPendingFiles();
       form.resetFields();
     } catch (error) {
       if (error instanceof Error && "errorFields" in error) return;
+      messageApi.error(getErrorMessage(error));
+    }
+  };
+
+  const handleCopy = async (value: string, label: string) => {
+    if (!value) {
+      messageApi.warning(`Không có ${label.toLowerCase()} để sao chép.`);
+      return;
+    }
+
+    try {
+      if (typeof navigator !== "undefined" && navigator.clipboard?.writeText) {
+        await navigator.clipboard.writeText(value);
+      } else {
+        const textArea = document.createElement("textarea");
+        textArea.value = value;
+        textArea.style.position = "fixed";
+        textArea.style.opacity = "0";
+        document.body.appendChild(textArea);
+        textArea.focus();
+        textArea.select();
+        document.execCommand("copy");
+        document.body.removeChild(textArea);
+      }
+      messageApi.success(`Đã sao chép ${label}.`);
+    } catch (error) {
       messageApi.error(getErrorMessage(error));
     }
   };
@@ -650,6 +910,7 @@ export function AdminProductsPage() {
         title={null}
         open={isModalOpen}
         onCancel={() => {
+          productSkuManuallyEditedRef.current = false;
           resetPendingFiles();
           setIsModalOpen(false);
         }}
@@ -665,7 +926,7 @@ export function AdminProductsPage() {
             {editingProduct ? "Chỉnh sửa sản phẩm" : "Tạo sản phẩm mới"}
           </Title>
           <Text className="text-slate-200!">
-            Điền thông tin cơ bản, thêm ảnh và cấu hình biến thể trước khi lưu.
+            Điền thông tin cơ bản và cấu hình màu, size, tồn kho theo từng size trước khi lưu.
           </Text>
         </div>
 
@@ -676,9 +937,6 @@ export function AdminProductsPage() {
                 <Text strong className="text-base">Trạng thái</Text>
                 <Form.Item label="Hiển thị" name="status" rules={REQUIRED_RULE} className="mb-3! mt-3!">
                   <Select options={PRODUCT_STATUS_OPTIONS} />
-                </Form.Item>
-                <Form.Item label="Tồn kho" name="stock" rules={REQUIRED_RULE} className="mb-0!">
-                  <InputNumber min={0} className="w-full!" placeholder="0" />
                 </Form.Item>
               </div>
 
@@ -707,13 +965,47 @@ export function AdminProductsPage() {
                   <Input placeholder="Nhập thương hiệu" />
                 </Form.Item>
               </div>
+
+              <div className="rounded-2xl border border-slate-200 bg-white p-4">
+                <Title level={5} className="mb-3! mt-0!">SEO meta</Title>
+                <Form.Item label="SEO title" name="seoTitle" className="mb-3!">
+                  <Input placeholder="Tiêu đề SEO" />
+                </Form.Item>
+                <Form.Item label="SEO description" name="seoDescription" className="mb-3!">
+                  <Input.TextArea rows={2} placeholder="Mô tả SEO" />
+                </Form.Item>
+                <Form.Item label="SEO keywords (ngăn cách bằng dấu phẩy)" name="seoKeywordsText" className="mb-0!">
+                  <Input placeholder="áo thun nam, rio shop, áo thể thao" />
+                </Form.Item>
+              </div>
             </div>
 
             <div className="space-y-4">
               <div className="rounded-2xl border border-slate-200 bg-white p-4">
                 <Title level={5} className="mb-3! mt-0!">Thông tin chung</Title>
                 <div className="grid gap-3 md:grid-cols-2">
-                  <Form.Item label="SKU" name="sku" rules={REQUIRED_RULE}><Input placeholder="Ví dụ: RIO-TEE-001" /></Form.Item>
+                  <div>
+                    <Form.Item label="SKU" className="mb-1!">
+                      <Space.Compact block>
+                        <Form.Item name="sku" noStyle>
+                          <Input
+                            placeholder="VD: AO-THUN"
+                            onChange={(event) => {
+                              productSkuManuallyEditedRef.current = true;
+                              form.setFieldValue("sku", event.target.value);
+                            }}
+                            onBlur={() => {
+                              if (!(form.getFieldValue("sku") as string | undefined)?.trim()) {
+                                productSkuManuallyEditedRef.current = false;
+                                syncProductSku();
+                              }
+                            }}
+                          />
+                        </Form.Item>
+                        <Button onClick={regenerateProductSku}>Tự sinh</Button>
+                      </Space.Compact>
+                    </Form.Item>
+                  </div>
                   <Form.Item label="Tên sản phẩm" name="name" rules={REQUIRED_RULE}><Input placeholder="Nhập tên sản phẩm" /></Form.Item>
                 </div>
                 <Form.Item label="Mô tả ngắn" name="shortDescription" className="mb-3!">
@@ -737,47 +1029,6 @@ export function AdminProductsPage() {
               </div>
 
               <div className="rounded-2xl border border-slate-200 bg-white p-4">
-                <div className="mb-3 flex items-center justify-between gap-2">
-                  <Title level={5} className="mb-0! mt-0!">Media</Title>
-                  <div className="flex items-center gap-2">
-                    <Upload accept="image/*" showUploadList={false} customRequest={handleUpload} beforeUpload={beforeUpload}>
-                      <Button size="small" icon={<InboxOutlined />}>Chọn ảnh</Button>
-                    </Upload>
-                    <Button type="dashed" size="small" icon={<PlusOutlined />} onClick={() => {
-                      const fields = (form.getFieldValue("media") ?? []) as MediaFormValue[];
-                      form.setFieldValue("media", [...fields, { type: "image", isPrimary: fields.length === 0, url: "" }]);
-                    }}>
-                      Thêm URL
-                    </Button>
-                  </div>
-                </div>
-                {pendingUploadCount > 0 ? <Text type="secondary" className="mb-2 block">{pendingUploadCount} tệp cục bộ sẽ được tải lên khi bạn bấm Lưu.</Text> : null}
-                <Form.List name="media">
-                  {(fields, { remove }) => (
-                    <div className="space-y-2">
-                      {fields.map((field) => (
-                        <div key={field.key} className="grid gap-2 md:grid-cols-[110px_1fr_1fr_80px_36px]">
-                          <Form.Item name={[field.name, "type"]} rules={REQUIRED_RULE}><Select options={MEDIA_TYPE_OPTIONS} /></Form.Item>
-                          <Form.Item name={[field.name, "url"]} rules={REQUIRED_RULE}><Input placeholder="https://..." /></Form.Item>
-                          <Form.Item name={[field.name, "altText"]}><Input placeholder="Văn bản mô tả ảnh" /></Form.Item>
-                          <Form.Item name={[field.name, "isPrimary"]} valuePropName="checked"><Switch /></Form.Item>
-                          <Button
-                            danger
-                            icon={<DeleteOutlined />}
-                            onClick={() => {
-                              const mediaValues = (form.getFieldValue("media") ?? []) as MediaFormValue[];
-                              unregisterPendingFile(mediaValues[field.name]?.pendingFileId);
-                              remove(field.name);
-                            }}
-                          />
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </Form.List>
-              </div>
-
-              <div className="rounded-2xl border border-slate-200 bg-white p-4">
                 <Title level={5} className="mb-3! mt-0!">Thuộc tính thêm</Title>
                 <Form.Item label="Chất liệu (phân tách bằng dấu phẩy)" name="materialText" className="mb-3!">
                   <Input placeholder="Cotton, Spandex, Polyester" />
@@ -788,82 +1039,187 @@ export function AdminProductsPage() {
               </div>
 
               <div className="rounded-2xl border border-slate-200 bg-white p-4">
-                <Title level={5} className="mb-3! mt-0!">SEO Meta</Title>
-                <Form.Item label="SEO Title" name="seoTitle" className="mb-3!">
-                  <Input placeholder="Tiêu đề SEO" />
-                </Form.Item>
-                <Form.Item label="SEO Description" name="seoDescription" className="mb-3!">
-                  <Input.TextArea rows={2} placeholder="Mô tả SEO" />
-                </Form.Item>
-                <Form.Item label="SEO Keywords (phân tách bằng dấu phẩy)" name="seoKeywordsText" className="mb-0!">
-                  <Input placeholder="áo thun nam, rio shop, áo thể thao" />
-                </Form.Item>
-              </div>
-
-              <div className="rounded-2xl border border-slate-200 bg-white p-4">
                 <div className="mb-3 flex items-center justify-between gap-2">
-                  <Title level={5} className="mb-0! mt-0!">Biến thể</Title>
-                  <Button type="dashed" size="small" icon={<PlusOutlined />} onClick={() => form.setFieldValue("variants", [...((form.getFieldValue("variants") ?? []) as VariantFormValue[]), defaultVariant(((form.getFieldValue("variants") ?? []) as VariantFormValue[]).length)])}>
-                    Thêm biến thể
+                  <Title level={5} className="mb-0! mt-0!">Màu sắc & size</Title>
+                  <Button
+                    type="dashed"
+                    size="small"
+                    icon={<PlusOutlined />}
+                    onClick={() => {
+                      const currentGroups = ((form.getFieldValue("variantGroups") ?? []) as VariantGroupFormValue[]);
+                      form.setFieldValue("variantGroups", [...currentGroups, defaultVariantGroup()]);
+                    }}
+                  >
+                    Thêm màu
                   </Button>
                 </div>
-                <Form.List name="variants">
-                  {(fields, { remove }) => (
+
+                <Form.List name="variantGroups">
+                  {(groupFields, { remove: removeGroup }) => (
                     <div className="space-y-3">
-                      {fields.map((field, index) => (
+                      {groupFields.map((groupField, groupIndex) => (
                         <Card
-                          key={field.key}
+                          key={groupField.key}
                           size="small"
-                          title={`Biến thể #${index + 1}`}
+                          title={`Màu #${groupIndex + 1}`}
                           extra={
                             <Button
                               size="small"
                               danger
                               onClick={() => {
-                                const variantImages = (form.getFieldValue(["variants", field.name, "imageItems"]) ?? []) as VariantImageFormValue[];
-                                variantImages.forEach((variantImage) => unregisterPendingFile(variantImage.pendingFileId));
-                                remove(field.name);
+                                const groupImages = (form.getFieldValue(["variantGroups", groupField.name, "imageItems"]) ?? []) as VariantImageFormValue[];
+                                groupImages.forEach((imageItem) => unregisterPendingFile(imageItem.pendingFileId));
+                                removeGroup(groupField.name);
                               }}
                             >
                               Xóa
                             </Button>
                           }
                         >
-                          <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_240px] lg:items-start">
-                            <div className="grid gap-3 md:grid-cols-2">
-                              <Form.Item label="Mã biến thể" name={[field.name, "variantId"]} rules={REQUIRED_RULE}><Input placeholder="variant-1" /></Form.Item>
-                              <Form.Item label="SKU biến thể" name={[field.name, "sku"]} rules={REQUIRED_RULE}><Input placeholder="RIO-TEE-001-M" /></Form.Item>
-                              <Form.Item label="Kích thước" name={[field.name, "size"]} rules={REQUIRED_RULE}><Select options={VARIANT_SIZE_OPTIONS} /></Form.Item>
-                              <Form.Item label="Nhãn size" name={[field.name, "sizeLabel"]}><Input placeholder="M" /></Form.Item>
-                              <Form.Item label="Giá cộng thêm" name={[field.name, "additionalPrice"]}><InputNumber min={0} className="w-full!" placeholder="0" /></Form.Item>
-                              <Form.Item label="Hoạt động" name={[field.name, "isActive"]} valuePropName="checked"><Switch /></Form.Item>
-                              <Form.Item label="Tên màu" name={[field.name, "colorName"]}><Input placeholder="Đỏ đô" /></Form.Item>
-                              <Form.Item label="Mã màu HEX" name={[field.name, "colorHex"]}><Input placeholder="#FF0000" /></Form.Item>
+                          <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_260px] xl:items-start">
+                            <div className="space-y-3">
+                              <div className="grid gap-3 md:grid-cols-2">
+                                <Form.Item label="Tên màu" name={[groupField.name, "colorName"]} rules={REQUIRED_RULE}>
+                                  <Input placeholder="VD: Đen" />
+                                </Form.Item>
+                                <Form.Item label="Mã màu HEX" name={[groupField.name, "colorHex"]}>
+                                  <Input placeholder="#000000" />
+                                </Form.Item>
+                              </div>
+
+                              <div className="rounded-lg border border-slate-200 p-3">
+                                <div className="mb-2 flex items-center justify-between gap-2">
+                                  <Text strong>Danh sách size</Text>
+                                  <Button
+                                    size="small"
+                                    type="dashed"
+                                    icon={<PlusOutlined />}
+                                    onClick={() => {
+                                      const currentSizes = ((form.getFieldValue(["variantGroups", groupField.name, "sizes"]) ?? []) as VariantSizeFormValue[]);
+                                      form.setFieldValue(["variantGroups", groupField.name, "sizes"], [...currentSizes, defaultVariantSize("M")]);
+                                    }}
+                                  >
+                                    Thêm size
+                                  </Button>
+                                </div>
+
+                                <Form.List name={[groupField.name, "sizes"]}>
+                                  {(sizeFields, { remove: removeSize }) => (
+                                    <div className="space-y-2">
+                                      <div className="hidden gap-2 px-1 text-xs font-semibold uppercase tracking-[0.08em] text-slate-500 lg:grid lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_minmax(0,1fr)_minmax(0,1fr)_72px_40px]">
+                                        <span>Kích thước</span>
+                                        <span>Nhãn size</span>
+                                        <span>Tồn kho</span>
+                                        <span>Giá cộng</span>
+                                        <span>Hoạt động</span>
+                                        <span>Xóa</span>
+                                      </div>
+                                      {sizeFields.map((sizeField) => (
+                                        <div key={sizeField.key} className="grid gap-2 rounded-md border border-slate-200 p-2 sm:grid-cols-2 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_minmax(0,1fr)_minmax(0,1fr)_72px_40px]">
+                                          <Form.Item name={[sizeField.name, "size"]} rules={REQUIRED_RULE} className="mb-0!">
+                                            <AutoComplete
+                                              options={VARIANT_SIZE_OPTIONS}
+                                              placeholder="Ví dụ: M"
+                                              filterOption={(inputValue, option) =>
+                                                String(option?.value ?? "")
+                                                  .toLowerCase()
+                                                  .includes(inputValue.toLowerCase())
+                                              }
+                                            />
+                                          </Form.Item>
+                                          <Form.Item name={[sizeField.name, "sizeLabel"]} className="mb-0!">
+                                            <Input placeholder="Ví dụ: M" />
+                                          </Form.Item>
+                                          <Form.Item name={[sizeField.name, "stock"]} rules={REQUIRED_RULE} className="mb-0!">
+                                            <InputNumber min={0} className="w-full!" placeholder="0" />
+                                          </Form.Item>
+                                          <Form.Item name={[sizeField.name, "additionalPrice"]} className="mb-0!">
+                                            <InputNumber min={0} className="w-full!" placeholder="0" />
+                                          </Form.Item>
+                                          <Form.Item name={[sizeField.name, "isActive"]} valuePropName="checked" className="mb-0!">
+                                            <Switch />
+                                          </Form.Item>
+                                          <Button
+                                            danger
+                                            icon={<DeleteOutlined />}
+                                            className="h-8 w-10 min-w-0 sm:justify-self-start lg:justify-self-end"
+                                            onClick={() => removeSize(sizeField.name)}
+                                          />
+                                          <div className="sm:col-span-2 lg:col-span-6">
+                                            <Text className="text-xs text-slate-500">SKU biến thể</Text>
+                                            <Space.Compact className="mt-1 w-full">
+                                              <Input
+                                                readOnly
+                                                value={variantSkuPreviewMatrix[groupField.name]?.[sizeField.name] ?? ""}
+                                                placeholder="SKU sẽ tự sinh"
+                                              />
+                                              <Button
+                                                icon={<CopyOutlined />}
+                                                onClick={() =>
+                                                  void handleCopy(
+                                                    variantSkuPreviewMatrix[groupField.name]?.[sizeField.name] ?? "",
+                                                    "SKU biến thể",
+                                                  )
+                                                }
+                                              >
+                                                Copy
+                                              </Button>
+                                            </Space.Compact>
+                                          </div>
+                                        </div>
+                                      ))}
+                                    </div>
+                                  )}
+                                </Form.List>
+
+                                <div className="mt-2">
+                                  <Text className="mb-1 block">Tạo nhanh size</Text>
+                                  <div className="grid gap-2 md:grid-cols-[1fr_auto] md:items-start">
+                                    <Form.Item
+                                      name={[groupField.name, "bulkSizesText"]}
+                                      extra="VD: S:5, M:8, L:3"
+                                      className="mb-0!"
+                                    >
+                                      <Input placeholder="Nhập size nhanh" />
+                                    </Form.Item>
+                                    <Button className="self-start" onClick={() => appendSizesForGroup(groupField.name)}>
+                                      Áp dụng
+                                    </Button>
+                                  </div>
+                                </div>
+                              </div>
                             </div>
 
                             <div className="rounded-lg border border-slate-200 bg-slate-50 p-2.5">
-                              <Text className="text-sm" strong>Ảnh biến thể</Text>
+                              <Text className="text-sm" strong>Ảnh theo màu</Text>
                               <div className="mt-2">
-                                <Upload accept="image/*" showUploadList={false} customRequest={handleVariantUpload(field.name)} beforeUpload={beforeUpload}>
-                                  <Button size="small" icon={<PlusOutlined />} block>Thêm ảnh</Button>
+                                <Upload
+                                  accept="image/*"
+                                  multiple
+                                  showUploadList={false}
+                                  customRequest={handleVariantGroupUpload(groupField.name)}
+                                  beforeUpload={beforeUpload}
+                                >
+                                  <Button size="small" icon={<PlusOutlined />} block>Thêm ảnh </Button>
                                 </Upload>
                               </div>
-                              <Form.List name={[field.name, "imageItems"]}>
+                              <Form.List name={[groupField.name, "imageItems"]}>
                                 {(imageFields, { remove: removeImage }) => (
                                   <div className="mt-2 space-y-2">
                                     {imageFields.map((imageField) => (
                                       <div key={imageField.key} className="grid gap-2 grid-cols-[1fr_32px]">
-                                        <Form.Item name={[imageField.name, "url"]} rules={REQUIRED_RULE}>
-                                          <Input size="small" placeholder="URL ảnh biến thể" />
+                                        <Form.Item name={[imageField.name, "url"]} rules={REQUIRED_RULE} className="mb-0!">
+                                          <Input size="small" placeholder="URL ảnh màu" />
                                         </Form.Item>
                                         <Button
                                           size="small"
                                           danger
+                                          className="w-8"
                                           icon={<DeleteOutlined />}
                                           onClick={() => {
                                             const imageItem = form.getFieldValue([
-                                              "variants",
-                                              field.name,
+                                              "variantGroups",
+                                              groupField.name,
                                               "imageItems",
                                               imageField.name,
                                             ]) as VariantImageFormValue | undefined;
@@ -891,3 +1247,5 @@ export function AdminProductsPage() {
     </div>
   );
 }
+
+

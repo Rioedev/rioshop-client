@@ -1,6 +1,7 @@
 ﻿import {
   HeartOutlined,
   LogoutOutlined,
+  PhoneOutlined,
   ProfileOutlined,
   ShoppingCartOutlined,
   UserOutlined,
@@ -14,13 +15,19 @@ import { useCartStore } from "../stores/cartStore";
 import { useWishlistStore } from "../stores/wishlistStore";
 
 const defaultMenuItems = [
-  { label: "Ao thun", category: "ao-thun" },
-  { label: "Ao polo", category: "ao-polo" },
-  { label: "Quan short", category: "quan-short" },
-  { label: "Do tap", category: "do-tap" },
+  { label: "Ao Polo", category: "ao-polo" },
+  { label: "Ao so mi", category: "ao-so-mi" },
+  { label: "Quan jeans", category: "quan-jeans" },
+  { label: "Do the thao", category: "do-the-thao" },
 ];
 
-const policyItems = ["Doi tra 60 ngay", "Mien phi ship tu 299K", "Ho tro 24/7"];
+const policyItems = ["Mien phi doi tra 60 ngay", "Mien phi ship tu 499K", "Kiem tra hang truoc khi nhan", "Hotline 1900 8888"];
+
+const utilityLinks = [
+  { label: "He thong cua hang", href: "/products" },
+  { label: "Tra cuu don hang", href: "/orders" },
+  { label: "Rio Member", href: "/account" },
+];
 
 export function StoreLayout() {
   const navigate = useNavigate();
@@ -111,13 +118,29 @@ export function StoreLayout() {
 
   return (
     <div className="storefront-shell min-h-screen">
-      <div className="store-promo-bar">Freeship toan quoc cho don tu 299K | Doi tra mien phi trong 60 ngay</div>
+      <div className="store-promo-bar">FLASH SALE 10H - 14H | Giam den 50% + Freeship toan quoc</div>
+
+      <div className="store-utility-strip">
+        <div className="mx-auto flex w-full max-w-[1620px] items-center justify-between gap-3 px-3 py-2 sm:px-4 xl:px-6">
+          <div className="store-utility-links">
+            {utilityLinks.map((item) => (
+              <Link key={item.label} to={item.href}>
+                {item.label}
+              </Link>
+            ))}
+          </div>
+          <div className="store-utility-hotline">
+            <PhoneOutlined />
+            <span>CSKH 1900 8888</span>
+          </div>
+        </div>
+      </div>
 
       <header className="store-header">
-        <div className="mx-auto w-full max-w-470 px-3 py-4 sm:px-4 xl:px-6">
+        <div className="mx-auto w-full max-w-[1620px] px-3 py-4 sm:px-4 xl:px-6">
           <div className="flex flex-wrap items-center gap-3 lg:flex-nowrap">
             <Link to="/" className="store-logo">
-              Rio<span>Shop</span>
+              RIO<span>SHOP</span>
             </Link>
 
             <div className="order-3 w-full lg:order-0 lg:flex-1">
@@ -231,9 +254,21 @@ export function StoreLayout() {
             </div>
           </div>
 
-          <nav className="mt-3 flex gap-2 overflow-x-auto pb-1">
+          <nav className="store-main-nav mt-3 flex gap-2 overflow-x-auto pb-1">
+            <Link to="/" className="store-nav-pill">
+              Trang chu
+            </Link>
+            <Link to="/products?sort=best_selling" className="store-nav-pill">
+              Ban chay
+            </Link>
+            <Link to="/products?sort=newest" className="store-nav-pill">
+              Moi ve
+            </Link>
+            <Link to="/products?sort=price_desc" className="store-nav-pill">
+              Flash sale
+            </Link>
             <Link to="/products" className="store-nav-pill">
-              Tat ca
+              Tat ca san pham
             </Link>
             {menuItems.map((item) => (
               <Link key={item.category} to={`/products?category=${item.category}`} className="store-nav-pill">
@@ -245,7 +280,7 @@ export function StoreLayout() {
       </header>
 
       <div className="store-policy-strip">
-        <div className="mx-auto w-full max-w-470 px-3 sm:px-4 xl:px-6">
+        <div className="mx-auto w-full max-w-[1620px] px-3 sm:px-4 xl:px-6">
           <div className="flex flex-wrap items-center gap-3 py-3">
             {policyItems.map((item) => (
               <div key={item} className="store-policy-item">
@@ -257,33 +292,35 @@ export function StoreLayout() {
         </div>
       </div>
 
-      <main className={`mx-auto w-full max-w-470 px-3 sm:px-4 xl:px-6 ${isHomePage ? "pt-0 pb-6 md:pb-8" : "py-6 md:py-8"}`}>
+      <main className={`mx-auto w-full max-w-[1620px] px-3 sm:px-4 xl:px-6 ${isHomePage ? "pt-0 pb-6 md:pb-8" : "py-6 md:py-8"}`}>
         <Outlet />
       </main>
 
       <footer className="store-footer">
-        <div className="mx-auto grid w-full max-w-470 gap-8 px-3 py-10 sm:px-4 lg:grid-cols-4 xl:px-6">
+        <div className="mx-auto grid w-full max-w-[1620px] gap-8 px-3 py-10 sm:px-4 lg:grid-cols-4 xl:px-6">
           <div>
-            <h4 className="store-footer-title">RioShop</h4>
-            <p className="store-footer-text">Thời trang tối giản, dễ mặc, dễ sống mỗi ngày.</p>
+            <h4 className="store-footer-title">RIO SHOP</h4>
+            <p className="store-footer-text">Thoi trang hang ngay cho gia dinh Viet.</p>
+            <p className="store-footer-text">Hotline: 1900 8888</p>
+            <p className="store-footer-text">Email: cskh@rioshop.vn</p>
           </div>
           <div>
-            <h4 className="store-footer-title">Sản phẩm</h4>
-            <p className="store-footer-text">Áo thun</p>
-            <p className="store-footer-text">Quần short</p>
-            <p className="store-footer-text">Đồ tập</p>
+            <h4 className="store-footer-title">Ve chung toi</h4>
+            <p className="store-footer-text">Gioi thieu</p>
+            <p className="store-footer-text">He thong cua hang</p>
+            <p className="store-footer-text">Tuyen dung</p>
           </div>
           <div>
-            <h4 className="store-footer-title">Hỗ trợ</h4>
+            <h4 className="store-footer-title">Chinh sach</h4>
             <p className="store-footer-text">Đổi trả 60 ngày</p>
             <p className="store-footer-text">Chính sách vận chuyển</p>
-            <p className="store-footer-text">CSKH 24/7</p>
+            <p className="store-footer-text">Bao mat thong tin</p>
           </div>
           <div>
-            <h4 className="store-footer-title">Kết nối</h4>
-            <p className="store-footer-text">Facebook</p>
-            <p className="store-footer-text">Instagram</p>
-            <p className="store-footer-text">TikTok</p>
+            <h4 className="store-footer-title">Ho tro khach hang</h4>
+            <p className="store-footer-text">Huong dan mua hang</p>
+            <p className="store-footer-text">Tra cuu don hang</p>
+            <p className="store-footer-text">Cau hoi thuong gap</p>
           </div>
         </div>
       </footer>

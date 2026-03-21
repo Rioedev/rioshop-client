@@ -10,7 +10,7 @@ import {
   StoreSectionHeader,
   storeButtonClassNames,
 } from "../components/StorePageChrome";
-import { formatStoreCurrency, resolveStoreImageUrl } from "../utils/storeFormatting";
+import { formatStoreCurrency, resolveStoreProductThumbnail } from "../utils/storeFormatting";
 import { categoryService, type Category } from "../../../services/categoryService";
 import { productService, type Product } from "../../../services/productService";
 import { useCartStore } from "../../../stores/cartStore";
@@ -166,13 +166,21 @@ export function StoreProductsPage() {
   };
 
   const onAddToCart = (item: Product) => {
-    const image = resolveStoreImageUrl(item.media?.find((media) => media.type === "image")?.url);
+    const image = resolveStoreProductThumbnail(item);
+    const variant = (item.variants ?? []).find((entry) => entry.isActive !== false) ?? null;
+    const variantLabel = variant
+      ? `${variant.color?.name?.trim() || "Mac dinh"} / ${(variant.sizeLabel || variant.size).trim()}`
+      : undefined;
+    const unitPrice = Math.max(0, item.pricing.salePrice + Number(variant?.additionalPrice || 0));
+
     addCartItem({
       productId: item._id,
       slug: item.slug,
-      name: item.name,
-      price: item.pricing.salePrice,
+      name: variantLabel ? `${item.name} - ${variantLabel}` : item.name,
+      price: unitPrice,
       imageUrl: image,
+      variantSku: variant?.sku,
+      variantLabel,
       quantity: 1,
     });
     message.success("Da them vao gio hang");
@@ -253,7 +261,7 @@ export function StoreProductsPage() {
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
             {products.map((item) => {
               const hasDiscount = item.pricing.basePrice > item.pricing.salePrice;
-              const image = resolveStoreImageUrl(item.media?.find((media) => media.type === "image")?.url);
+              const image = resolveStoreProductThumbnail(item);
               const inWishlist = wishlistItems.some((wishlist) => wishlist.productId === item._id);
               const discountLabel = hasDiscount
                 ? `-${Math.round(((item.pricing.basePrice - item.pricing.salePrice) / item.pricing.basePrice) * 100)}%`

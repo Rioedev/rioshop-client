@@ -49,6 +49,7 @@ export function StoreCheckoutPage() {
   }, [cartItems, shippingMethod]);
 
   const invalidProductIds = cartItems.filter((item) => !objectIdPattern.test(item.productId));
+  const itemsMissingVariant = cartItems.filter((item) => !item.variantSku?.trim());
 
   if (!isAuthenticated) {
     return (
@@ -95,6 +96,11 @@ export function StoreCheckoutPage() {
       return;
     }
 
+    if (itemsMissingVariant.length > 0) {
+      messageApi.error("Co san pham chua chon size/mau. Vui long xoa va them lai dung bien the.");
+      return;
+    }
+
     setSubmitting(true);
     try {
       const created = await orderService.createOrder({
@@ -105,9 +111,9 @@ export function StoreCheckoutPage() {
         },
         items: cartItems.map((item) => ({
           productId: item.productId,
-          variantSku: `${item.slug}-default`,
+          variantSku: item.variantSku!,
           productName: item.name,
-          variantLabel: "Default",
+          variantLabel: item.variantLabel || "Default",
           image: item.imageUrl ?? "https://dummyimage.com/400x400/e2e8f0/0f172a&text=RIO",
           unitPrice: item.price,
           quantity: item.quantity,
@@ -190,6 +196,14 @@ export function StoreCheckoutPage() {
             />
           ) : null}
 
+          {itemsMissingVariant.length > 0 ? (
+            <StoreInlineNote
+              tone="warning"
+              title="Chua chon bien the day du"
+              description="Moi san pham can co SKU bien the (mau/size) de he thong giu ton kho chinh xac."
+            />
+          ) : null}
+
           <div className="grid gap-3 md:grid-cols-2">
             <div>
               <p className="mb-1 text-sm font-semibold text-slate-600">Ho va ten</p>
@@ -265,7 +279,7 @@ export function StoreCheckoutPage() {
 
           <div className="space-y-2">
             {cartItems.map((item) => (
-              <article key={item.productId} className="cart-item-card">
+              <article key={item.itemId ?? `${item.productId}-${item.variantSku ?? "default"}`} className="cart-item-card">
                 <div className="cart-item-image">
                   {item.imageUrl ? (
                     <img src={item.imageUrl} alt={item.name} className="h-full w-full object-cover" />

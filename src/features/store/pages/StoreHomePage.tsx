@@ -18,7 +18,11 @@ import {
 import { categoryService, type Category } from "../../../services/categoryService";
 import { flashSaleService } from "../../../services/flashSaleService";
 import { productService, type Product } from "../../../services/productService";
-import { formatStoreCurrency as formatCurrency, resolveStoreImageUrl as resolveImageUrl } from "../utils/storeFormatting";
+import {
+  formatStoreCurrency as formatCurrency,
+  resolveStoreImageUrl as resolveImageUrl,
+  resolveStoreProductThumbnail,
+} from "../utils/storeFormatting";
 
 const STORE_BRAND_KEY = "rioshop-default";
 
@@ -240,9 +244,9 @@ const iconByKey = {
 };
 
 const getProductImage = (product: ProductRuntime, fallbackIndex = 0) => {
-  const primaryImage = (product.media ?? []).find((item) => item.type === "image" && item.url)?.url;
+  const primaryImage = resolveStoreProductThumbnail(product);
   return (
-    resolveImageUrl(primaryImage) ??
+    primaryImage ??
     FALLBACK_PRODUCT_IMAGES[fallbackIndex % FALLBACK_PRODUCT_IMAGES.length]
   );
 };
@@ -789,7 +793,7 @@ export function StoreHomePage() {
       <section
         className="store-home-v3-hero store-home-v3-bleed"
         style={{
-          backgroundImage: `linear-gradient(118deg, rgba(7, 12, 23, 0.88), rgba(7, 12, 23, 0.32)), url(${activeHeroSlide?.image ?? campaignImage})`,
+          backgroundImage: `linear-gradient(118deg, rgba(15, 79, 168, 0.82), rgba(15, 79, 168, 0.24)), url(${activeHeroSlide?.image ?? campaignImage})`,
         }}
       >
         <div className="store-home-v3-hero-inner">

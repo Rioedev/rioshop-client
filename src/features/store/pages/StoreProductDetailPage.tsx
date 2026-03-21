@@ -11,7 +11,11 @@ import { Link, useParams } from "react-router-dom";
 import { productService, type Product } from "../../../services/productService";
 import { reviewService, type ReviewItem } from "../../../services/reviewService";
 import { useCartStore } from "../../../stores/cartStore";
-import { formatStoreCurrency as formatCurrency, resolveStoreImageUrl as resolveImageUrl } from "../utils/storeFormatting";
+import {
+  formatStoreCurrency as formatCurrency,
+  resolveStoreImageUrl as resolveImageUrl,
+  resolveStoreProductThumbnail,
+} from "../utils/storeFormatting";
 
 const { Paragraph, Title } = Typography;
 
@@ -34,35 +38,45 @@ const demoColors = [
 
 const demoSizes = ["XS", "S", "M", "L", "XL", "2XL"];
 
+const DEFAULT_COLOR_HEX = "#cbd5e1";
+
+const normalizeColorValue = (value?: string) => (value ?? "").trim().toLowerCase();
+
+const getVariantColorName = (variant: NonNullable<Product["variants"]>[number]) =>
+  variant.color?.name?.trim() || (variant.color?.hex?.trim() ? `Màu ${variant.color.hex.trim()}` : "Mặc định");
+
+const getVariantSizeLabel = (variant: NonNullable<Product["variants"]>[number]) =>
+  variant.sizeLabel?.trim() || variant.size?.trim() || "";
+
 const techCards = [
   {
     title: "CoolSoft",
-    subtitle: "Mem, mat, khong bi xoc",
-    text: "Soi vai mem va be mat min giup mac em, thoang, khong gay cam giac kho chiu khi van dong.",
+    subtitle: "Mềm, mát, không bị xước",
+    text: "Sợi vải mềm và bề mặt mịn giúp mặc êm, thoáng, không gây cảm giác khó chịu khi vận động.",
     image: "https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?auto=format&fit=crop&w=900&q=80",
   },
   {
     title: "CoolDry",
-    subtitle: "Thoat hoi am nhanh",
-    text: "Cong nghe dan hoi va hut am tot giup trang phuc kho nhanh, phu hop cho ca ngay dai.",
+    subtitle: "Thoát hơi ẩm nhanh",
+    text: "Công nghệ đàn hồi và hút ẩm tốt giúp trang phục khô nhanh, phù hợp cho cả ngày dài.",
     image: "https://images.unsplash.com/photo-1467043198406-dc953a3defa0?auto=format&fit=crop&w=900&q=80",
   },
   {
     title: "CoolRib",
-    subtitle: "Giu form on dinh",
-    text: "Cau truc det rib giup vai giu do bung, giam gian bai va ben dep sau nhieu lan giat.",
+    subtitle: "Giữ form ổn định",
+    text: "Cấu trúc dệt rib giúp vải giữ độ bung, giảm giãn bai và bền đẹp sau nhiều lần giặt.",
     image: "https://images.unsplash.com/photo-1602810318383-e386cc2a3ccf?auto=format&fit=crop&w=900&q=80",
   },
   {
     title: "CoolFlex",
-    subtitle: "Co gian 4 chieu",
-    text: "Ty le spandex toi uu giup cu dong thoai mai hon khi tap luyen va di chuyen lien tuc.",
+    subtitle: "Co giãn 4 chiều",
+    text: "Tỷ lệ spandex tối ưu giúp cử động thoải mái hơn khi tập luyện và di chuyển liên tục.",
     image: "https://images.unsplash.com/photo-1512436991641-6745cdb1723f?auto=format&fit=crop&w=900&q=80",
   },
 ];
 
 const toProductCardImage = (item: ProductRuntime, fallback = "RIO") =>
-  resolveImageUrl(item.media?.find((media) => media.type === "image")?.url) ??
+  resolveStoreProductThumbnail(item) ??
   `https://dummyimage.com/800x1000/e2e8f0/0f172a&text=${encodeURIComponent(fallback)}`;
 
 const generateReviewPercents = (dist?: Record<string, number>, count = 0) => {
@@ -81,6 +95,64 @@ const generateReviewPercents = (dist?: Record<string, number>, count = 0) => {
     { star: 2, percent: 2 },
     { star: 1, percent: 1 },
   ];
+};
+
+const stripHtmlToText = (value?: string) =>
+  (value ?? "")
+    .replace(/<[^>]*>/g, " ")
+    .replace(/&nbsp;/gi, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+
+const sanitizeProductHtml = (html?: string) => {
+  if (!html) {
+    return "";
+  }
+
+  if (typeof window === "undefined") {
+    return html;
+  }
+
+  try {
+    const parser = new DOMParser();
+    const doc = parser.parseFromString(html, "text/html");
+    doc.querySelectorAll("script, style, iframe, object, embed, link, meta").forEach((node) => node.remove());
+
+    doc.body.querySelectorAll("*").forEach((node) => {
+      Array.from(node.attributes).forEach((attribute) => {
+        const name = attribute.name.toLowerCase();
+        const value = attribute.value;
+
+        if (name.startsWith("on")) {
+          node.removeAttribute(attribute.name);
+          return;
+        }
+
+        if ((name === "href" || name === "src") && /^\s*javascript:/i.test(value)) {
+          node.removeAttribute(attribute.name);
+          return;
+        }
+
+        if (name === "style") {
+          const sanitizedStyle = value
+            .split(";")
+            .map((rule) => rule.trim())
+            .filter((rule) => rule && !/expression|url\(/i.test(rule))
+            .join("; ");
+
+          if (sanitizedStyle) {
+            node.setAttribute("style", sanitizedStyle);
+          } else {
+            node.removeAttribute("style");
+          }
+        }
+      });
+    });
+
+    return doc.body.innerHTML;
+  } catch {
+    return html;
+  }
 };
 
 export function StoreProductDetailPage() {
@@ -196,13 +268,147 @@ export function StoreProductDetailPage() {
     };
   }, [slug]);
 
-  const imageList = useMemo(
-    () =>
-      (product?.media ?? [])
-        .filter((item) => item.type === "image")
-        .map((item) => resolveImageUrl(item.url))
-        .filter((item): item is string => Boolean(item)),
-    [product],
+  const productVariants = useMemo(
+    () => (product?.variants ?? []).filter((variant) => variant.isActive !== false),
+    [product?.variants],
+  );
+
+  const colorOptions = useMemo(() => {
+    if (productVariants.length === 0) {
+      return demoColors;
+    }
+
+    const colorMap = new Map<string, { name: string; hex: string }>();
+    productVariants.forEach((variant) => {
+      const name = getVariantColorName(variant);
+      const key = normalizeColorValue(name);
+      const hex = variant.color?.hex?.trim() || "";
+      const current = colorMap.get(key);
+
+      if (!current) {
+        colorMap.set(key, { name, hex: hex || DEFAULT_COLOR_HEX });
+        return;
+      }
+
+      if (!current.hex && hex) {
+        colorMap.set(key, { ...current, hex });
+      }
+    });
+
+    return Array.from(colorMap.values());
+  }, [productVariants]);
+
+  const sizeOptions = useMemo(() => {
+    if (productVariants.length === 0) {
+      return demoSizes;
+    }
+
+    const selectedColorKey = normalizeColorValue(selectedColor);
+    const variantsInColor = productVariants.filter(
+      (variant) => normalizeColorValue(getVariantColorName(variant)) === selectedColorKey,
+    );
+    const pool = variantsInColor.length > 0 ? variantsInColor : productVariants;
+
+    return Array.from(
+      new Set(pool.map((variant) => getVariantSizeLabel(variant)).filter(Boolean)),
+    );
+  }, [productVariants, selectedColor]);
+
+  useEffect(() => {
+    const fallbackColor = colorOptions[0]?.name ?? "";
+    if (!fallbackColor) {
+      return;
+    }
+
+    if (!selectedColor || !colorOptions.some((color) => color.name === selectedColor)) {
+      setSelectedColor(fallbackColor);
+    }
+  }, [colorOptions, selectedColor]);
+
+  useEffect(() => {
+    const fallbackSize = sizeOptions[0] ?? "";
+    if (!fallbackSize) {
+      return;
+    }
+
+    if (!selectedSize || !sizeOptions.includes(selectedSize)) {
+      setSelectedSize(fallbackSize);
+    }
+  }, [selectedSize, sizeOptions]);
+
+  const imageList = useMemo(() => {
+    const mediaImages = (product?.media ?? [])
+      .filter((item) => item.type === "image")
+      .map((item) => resolveImageUrl(item.url))
+      .filter((item): item is string => Boolean(item));
+
+    const selectedColorKey = normalizeColorValue(selectedColor);
+    const selectedSizeKey = selectedSize.trim().toLowerCase();
+    const variantsInColor = productVariants.filter(
+      (variant) => normalizeColorValue(getVariantColorName(variant)) === selectedColorKey,
+    );
+    const selectedVariants =
+      variantsInColor.length > 0
+        ? variantsInColor.filter((variant) => getVariantSizeLabel(variant).toLowerCase() === selectedSizeKey)
+        : [];
+
+    const selectedVariantImages = selectedVariants
+      .flatMap((variant) => variant.images ?? [])
+      .map((item) => resolveImageUrl(item))
+      .filter((item): item is string => Boolean(item));
+
+    const colorVariantImages = variantsInColor
+      .flatMap((variant) => variant.images ?? [])
+      .map((item) => resolveImageUrl(item))
+      .filter((item): item is string => Boolean(item));
+
+    const allVariantImages = productVariants
+      .flatMap((variant) => variant.images ?? [])
+      .map((item) => resolveImageUrl(item))
+      .filter((item): item is string => Boolean(item));
+
+    const prioritizedVariantImages =
+      selectedVariantImages.length > 0
+        ? selectedVariantImages
+        : colorVariantImages.length > 0
+          ? colorVariantImages
+          : allVariantImages;
+
+    return Array.from(new Set([...prioritizedVariantImages, ...mediaImages]));
+  }, [product?.media, productVariants, selectedColor, selectedSize]);
+
+  const selectedVariant = useMemo(() => {
+    if (productVariants.length === 0) {
+      return null;
+    }
+
+    const selectedColorKey = normalizeColorValue(selectedColor);
+    const selectedSizeKey = selectedSize.trim().toLowerCase();
+    const variantsInColor = productVariants.filter(
+      (variant) => normalizeColorValue(getVariantColorName(variant)) === selectedColorKey,
+    );
+    const pool = variantsInColor.length > 0 ? variantsInColor : productVariants;
+
+    return (
+      pool.find((variant) => getVariantSizeLabel(variant).toLowerCase() === selectedSizeKey) ||
+      pool[0] ||
+      productVariants[0] ||
+      null
+    );
+  }, [productVariants, selectedColor, selectedSize]);
+
+  const shortDescriptionPreview = useMemo(() => {
+    const shortDescription = stripHtmlToText(product?.shortDescription);
+    if (shortDescription) {
+      return shortDescription;
+    }
+
+    return "";
+  }, [product?.shortDescription]);
+
+  const sanitizedDescriptionHtml = useMemo(
+    () => sanitizeProductHtml(product?.description),
+    [product?.description],
   );
 
   useEffect(() => {
@@ -247,14 +453,14 @@ export function StoreProductDetailPage() {
     return (
       <section className="product-empty-state">
         <Title level={3} className="mb-2! mt-0!">
-          Khong tim thay san pham
+          Không tìm thấy sản phẩm
         </Title>
         <Paragraph className="mb-4! text-slate-600!">
-          San pham co the da bi an hoac duong dan khong hop le.
+          Sản phẩm có thể đã bị ẩn hoặc đường dẫn không hợp lệ.
         </Paragraph>
         <Link to="/">
           <Button type="primary" className="rounded-full! bg-slate-900! px-6! shadow-none!">
-            Quay ve trang chu
+            Quay về trang chủ
           </Button>
         </Link>
       </section>
@@ -262,25 +468,52 @@ export function StoreProductDetailPage() {
   }
 
   const displayImage = selectedImage ?? imageList[0];
-  const hasDiscount = product.pricing.basePrice > product.pricing.salePrice;
+  const selectedColorLabel = selectedColor || colorOptions[0]?.name || "Mặc định";
+  const selectedSizeLabel = selectedSize || sizeOptions[0] || "Free";
+  const selectedVariantLabel = selectedVariant
+    ? `${getVariantColorName(selectedVariant)} / ${getVariantSizeLabel(selectedVariant)}`
+    : `${selectedColorLabel} / ${selectedSizeLabel}`;
+  const selectedVariantPrice = Math.max(
+    0,
+    product.pricing.salePrice + Number(selectedVariant?.additionalPrice || 0),
+  );
+  const selectedVariantBasePrice = Math.max(
+    0,
+    product.pricing.basePrice + Number(selectedVariant?.additionalPrice || 0),
+  );
+  const hasDiscount = selectedVariantBasePrice > selectedVariantPrice;
+  const isSelectedVariantOutOfStock =
+    selectedVariant !== null && Number(selectedVariant.stock ?? 0) <= 0;
   const ratingValue = reviewStats.avg > 0 ? reviewStats.avg : product.ratings?.avg ?? 4.8;
   const ratingCount = reviewStats.count > 0 ? reviewStats.count : product.ratings?.count ?? 0;
-  const soldText = product.totalSold ? `${product.totalSold.toLocaleString("vi-VN")} da ban` : "Moi cap nhat";
+  const soldText = product.totalSold ? `${product.totalSold.toLocaleString("vi-VN")} đã bán` : "Mới cập nhật";
   const reviewPercents = generateReviewPercents(
     reviewStats.count > 0 ? reviewStats.dist : product.ratings?.dist,
     reviewStats.count > 0 ? reviewStats.count : product.ratings?.count ?? 0,
   );
 
   const onAddToCart = () => {
+    if (productVariants.length > 0 && !selectedVariant?.sku) {
+      message.error("Vui lòng chọn đúng màu và size trước khi thêm vào giỏ.");
+      return;
+    }
+
+    if (isSelectedVariantOutOfStock) {
+      message.warning("Biến thể bạn chọn hiện đã hết hàng.");
+      return;
+    }
+
     addItem({
       productId: product._id,
       slug: product.slug,
-      name: `${product.name} - ${selectedColor} / ${selectedSize}`,
-      price: product.pricing.salePrice,
+      name: `${product.name} - ${selectedVariantLabel}`,
+      price: selectedVariantPrice,
       imageUrl: displayImage,
+      variantSku: selectedVariant?.sku,
+      variantLabel: selectedVariantLabel,
       quantity,
     });
-    message.success("Da them san pham vao gio hang");
+    message.success("Đã thêm sản phẩm vào giỏ hàng");
   };
 
   const renderProductCards = (items: ProductRuntime[]) => (
@@ -309,10 +542,10 @@ export function StoreProductDetailPage() {
       <div className="flex flex-wrap items-center justify-between gap-3 text-sm text-slate-500">
         <div>
           <Link to="/" className="hover:text-slate-900">
-            Trang chu
+            Trang chủ
           </Link>
           <span className="mx-2">/</span>
-          <span>{product.category?.name ?? "San pham"}</span>
+          <span>{product.category?.name ?? "Sản phẩm"}</span>
           <span className="mx-2">/</span>
           <span>{product.name}</span>
         </div>
@@ -347,7 +580,7 @@ export function StoreProductDetailPage() {
         </div>
 
         <div className="pdpv2-buy-panel">
-          <p className="product-info-category">{product.category?.name ?? "San pham moi"}</p>
+          <p className="product-info-category">{product.category?.name ?? "Sản phẩm mới"}</p>
           <Title level={2} className="mb-2! mt-1! text-3xl! text-slate-900! md:text-[34px]!">
             {product.name}
           </Title>
@@ -357,55 +590,57 @@ export function StoreProductDetailPage() {
               <StarFilled />
               {ratingValue.toFixed(1)}
             </span>
-            <span>({ratingCount} danh gia)</span>
+            <span>({ratingCount} đánh giá)</span>
             <span>{soldText}</span>
           </div>
 
           <div className="mb-4 mt-4 flex items-end gap-2">
             <span className="text-3xl font-black text-slate-900">
-              {formatCurrency(product.pricing.salePrice)}
+              {formatCurrency(selectedVariantPrice)}
             </span>
             {hasDiscount ? (
               <span className="text-lg text-slate-400 line-through">
-                {formatCurrency(product.pricing.basePrice)}
+                {formatCurrency(selectedVariantBasePrice)}
               </span>
             ) : null}
           </div>
 
-          <Paragraph className="mb-4! text-base! leading-7! text-slate-600!">
-            {product.shortDescription ?? product.description ?? "San pham toi gian, de mac, de phoi."}
-          </Paragraph>
+          {shortDescriptionPreview ? (
+            <Paragraph className="mb-4! text-base! leading-7! text-slate-600!">
+              {shortDescriptionPreview}
+            </Paragraph>
+          ) : null}
 
           <div className="pdpv2-policy-grid">
             <div className="pdpv2-policy-item">
               <TruckOutlined />
-              Giao nhanh 2h noi thanh
+              Giao nhanh 2h nội thành
             </div>
             <div className="pdpv2-policy-item">
               <SafetyCertificateOutlined />
-              Chinh hang 100%
+              Chính hãng 100%
             </div>
             <div className="pdpv2-policy-item">
               <CheckCircleOutlined />
-              Doi tra 60 ngay
+              Đổi trả 60 ngày
             </div>
             <div className="pdpv2-policy-item">
               <HeartOutlined />
-              Tu van size 24/7
+              Tư vấn size 24/7
             </div>
           </div>
 
           <div className="mt-5">
-            <p className="mb-2 text-sm font-semibold uppercase tracking-[0.12em] text-slate-500">Mau sac</p>
+            <p className="mb-2 text-sm font-semibold uppercase tracking-[0.12em] text-slate-500">Màu sắc</p>
             <div className="flex flex-wrap gap-2">
-              {demoColors.map((color) => (
+              {colorOptions.map((color) => (
                 <button
                   key={color.name}
                   type="button"
                   onClick={() => setSelectedColor(color.name)}
                   className={`pdpv2-color-pill ${selectedColor === color.name ? "is-active" : ""}`}
                 >
-                  <span className="pdpv2-color-dot" style={{ background: color.hex }} />
+                  <span className="pdpv2-color-dot" style={{ background: color.hex || DEFAULT_COLOR_HEX }} />
                   {color.name}
                 </button>
               ))}
@@ -413,9 +648,9 @@ export function StoreProductDetailPage() {
           </div>
 
           <div className="mt-5">
-            <p className="mb-2 text-sm font-semibold uppercase tracking-[0.12em] text-slate-500">Kich thuoc</p>
+            <p className="mb-2 text-sm font-semibold uppercase tracking-[0.12em] text-slate-500">Kích thước</p>
             <div className="flex flex-wrap gap-2">
-              {demoSizes.map((size) => (
+              {sizeOptions.map((size) => (
                 <button
                   key={size}
                   type="button"
@@ -429,7 +664,7 @@ export function StoreProductDetailPage() {
           </div>
 
           <div className="mt-5 flex flex-wrap items-center gap-3">
-            <p className="m-0 text-sm font-semibold uppercase tracking-[0.12em] text-slate-500">So luong</p>
+            <p className="m-0 text-sm font-semibold uppercase tracking-[0.12em] text-slate-500">Số lượng</p>
             <InputNumber
               min={1}
               value={quantity}
@@ -443,9 +678,10 @@ export function StoreProductDetailPage() {
               type="primary"
               size="large"
               className="h-11! rounded-full! bg-slate-900! px-8! font-bold! shadow-none!"
+              disabled={isSelectedVariantOutOfStock}
               onClick={onAddToCart}
             >
-              Them vao gio
+              {isSelectedVariantOutOfStock ? "Hết hàng" : "Thêm vào giỏ"}
             </Button>
             <Link to="/cart">
               <Button size="large" className="h-11! rounded-full! border-slate-300! px-7! font-semibold!">
@@ -456,71 +692,65 @@ export function StoreProductDetailPage() {
 
           <div className="product-note-list">
             <p>
-              <strong>Chat lieu:</strong> {(product.material ?? ["Cotton cao cap"]).join(" | ")}
+              <strong>Chất liệu:</strong> {(product.material ?? ["Cotton cao cấp"]).join(" | ")}
             </p>
             <p>
-              <strong>Bao quan:</strong> {(product.care ?? ["Giat nhe, tranh nhiet cao"]).join(" | ")}
+              <strong>Bảo quản:</strong> {(product.care ?? ["Giặt nhẹ, tránh nhiệt cao"]).join(" | ")}
             </p>
           </div>
         </div>
       </section>
 
       <section className="pdpv2-overview-card">
-        <h3 className="pdpv2-section-title">Mo ta san pham</h3>
+        <h3 className="pdpv2-section-title">Mô tả sản phẩm</h3>
         <div className="pdpv2-overview-grid">
           <div className="pdpv2-spec-card">
-            <p className="pdpv2-spec-label">Thong tin chi tiet</p>
+            <p className="pdpv2-spec-label">Thông tin chi tiết</p>
             <ul className="pdpv2-spec-list">
               <li>
-                <span>Thuong hieu</span>
+                <span>Thương hiệu</span>
                 <strong>{product.brand ?? "RioShop"}</strong>
               </li>
               <li>
-                <span>Danh muc</span>
-                <strong>{product.category?.name ?? "San pham"}</strong>
+                <span>Danh mục</span>
+                <strong>{product.category?.name ?? "Sản phẩm"}</strong>
               </li>
               <li>
                 <span>SKU</span>
-                <strong>{product.sku ?? "Dang cap nhat"}</strong>
+                <strong>{product.sku ?? "Đang cập nhật"}</strong>
               </li>
               <li>
-                <span>Tinh trang</span>
-                <strong>{product.status === "active" ? "Con hang" : "Tam het"}</strong>
+                <span>Tình trạng</span>
+                <strong>{product.status === "active" ? "Còn hàng" : "Tạm hết"}</strong>
               </li>
             </ul>
 
-            <Paragraph className="mb-0! mt-4! text-sm! leading-7! text-slate-600!">
-              {product.description ?? "San pham duoc phat trien theo huong toi gian, de mac, de phoi va de bao quan."}
-            </Paragraph>
-          </div>
-
-          <div className="pdpv2-overview-media-grid">
-            <div className="pdpv2-overview-media-large">
-              <img src={displayImage ?? techCards[0].image} alt={product.name} className="h-full w-full object-cover" />
-            </div>
-            <div className="pdpv2-overview-media-large">
-              <img
-                src={imageList[1] ?? imageList[0] ?? techCards[1].image}
-                alt={`${product.name}-look`}
-                className="h-full w-full object-cover"
+            {sanitizedDescriptionHtml ? (
+              <div
+                className="pdpv2-rich-text"
+                dangerouslySetInnerHTML={{ __html: sanitizedDescriptionHtml }}
               />
-            </div>
+            ) : (
+              <Paragraph className="mb-0! mt-4! text-sm! leading-7! text-slate-600!">
+                Sản phẩm được phát triển theo hướng tối giản, dễ mặc, dễ phối và dễ bảo quản.
+              </Paragraph>
+            )}
           </div>
         </div>
       </section>
 
       <section className="pdpv2-block">
-        <h3 className="pdpv2-section-title">Mua sam theo phong cach</h3>
+        <h3 className="pdpv2-section-title">Mua sắm theo phong cách</h3>
         {renderProductCards(styleProducts.length > 0 ? styleProducts : relatedProducts.slice(0, 4))}
       </section>
 
       <section className="pdpv2-block">
-        <h3 className="pdpv2-section-title">San pham cung cong nghe</h3>
+        <h3 className="pdpv2-section-title">Sản phẩm cùng công nghệ</h3>
         {renderProductCards(sameTechProducts.length > 0 ? sameTechProducts : relatedProducts.slice(0, 4))}
       </section>
 
       <section className="pdpv2-block">
-        <h3 className="pdpv2-section-title">Cong nghe vai noi bat</h3>
+        <h3 className="pdpv2-section-title">Công nghệ vải nổi bật</h3>
         <div className="pdpv2-tech-grid">
           {techCards.map((item) => (
             <article key={item.title} className="pdpv2-tech-card">
@@ -538,17 +768,17 @@ export function StoreProductDetailPage() {
       </section>
 
       <section className="pdpv2-block">
-        <h3 className="pdpv2-section-title">Goi y san pham</h3>
+        <h3 className="pdpv2-section-title">Gợi ý sản phẩm</h3>
         {renderProductCards(suggestedProducts.length > 0 ? suggestedProducts : relatedProducts.slice(0, 4))}
       </section>
 
       <section className="pdpv2-review-wrap">
-        <h3 className="pdpv2-section-title">Danh gia san pham</h3>
+        <h3 className="pdpv2-section-title">Đánh giá sản phẩm</h3>
         <div className="pdpv2-review-grid">
           <div className="pdpv2-review-score">
             <p className="pdpv2-score-number">{ratingValue.toFixed(1)}</p>
             <Rate allowHalf disabled value={ratingValue} className="text-base!" />
-            <p className="m-0 text-sm text-slate-500">{ratingCount} danh gia tu khach hang</p>
+            <p className="m-0 text-sm text-slate-500">{ratingCount} đánh giá từ khách hàng</p>
           </div>
 
           <div className="space-y-3">
@@ -567,7 +797,7 @@ export function StoreProductDetailPage() {
               <article key={review.id} className="rounded-xl border border-slate-200 bg-white p-3">
                 <div className="flex items-center justify-between gap-2">
                   <p className="m-0 text-sm font-semibold text-slate-900">
-                    {review.user?.fullName || "Khach hang da mua"}
+                    {review.user?.fullName || "Khách hàng đã mua"}
                   </p>
                   <Rate disabled value={review.rating} className="text-xs!" />
                 </div>
@@ -575,22 +805,22 @@ export function StoreProductDetailPage() {
               </article>
             ))
           ) : (
-            <p className="m-0 text-sm text-slate-500">Chua co danh gia chi tiet cho san pham nay.</p>
+            <p className="m-0 text-sm text-slate-500">Chưa có đánh giá chi tiết cho sản phẩm này.</p>
           )}
         </div>
       </section>
 
       <section className="pdpv2-block">
-        <h3 className="pdpv2-section-title">San pham ban da xem</h3>
+        <h3 className="pdpv2-section-title">Sản phẩm bạn đã xem</h3>
         {renderProductCards(viewedProducts)}
       </section>
 
       {relatedProducts.length > 0 ? (
         <section className="pdpv2-block">
-          <h3 className="pdpv2-section-title">Ban co the se thich</h3>
+          <h3 className="pdpv2-section-title">Bạn có thể sẽ thích</h3>
           <div className="related-grid">
             {relatedProducts.slice(0, 4).map((item) => {
-              const image = resolveImageUrl(item.media?.find((media) => media.type === "image")?.url);
+              const image = resolveStoreProductThumbnail(item);
               return (
                 <Link key={item._id} to={`/products/${item.slug}`} className="related-card">
                   <div className="related-card-image">
@@ -602,9 +832,9 @@ export function StoreProductDetailPage() {
                   </div>
                   <div className="p-3">
                     <p className="text-xs uppercase tracking-[0.16em] text-slate-500">
-                      {item.category?.name ?? "San pham"}
+                      {item.category?.name ?? "Sản phẩm"}
                     </p>
-                    <h3 className="mt-2 min-h-[48px] text-sm font-semibold text-slate-900">{item.name}</h3>
+                    <h3 className="mt-2 min-h-12 text-sm font-semibold text-slate-900">{item.name}</h3>
                     <p className="mt-2 text-base font-bold text-slate-900">
                       {formatCurrency(item.pricing.salePrice)}
                     </p>
@@ -618,10 +848,10 @@ export function StoreProductDetailPage() {
 
       <div className="pdpv2-member-banner">
         <div>
-          <p className="pdpv2-mini-kicker">Dac quyen thanh vien</p>
-          <h4>Uu dai rieng cho don tiep theo</h4>
+          <p className="pdpv2-mini-kicker">Đặc quyền thành viên</p>
+          <h4>Ưu đãi riêng cho đơn tiếp theo</h4>
         </div>
-        <Button className="h-11! rounded-full! border-0! px-7! font-bold!">Dang ky ngay</Button>
+        <Button className="h-11! rounded-full! border-0! px-7! font-bold!">Đăng ký ngay</Button>
       </div>
     </div>
   );
