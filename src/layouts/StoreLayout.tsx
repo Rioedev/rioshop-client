@@ -360,7 +360,7 @@ export function StoreLayout() {
       <div className="store-promo-bar">FLASH SALE 10H - 14H | Giảm đến 50% + Freeship toàn quốc</div>
 
       <div className="store-utility-strip">
-        <div className="mx-auto flex w-full max-w-[1620px] items-center justify-between gap-3 px-3 py-2 sm:px-4 xl:px-6">
+        <div className="mx-auto flex w-full max-w-405 items-center justify-between gap-3 px-3 py-2 sm:px-4 xl:px-6">
           <div className="store-utility-links">
             {utilityLinks.map((item) => (
               <Link key={item.label} to={item.href}>
@@ -376,7 +376,7 @@ export function StoreLayout() {
       </div>
 
       <header className="store-header">
-        <div className="mx-auto w-full max-w-[1620px] px-3 py-4 sm:px-4 xl:px-6">
+        <div className="mx-auto w-full max-w-405 px-3 py-4 sm:px-4 xl:px-6">
           <div className="flex flex-wrap items-center gap-3 lg:flex-nowrap">
             <Link to="/" className="store-logo">
               RIO<span>SHOP</span>
@@ -625,7 +625,7 @@ export function StoreLayout() {
       </header>
 
       <div className="store-policy-strip">
-        <div className="mx-auto w-full max-w-[1620px] px-3 sm:px-4 xl:px-6">
+        <div className="mx-auto w-full max-w-405 px-3 sm:px-4 xl:px-6">
           <div className="flex flex-wrap items-center gap-3 py-3">
             {policyItems.map((item) => (
               <div key={item} className="store-policy-item">
@@ -637,12 +637,12 @@ export function StoreLayout() {
         </div>
       </div>
 
-      <main className={`mx-auto w-full max-w-[1620px] px-3 sm:px-4 xl:px-6 ${isHomePage ? "pt-0 pb-6 md:pb-8" : "py-6 md:py-8"}`}>
+      <main className={`mx-auto w-full max-w-405 px-3 sm:px-4 xl:px-6 ${isHomePage ? "pt-0 pb-6 md:pb-8" : "py-6 md:py-8"}`}>
         <Outlet />
       </main>
 
       <footer className="store-footer">
-        <div className="mx-auto grid w-full max-w-[1620px] gap-8 px-3 py-10 sm:px-4 lg:grid-cols-4 xl:px-6">
+        <div className="mx-auto grid w-full max-w-405 gap-8 px-3 py-10 sm:px-4 lg:grid-cols-4 xl:px-6">
           <div>
             <h4 className="store-footer-title">RIO SHOP</h4>
             <p className="store-footer-text">Thời trang hằng ngày cho gia đình Việt.</p>

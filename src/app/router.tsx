@@ -26,6 +26,7 @@ import { LoginPage } from "../features/auth/pages/LoginPage";
 import { RegisterPage } from "../features/auth/pages/RegisterPage";
 import { AdminLoginPage } from "../features/auth/pages/AdminLoginPage";
 import { RequireAuth } from "../components/route/RequireAuth";
+import { RequireStoreAuth } from "../components/route/RequireStoreAuth";
 import { PublicOnlyRoute } from "../components/route/PublicOnlyRoute";
 import { AdminPublicOnlyRoute } from "../components/route/AdminPublicOnlyRoute";
 
@@ -50,7 +51,10 @@ export const appRouter = createBrowserRouter([
       { path: "products/:slug", element: <StoreProductDetailPage /> },
       { path: "cart", element: <StoreCartPage /> },
       { path: "wishlist", element: <StoreWishlistPage /> },
-      { path: "checkout", element: <StoreCheckoutPage /> },
+      {
+        element: <RequireStoreAuth />,
+        children: [{ path: "checkout", element: <StoreCheckoutPage /> }],
+      },
       { path: "orders", element: <StoreOrdersPage /> },
       { path: "account", element: <StoreAccountPage /> },
     ],

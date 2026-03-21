@@ -13,8 +13,10 @@ import {
 import { formatStoreCurrency, resolveStoreProductThumbnail } from "../utils/storeFormatting";
 import { productService, type Product } from "../../../services/productService";
 import { useCartStore } from "../../../stores/cartStore";
+import { useAuthStore } from "../../../stores/authStore";
 
 export function StoreCartPage() {
+  const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
   const items = useCartStore((state) => state.items);
   const updateQuantity = useCartStore((state) => state.updateQuantity);
   const removeItem = useCartStore((state) => state.removeItem);
@@ -265,9 +267,12 @@ export function StoreCartPage() {
             </div>
           </div>
 
-          <Link to="/checkout" className="mt-5 block">
+          <Link
+            to={isAuthenticated ? "/checkout" : "/login?redirect=%2Fcheckout"}
+            className="mt-5 block"
+          >
             <Button type="primary" block size="large" className="store-home-v3-primary-btn h-11! rounded-full! font-bold! shadow-none!">
-              Thanh toan
+              {isAuthenticated ? "Thanh toán" : "Đăng nhập để thanh toán"}
             </Button>
           </Link>
           <Link to="/" className="mt-3 block text-center text-sm text-slate-600 hover:text-slate-900">

@@ -55,12 +55,12 @@ export function StoreCheckoutPage() {
     return (
       <StoreEmptyState
         kicker="Checkout"
-        title="Ban can dang nhap de thanh toan"
-        description="Vui long dang nhap de tiep tuc dat hang, luu dia chi nhan va theo doi lich su don mua."
+        title="Bạn cần đăng nhập để thanh toán"
+        description="Vui lòng đăng nhập để tiếp tục đặt hàng, lưu địa chỉ nhận và theo dõi lịch sử đơn mua."
         action={
-          <Link to="/login">
+          <Link to="/login?redirect=%2Fcheckout">
             <Button type="primary" className={storeButtonClassNames.primary}>
-              Dang nhap ngay
+              Đăng nhập ngay
             </Button>
           </Link>
         }
