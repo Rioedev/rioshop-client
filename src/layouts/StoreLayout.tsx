@@ -12,6 +12,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { Link, Outlet, useLocation, useNavigate } from "react-router-dom";
 import { resolveStoreImageUrl } from "../features/store/utils/storeFormatting";
 import { categoryService, type Category } from "../services/categoryService";
+import { cartService, toCartStoreItems } from "../services/cartService";
 import { useAuthStore } from "../stores/authStore";
 import { useCartStore } from "../stores/cartStore";
 import { useWishlistStore } from "../stores/wishlistStore";
@@ -203,6 +204,7 @@ export function StoreLayout() {
   const logout = useAuthStore((state) => state.logout);
 
   const cartItems = useCartStore((state) => state.items);
+  const setCartItems = useCartStore((state) => state.setItems);
   const wishlistItems = useWishlistStore((state) => state.items);
   const cartCount = cartItems.reduce((total, item) => total + item.quantity, 0);
 
@@ -283,6 +285,31 @@ export function StoreLayout() {
       active = false;
     };
   }, []);
+
+  useEffect(() => {
+    if (!isAuthenticated) {
+      return;
+    }
+
+    let active = true;
+    const loadServerCart = async () => {
+      try {
+        const cart = await cartService.getCart();
+        if (!active) {
+          return;
+        }
+        setCartItems(toCartStoreItems(cart), user?.id ?? null);
+      } catch {
+        // no-op: UI keeps current local state if cart API is unavailable
+      }
+    };
+
+    void loadServerCart();
+
+    return () => {
+      active = false;
+    };
+  }, [isAuthenticated, setCartItems, user?.id]);
 
   const onSearch = () => {
     const keyword = searchKeyword.trim();
@@ -637,7 +664,7 @@ export function StoreLayout() {
         </div>
       </div>
 
-      <main className={`mx-auto w-full max-w-405 px-3 sm:px-4 xl:px-6 ${isHomePage ? "pt-0 pb-6 md:pb-8" : "py-6 md:py-8"}`}>
+      <main className={`store-main-content mx-auto w-full max-w-405 px-3 sm:px-4 xl:px-6 ${isHomePage ? "pt-0 pb-6 md:pb-8" : "py-6 md:py-8"}`}>
         <Outlet />
       </main>
 

@@ -1,4 +1,4 @@
-import { Button, Input, InputNumber, Progress } from "antd";
+import { Button, Input, InputNumber, Progress, message } from "antd";
 import { Link } from "react-router-dom";
 import { useEffect, useMemo, useState } from "react";
 import {
@@ -11,13 +11,16 @@ import {
   storeButtonClassNames,
 } from "../components/StorePageChrome";
 import { formatStoreCurrency, resolveStoreProductThumbnail } from "../utils/storeFormatting";
+import { cartService, toCartStoreItems } from "../../../services/cartService";
 import { productService, type Product } from "../../../services/productService";
-import { useCartStore } from "../../../stores/cartStore";
+import { buildCartItemId, useCartStore } from "../../../stores/cartStore";
 import { useAuthStore } from "../../../stores/authStore";
 
 export function StoreCartPage() {
+  const [messageApi, contextHolder] = message.useMessage();
   const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
   const items = useCartStore((state) => state.items);
+  const setCartItems = useCartStore((state) => state.setItems);
   const updateQuantity = useCartStore((state) => state.updateQuantity);
   const removeItem = useCartStore((state) => state.removeItem);
   const clearCart = useCartStore((state) => state.clearCart);
@@ -73,6 +76,97 @@ export function StoreCartPage() {
     };
   }, [items]);
 
+  const resolveItemId = (item: (typeof items)[number]) =>
+    item.itemId || buildCartItemId({ productId: item.productId, variantSku: item.variantSku });
+
+  const getErrorMessage = (error: unknown) =>
+    error instanceof Error ? error.message : "Khong the xu ly gio hang";
+
+  const handleUpdateQuantity = async (itemId: string, quantity: number) => {
+    const nextQuantity = Math.max(1, Math.floor(Number(quantity || 1)));
+    if (!isAuthenticated) {
+      updateQuantity(itemId, nextQuantity);
+      return;
+    }
+
+    try {
+      const cart = await cartService.updateItem(itemId, nextQuantity);
+      setCartItems(toCartStoreItems(cart));
+    } catch (error) {
+      messageApi.error(getErrorMessage(error));
+    }
+  };
+
+  const handleRemoveItem = async (itemId: string) => {
+    if (!isAuthenticated) {
+      removeItem(itemId);
+      return;
+    }
+
+    try {
+      const cart = await cartService.removeItem(itemId);
+      setCartItems(toCartStoreItems(cart));
+    } catch (error) {
+      messageApi.error(getErrorMessage(error));
+    }
+  };
+
+  const handleClearCart = async () => {
+    if (!isAuthenticated) {
+      clearCart();
+      return;
+    }
+
+    try {
+      const cart = await cartService.clearCart();
+      setCartItems(toCartStoreItems(cart));
+    } catch (error) {
+      messageApi.error(getErrorMessage(error));
+    }
+  };
+
+  const handleAddRecommendation = async (item: Product) => {
+    const image = resolveStoreProductThumbnail(item);
+    const variant = (item.variants ?? []).find((entry) => entry.isActive !== false && Number(entry.stock || 0) > 0) ?? null;
+    if (!variant?.sku) {
+      messageApi.error("San pham da het hang hoac chua co bien the hop le.");
+      return;
+    }
+
+    const variantLabel = `${variant.color?.name?.trim() || "Mac dinh"} / ${(variant.sizeLabel || variant.size).trim()}`;
+    const price = Math.max(
+      0,
+      item.pricing.salePrice + Number(variant.additionalPrice || 0),
+    );
+
+    if (isAuthenticated) {
+      try {
+        const cart = await cartService.addItem({
+          productId: item._id,
+          variantSku: variant.sku,
+          quantity: 1,
+        });
+        setCartItems(toCartStoreItems(cart));
+        messageApi.success("Da them vao gio hang");
+      } catch (error) {
+        messageApi.error(getErrorMessage(error));
+      }
+      return;
+    }
+
+    addCartItem({
+      productId: item._id,
+      slug: item.slug,
+      name: `${item.name} - ${variantLabel}`,
+      price,
+      imageUrl: image,
+      variantSku: variant.sku,
+      variantLabel,
+      quantity: 1,
+    });
+    messageApi.success("Da them vao gio hang");
+  };
+
   if (items.length === 0) {
     return (
       <StoreEmptyState
@@ -112,6 +206,7 @@ export function StoreCartPage() {
 
   return (
     <StorePageShell>
+      {contextHolder}
       <StoreHeroSection
         kicker="Cart overview"
         title="Gio hang cua ban"
@@ -143,7 +238,7 @@ export function StoreCartPage() {
             kicker="Chi tiet gio hang"
             title="San pham da chon"
             action={
-              <Button className={storeButtonClassNames.ghost} onClick={clearCart}>
+              <Button className={storeButtonClassNames.ghost} onClick={() => void handleClearCart()}>
                 Xoa tat ca
               </Button>
             }
@@ -171,12 +266,12 @@ export function StoreCartPage() {
                     <InputNumber
                       min={1}
                       value={item.quantity}
-                      onChange={(value) => updateQuantity(item.itemId ?? `${item.productId}::${item.variantSku ?? "__default__"}`, Number(value ?? 1))}
+                      onChange={(value) => void handleUpdateQuantity(resolveItemId(item), Number(value ?? 1))}
                       className="w-28! rounded-xl!"
                     />
                     <Button
                       className={storeButtonClassNames.dangerCompact}
-                      onClick={() => removeItem(item.itemId ?? `${item.productId}::${item.variantSku ?? "__default__"}`)}
+                      onClick={() => void handleRemoveItem(resolveItemId(item))}
                     >
                       Xoa
                     </Button>
@@ -211,27 +306,7 @@ export function StoreCartPage() {
                       <Button
                         size="small"
                         className={storeButtonClassNames.secondaryCompact}
-                        onClick={() => {
-                          const variant = (item.variants ?? []).find((entry) => entry.isActive !== false) ?? null;
-                          const variantLabel = variant
-                            ? `${variant.color?.name?.trim() || "Mac dinh"} / ${(variant.sizeLabel || variant.size).trim()}`
-                            : undefined;
-                          const price = Math.max(
-                            0,
-                            item.pricing.salePrice + Number(variant?.additionalPrice || 0),
-                          );
-
-                          addCartItem({
-                            productId: item._id,
-                            slug: item.slug,
-                            name: variantLabel ? `${item.name} - ${variantLabel}` : item.name,
-                            price,
-                            imageUrl: image,
-                            variantSku: variant?.sku,
-                            variantLabel,
-                            quantity: 1,
-                          });
-                        }}
+                        onClick={() => void handleAddRecommendation(item)}
                       >
                         Them
                       </Button>

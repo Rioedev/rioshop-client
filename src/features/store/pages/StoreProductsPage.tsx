@@ -12,7 +12,9 @@ import {
 } from "../components/StorePageChrome";
 import { formatStoreCurrency, resolveStoreProductThumbnail } from "../utils/storeFormatting";
 import { categoryService, type Category } from "../../../services/categoryService";
+import { cartService, toCartStoreItems } from "../../../services/cartService";
 import { productService, type Product } from "../../../services/productService";
+import { useAuthStore } from "../../../stores/authStore";
 import { useCartStore } from "../../../stores/cartStore";
 import { useWishlistStore } from "../../../stores/wishlistStore";
 
@@ -34,7 +36,9 @@ const sortMap: Record<string, Record<string, 1 | -1>> = {
 
 export function StoreProductsPage() {
   const [searchParams, setSearchParams] = useSearchParams();
+  const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
   const addCartItem = useCartStore((state) => state.addItem);
+  const setCartItems = useCartStore((state) => state.setItems);
   const wishlistItems = useWishlistStore((state) => state.items);
   const toggleWishlist = useWishlistStore((state) => state.toggleItem);
 
@@ -165,13 +169,34 @@ export function StoreProductsPage() {
     onParamChange({ q: keywordInput.trim() || null, page: "1" });
   };
 
-  const onAddToCart = (item: Product) => {
+  const onAddToCart = async (item: Product) => {
     const image = resolveStoreProductThumbnail(item);
-    const variant = (item.variants ?? []).find((entry) => entry.isActive !== false) ?? null;
+    const variant = (item.variants ?? []).find((entry) => entry.isActive !== false && Number(entry.stock || 0) > 0) ?? null;
+    if (!variant?.sku) {
+      message.error("San pham da het hang hoac chua co bien the hop le.");
+      return;
+    }
+
     const variantLabel = variant
       ? `${variant.color?.name?.trim() || "Mac dinh"} / ${(variant.sizeLabel || variant.size).trim()}`
       : undefined;
     const unitPrice = Math.max(0, item.pricing.salePrice + Number(variant?.additionalPrice || 0));
+
+    if (isAuthenticated) {
+      try {
+        const cart = await cartService.addItem({
+          productId: item._id,
+          variantSku: variant.sku,
+          quantity: 1,
+        });
+        setCartItems(toCartStoreItems(cart));
+        message.success("Da them vao gio hang");
+      } catch (error) {
+        const messageText = error instanceof Error ? error.message : "Khong the them vao gio hang";
+        message.error(messageText);
+      }
+      return;
+    }
 
     addCartItem({
       productId: item._id,
@@ -179,7 +204,7 @@ export function StoreProductsPage() {
       name: variantLabel ? `${item.name} - ${variantLabel}` : item.name,
       price: unitPrice,
       imageUrl: image,
-      variantSku: variant?.sku,
+      variantSku: variant.sku,
       variantLabel,
       quantity: 1,
     });
@@ -300,7 +325,7 @@ export function StoreProductsPage() {
                         type="primary"
                         className={storeButtonClassNames.primaryCompact}
                         icon={<ShoppingCartOutlined />}
-                        onClick={() => onAddToCart(item)}
+                        onClick={() => void onAddToCart(item)}
                       >
                         Them gio
                       </Button>

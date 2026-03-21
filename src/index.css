@@ -5248,6 +5248,13 @@ body {
 
 .storefront-shell {
   background: #ffffff;
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
+}
+
+.store-main-content {
+  flex: 1 0 auto;
 }
 
 .store-promo-bar {

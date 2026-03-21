@@ -8,8 +8,10 @@ import {
 import { Button, InputNumber, Progress, Rate, Typography, message } from "antd";
 import { useEffect, useMemo, useState } from "react";
 import { Link, useParams } from "react-router-dom";
+import { cartService, toCartStoreItems } from "../../../services/cartService";
 import { productService, type Product } from "../../../services/productService";
 import { reviewService, type ReviewItem } from "../../../services/reviewService";
+import { useAuthStore } from "../../../stores/authStore";
 import { useCartStore } from "../../../stores/cartStore";
 import {
   formatStoreCurrency as formatCurrency,
@@ -157,7 +159,9 @@ const sanitizeProductHtml = (html?: string) => {
 
 export function StoreProductDetailPage() {
   const { slug } = useParams();
+  const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
   const addItem = useCartStore((state) => state.addItem);
+  const setCartItems = useCartStore((state) => state.setItems);
 
   const [product, setProduct] = useState<ProductRuntime | null>(null);
   const [relatedProducts, setRelatedProducts] = useState<ProductRuntime[]>([]);
@@ -492,7 +496,7 @@ export function StoreProductDetailPage() {
     reviewStats.count > 0 ? reviewStats.count : product.ratings?.count ?? 0,
   );
 
-  const onAddToCart = () => {
+  const onAddToCart = async () => {
     if (productVariants.length > 0 && !selectedVariant?.sku) {
       message.error("Vui lòng chọn đúng màu và size trước khi thêm vào giỏ.");
       return;
@@ -500,6 +504,27 @@ export function StoreProductDetailPage() {
 
     if (isSelectedVariantOutOfStock) {
       message.warning("Biến thể bạn chọn hiện đã hết hàng.");
+      return;
+    }
+
+    if (selectedVariant && quantity > Number(selectedVariant.stock || 0)) {
+      message.warning(`So luong vuot ton kho. Con lai ${Number(selectedVariant.stock || 0)} san pham.`);
+      return;
+    }
+
+    if (isAuthenticated) {
+      try {
+        const cart = await cartService.addItem({
+          productId: product._id,
+          variantSku: selectedVariant?.sku || "",
+          quantity,
+        });
+        setCartItems(toCartStoreItems(cart));
+        message.success("Da them san pham vao gio hang");
+      } catch (error) {
+        const messageText = error instanceof Error ? error.message : "Khong the them vao gio hang";
+        message.error(messageText);
+      }
       return;
     }
 
@@ -513,7 +538,7 @@ export function StoreProductDetailPage() {
       variantLabel: selectedVariantLabel,
       quantity,
     });
-    message.success("Đã thêm sản phẩm vào giỏ hàng");
+    message.success("Da them san pham vao gio hang");
   };
 
   const renderProductCards = (items: ProductRuntime[]) => (
@@ -679,7 +704,7 @@ export function StoreProductDetailPage() {
               size="large"
               className="h-11! rounded-full! bg-slate-900! px-8! font-bold! shadow-none!"
               disabled={isSelectedVariantOutOfStock}
-              onClick={onAddToCart}
+              onClick={() => void onAddToCart()}
             >
               {isSelectedVariantOutOfStock ? "Hết hàng" : "Thêm vào giỏ"}
             </Button>

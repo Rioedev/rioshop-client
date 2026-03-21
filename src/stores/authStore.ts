@@ -8,6 +8,8 @@ import {
   type RegisterPayload,
 } from "../services/authService";
 import { bindAuthTokenGetter } from "../services/apiClient";
+import { cartService, toCartStoreItems } from "../services/cartService";
+import { useCartStore } from "./cartStore";
 
 type AuthStorage = {
   user: AuthUser;
@@ -90,6 +92,48 @@ const applyAuthState = (user: AuthUser, token: string) => ({
   isAuthenticated: true,
 });
 
+const syncCartAfterLogin = async (user: AuthUser) => {
+  if (user.accountType !== "user" || !user.id) {
+    return;
+  }
+
+  const cartState = useCartStore.getState();
+  const shouldMergeGuestItems =
+    cartState.ownerUserId === null && (cartState.items || []).length > 0;
+  const guestItems = shouldMergeGuestItems ? [...cartState.items] : [];
+
+  if (guestItems.length > 0) {
+    for (const item of guestItems) {
+      const productId = item.productId?.trim();
+      const variantSku = item.variantSku?.trim();
+      const quantity = Math.max(1, Math.floor(Number(item.quantity || 1)));
+      if (!productId || !variantSku) {
+        continue;
+      }
+
+      try {
+        await cartService.addItem({
+          productId,
+          variantSku,
+          quantity,
+        });
+      } catch {
+        // Skip invalid/out-of-stock item and continue merging the rest.
+      }
+    }
+  }
+
+  try {
+    const cart = await cartService.getCart();
+    useCartStore.getState().setItems(toCartStoreItems(cart), user.id);
+  } catch {
+    if (shouldMergeGuestItems) {
+      // Keep guest cart if server is unavailable to avoid data loss.
+      useCartStore.getState().setItems(guestItems, null);
+    }
+  }
+};
+
 export const useAuthStore = create<AuthState>((set, get) => {
   bindAuthTokenGetter(() => get().token);
 
@@ -110,6 +154,7 @@ export const useAuthStore = create<AuthState>((set, get) => {
           ...applyAuthState(user, token),
           isLoading: false,
         });
+        await syncCartAfterLogin(user);
       } catch (error) {
         set({ isLoading: false });
         throw new Error(getErrorMessage(error));
@@ -140,6 +185,7 @@ export const useAuthStore = create<AuthState>((set, get) => {
           ...applyAuthState(user, token),
           isLoading: false,
         });
+        await syncCartAfterLogin(user);
       } catch (error) {
         set({ isLoading: false });
         throw new Error(getErrorMessage(error));
@@ -156,6 +202,7 @@ export const useAuthStore = create<AuthState>((set, get) => {
         }
       } finally {
         clearAuthStorage();
+        useCartStore.getState().resetCart();
         set({
           user: null,
           token: null,
@@ -191,8 +238,10 @@ export const useAuthStore = create<AuthState>((set, get) => {
           accountType: stored.user.accountType,
           isAuthenticated: true,
         });
+        await syncCartAfterLogin(user);
       } catch {
         clearAuthStorage();
+        useCartStore.getState().resetCart();
         set({
           user: null,
           token: null,
