@@ -1,4 +1,4 @@
-import { Button, Input, Select, message } from "antd";
+﻿import { Button, Input, Select, message } from "antd";
 import { useMemo, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import {
@@ -54,7 +54,7 @@ export function StoreCheckoutPage() {
   if (!isAuthenticated) {
     return (
       <StoreEmptyState
-        kicker="Checkout"
+        kicker="Thanh toán"
         title="Bạn cần đăng nhập để thanh toán"
         description="Vui lòng đăng nhập để tiếp tục đặt hàng, lưu địa chỉ nhận và theo dõi lịch sử đơn mua."
         action={
@@ -71,13 +71,13 @@ export function StoreCheckoutPage() {
   if (cartItems.length === 0) {
     return (
       <StoreEmptyState
-        kicker="Checkout"
-        title="Gio hang dang trong"
-        description="Chon them san pham truoc khi tien hanh thanh toan va xac nhan don hang."
+        kicker="Thanh toán"
+        title="Giỏ hàng đang trống"
+        description="Chọn thêm sản phẩm trước khi tiến hành thanh toán và xác nhận đơn hàng."
         action={
           <Link to="/products">
             <Button type="primary" className={storeButtonClassNames.primary}>
-              Di mua sam
+              Đi mua sắm
             </Button>
           </Link>
         }
@@ -87,17 +87,17 @@ export function StoreCheckoutPage() {
 
   const onPlaceOrder = async () => {
     if (!fullName.trim() || !phone.trim() || !address.trim()) {
-      messageApi.warning("Vui long nhap day du ho ten, so dien thoai va dia chi.");
+      messageApi.warning("Vui lòng nhập đầy đủ họ tên, số điện thoại và địa chỉ.");
       return;
     }
 
     if (invalidProductIds.length > 0) {
-      messageApi.error("Co san pham du lieu cu trong gio hang, vui long xoa va them lai.");
+      messageApi.error("Có sản phẩm dữ liệu cũ trong giỏ hàng, vui lòng xóa và thêm lại.");
       return;
     }
 
     if (itemsMissingVariant.length > 0) {
-      messageApi.error("Co san pham chua chon size/mau. Vui long xoa va them lai dung bien the.");
+      messageApi.error("Có sản phẩm chưa chọn size/màu. Vui lòng xóa và thêm lại đúng biến thể.");
       return;
     }
 
@@ -113,7 +113,7 @@ export function StoreCheckoutPage() {
           productId: item.productId,
           variantSku: item.variantSku!,
           productName: item.name,
-          variantLabel: item.variantLabel || "Default",
+          variantLabel: item.variantLabel || "Mặc định",
           image: item.imageUrl ?? "https://dummyimage.com/400x400/e2e8f0/0f172a&text=RIO",
           unitPrice: item.price,
           quantity: item.quantity,
@@ -139,10 +139,10 @@ export function StoreCheckoutPage() {
       });
 
       clearCart();
-      messageApi.success("Dat hang thanh cong");
+      messageApi.success("Đặt hàng thành công");
       navigate("/orders", { state: { orderId: created.id } });
     } catch (error) {
-      const messageText = error instanceof Error ? error.message : "Dat hang that bai";
+      const messageText = error instanceof Error ? error.message : "Đặt hàng thất bại";
       messageApi.error(messageText);
     } finally {
       setSubmitting(false);
@@ -151,19 +151,19 @@ export function StoreCheckoutPage() {
 
   const checkoutMetrics = [
     {
-      label: "Tam tinh",
+      label: "Tạm tính",
       value: formatStoreCurrency(subtotal),
-      description: "Gia tri hang hoa truoc phi giao va cac uu dai.",
+      description: "Giá trị hàng hóa trước phí giao và các ưu đãi.",
     },
     {
-      label: "Van chuyen",
+      label: "Vận chuyển",
       value: formatStoreCurrency(shippingFee),
-      description: "Phi tam tinh dua tren cach giao hang ban dang chon.",
+      description: "Phí tạm tính dựa trên cách giao hàng bạn đang chọn.",
     },
     {
-      label: "Thanh toan",
+      label: "Thanh toán",
       value: formatStoreCurrency(total),
-      description: "Tong so tien du kien can thanh toan cho don nay.",
+      description: "Tổng số tiền dự kiến cần thanh toán cho đơn này.",
     },
   ];
 
@@ -172,12 +172,12 @@ export function StoreCheckoutPage() {
       {contextHolder}
 
       <StoreHeroSection
-        kicker="Checkout"
-        title="Hoan tat don hang"
-        description="Xac nhan thong tin nguoi nhan, phuong thuc giao va cach thanh toan truoc khi dat hang."
+        kicker="Thanh toán"
+        title="Hoàn tất đơn hàng"
+        description="Xác nhận thông tin người nhận, phương thức giao và cách thanh toán trước khi đặt hàng."
         action={
           <Link to="/cart">
-            <Button className={storeButtonClassNames.secondary}>Quay lai gio hang</Button>
+            <Button className={storeButtonClassNames.secondary}>Quay lại giỏ hàng</Button>
           </Link>
         }
       >
@@ -186,31 +186,31 @@ export function StoreCheckoutPage() {
 
       <div className="cart-page-grid">
         <StorePanelFrame className="cart-list-wrap space-y-4">
-          <StoreSectionHeader kicker="Thong tin giao nhan" title="Dia chi va lien he" />
+          <StoreSectionHeader kicker="Thông tin giao nhận" title="Địa chỉ và liên hệ" />
 
           {invalidProductIds.length > 0 ? (
             <StoreInlineNote
               tone="warning"
-              title="Co san pham du lieu cu trong gio hang"
-              description="He thong yeu cau productId hop le. Vui long xoa item cu va them lai tu trang chi tiet san pham."
+              title="Có sản phẩm dữ liệu cũ trong giỏ hàng"
+              description="Hệ thống yêu cầu productId hợp lệ. Vui lòng xóa item cũ và thêm lại từ trang chi tiết sản phẩm."
             />
           ) : null}
 
           {itemsMissingVariant.length > 0 ? (
             <StoreInlineNote
               tone="warning"
-              title="Chua chon bien the day du"
-              description="Moi san pham can co SKU bien the (mau/size) de he thong giu ton kho chinh xac."
+              title="Chưa chọn biến thể đầy đủ"
+              description="Mỗi sản phẩm cần có SKU biến thể (màu/size) để hệ thống giữ tồn kho chính xác."
             />
           ) : null}
 
           <div className="grid gap-3 md:grid-cols-2">
             <div>
-              <p className="mb-1 text-sm font-semibold text-slate-600">Ho va ten</p>
+              <p className="mb-1 text-sm font-semibold text-slate-600">Họ và tên</p>
               <Input value={fullName} onChange={(event) => setFullName(event.target.value)} />
             </div>
             <div>
-              <p className="mb-1 text-sm font-semibold text-slate-600">So dien thoai</p>
+              <p className="mb-1 text-sm font-semibold text-slate-600">Số điện thoại</p>
               <Input value={phone} onChange={(event) => setPhone(event.target.value)} />
             </div>
             <div>
@@ -218,13 +218,13 @@ export function StoreCheckoutPage() {
               <Input value={email} onChange={(event) => setEmail(event.target.value)} />
             </div>
             <div>
-              <p className="mb-1 text-sm font-semibold text-slate-600">Thanh pho</p>
+              <p className="mb-1 text-sm font-semibold text-slate-600">Thành phố</p>
               <Select
                 value={city}
                 options={[
-                  { value: "Ho Chi Minh", label: "Ho Chi Minh" },
-                  { value: "Ha Noi", label: "Ha Noi" },
-                  { value: "Da Nang", label: "Da Nang" },
+                  { value: "Ho Chi Minh", label: "Hồ Chí Minh" },
+                  { value: "Ha Noi", label: "Hà Nội" },
+                  { value: "Da Nang", label: "Đà Nẵng" },
                 ]}
                 onChange={(value) => setCity(value)}
                 className="w-full"
@@ -233,38 +233,38 @@ export function StoreCheckoutPage() {
           </div>
 
           <div>
-            <p className="mb-1 text-sm font-semibold text-slate-600">Quan/Huyen</p>
+            <p className="mb-1 text-sm font-semibold text-slate-600">Quận/Huyện</p>
             <Input value={district} onChange={(event) => setDistrict(event.target.value)} />
           </div>
 
           <div>
-            <p className="mb-1 text-sm font-semibold text-slate-600">Dia chi nhan hang</p>
+            <p className="mb-1 text-sm font-semibold text-slate-600">Địa chỉ nhận hàng</p>
             <Input.TextArea rows={3} value={address} onChange={(event) => setAddress(event.target.value)} />
           </div>
 
           <div className="grid gap-3 md:grid-cols-2">
             <div>
-              <p className="mb-1 text-sm font-semibold text-slate-600">Hinh thuc van chuyen</p>
+              <p className="mb-1 text-sm font-semibold text-slate-600">Hình thức vận chuyển</p>
               <Select
                 value={shippingMethod}
                 options={[
-                  { value: "standard", label: "Tieu chuan (2-4 ngay)" },
-                  { value: "express", label: "Nhanh (1-2 ngay)" },
-                  { value: "same_day", label: "Trong ngay (noi thanh)" },
+                  { value: "standard", label: "Tiêu chuẩn (2-4 ngày)" },
+                  { value: "express", label: "Nhanh (1-2 ngày)" },
+                  { value: "same_day", label: "Trong ngày (nội thành)" },
                 ]}
                 onChange={(value) => setShippingMethod(value)}
                 className="w-full"
               />
             </div>
             <div>
-              <p className="mb-1 text-sm font-semibold text-slate-600">Hinh thuc thanh toan</p>
+              <p className="mb-1 text-sm font-semibold text-slate-600">Hình thức thanh toán</p>
               <Select
                 value={paymentMethod}
                 options={[
-                  { value: "cod", label: "Thanh toan khi nhan hang" },
+                  { value: "cod", label: "Thanh toán khi nhận hàng" },
                   { value: "momo", label: "MoMo" },
                   { value: "vnpay", label: "VNPay" },
-                  { value: "bank_transfer", label: "Chuyen khoan ngan hang" },
+                  { value: "bank_transfer", label: "Chuyển khoản ngân hàng" },
                 ]}
                 onChange={(value) => setPaymentMethod(value)}
                 className="w-full"
@@ -273,7 +273,7 @@ export function StoreCheckoutPage() {
           </div>
 
           <div>
-            <p className="mb-1 text-sm font-semibold text-slate-600">Ghi chu don hang</p>
+            <p className="mb-1 text-sm font-semibold text-slate-600">Ghi chú đơn hàng</p>
             <Input.TextArea rows={2} value={note} onChange={(event) => setNote(event.target.value)} />
           </div>
 
@@ -289,7 +289,7 @@ export function StoreCheckoutPage() {
                 </div>
                 <div className="cart-item-info">
                   <p className="m-0 text-sm font-semibold text-slate-900">{item.name}</p>
-                  <p className="m-0 mt-1 text-xs text-slate-500">So luong: {item.quantity}</p>
+                  <p className="m-0 mt-1 text-xs text-slate-500">Số lượng: {item.quantity}</p>
                 </div>
                 <div className="cart-item-price">{formatStoreCurrency(item.price * item.quantity)}</div>
               </article>
@@ -298,18 +298,18 @@ export function StoreCheckoutPage() {
         </StorePanelFrame>
 
         <StorePanelFrame className="cart-summary-card">
-          <StoreSectionHeader kicker="Payment summary" title="Tom tat don hang" />
+          <StoreSectionHeader kicker="Tóm tắt thanh toán" title="Tóm tắt đơn hàng" />
 
           <div className="cart-summary-row">
-            <span>Tam tinh</span>
+            <span>Tạm tính</span>
             <strong>{formatStoreCurrency(subtotal)}</strong>
           </div>
           <div className="cart-summary-row">
-            <span>Phi van chuyen</span>
+            <span>Phí vận chuyển</span>
             <strong>{formatStoreCurrency(shippingFee)}</strong>
           </div>
           <div className="cart-summary-row is-total">
-            <span>Tong cong</span>
+            <span>Tổng cộng</span>
             <strong>{formatStoreCurrency(total)}</strong>
           </div>
 
@@ -321,13 +321,14 @@ export function StoreCheckoutPage() {
             className="store-home-v3-primary-btn mt-5! h-11! rounded-full! font-bold! shadow-none!"
             onClick={() => void onPlaceOrder()}
           >
-            Dat hang
+            Đặt hàng
           </Button>
           <Link to="/cart" className="mt-3 block text-center text-sm text-slate-600 hover:text-slate-900">
-            Quay lai gio hang
+            Quay lại giỏ hàng
           </Link>
         </StorePanelFrame>
       </div>
     </StorePageShell>
   );
 }
+

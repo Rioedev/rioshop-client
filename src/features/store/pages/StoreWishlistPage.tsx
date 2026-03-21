@@ -31,11 +31,11 @@ export function StoreWishlistPage() {
       const variant = (product.variants ?? []).find((entry) => entry.isActive !== false && Number(entry.stock || 0) > 0);
 
       if (!variant?.sku) {
-        messageApi.error("San pham nay chua co bien the hop le de dat hang.");
+        messageApi.error("Sản phẩm này chưa có biến thể hợp lệ để đặt hàng.");
         return;
       }
 
-      const variantLabel = `${variant.color?.name?.trim() || "Mac dinh"} / ${(variant.sizeLabel || variant.size).trim()}`;
+      const variantLabel = `${variant.color?.name?.trim() || "Mặc định"} / ${(variant.sizeLabel || variant.size).trim()}`;
       const price = Math.max(0, product.pricing.salePrice + Number(variant.additionalPrice || 0));
 
       if (isAuthenticated) {
@@ -58,22 +58,22 @@ export function StoreWishlistPage() {
         });
       }
 
-      messageApi.success("Da them vao gio hang");
+      messageApi.success("Đã thêm vào giỏ hàng");
     } catch {
-      messageApi.error("Khong the them vao gio. Vui long thu lai.");
+      messageApi.error("Không thể thêm vào giỏ. Vui lòng thử lại.");
     }
   };
 
   if (items.length === 0) {
     return (
       <StoreEmptyState
-        kicker="Wishlist"
-        title="Danh sach yeu thich dang trong"
-        description="Luu san pham ban muon quay lai sau va them vao gio hang bat cu luc nao."
+        kicker="Yêu thích"
+        title="Danh sách yêu thích đang trống"
+        description="Lưu sản phẩm bạn muốn quay lại sau và thêm vào giỏ hàng bất cứ lúc nào."
         action={
           <Link to="/products">
             <Button type="primary" className={storeButtonClassNames.primary}>
-              Kham pha san pham
+              Khám phá sản phẩm
             </Button>
           </Link>
         }
@@ -83,19 +83,19 @@ export function StoreWishlistPage() {
 
   const metrics = [
     {
-      label: "Da luu",
+      label: "Đã lưu",
       value: items.length,
-      description: "San pham san sang de dua vao gio hang.",
+      description: "Sản phẩm sẵn sàng để đưa vào giỏ hàng.",
     },
     {
-      label: "Gia tri tam tinh",
+      label: "Giá trị tạm tính",
       value: formatStoreCurrency(items.reduce((sum, item) => sum + item.price, 0)),
-      description: "Tong muc gia hien tai cua danh sach yeu thich.",
+      description: "Tổng mức giá hiện tại của danh sách yêu thích.",
     },
     {
-      label: "Trang thai",
-      value: "Dong bo",
-      description: "Danh sach se duoc cap nhat ngay khi ban them hoac xoa san pham.",
+      label: "Trạng thái",
+      value: "Đồng bộ",
+      description: "Danh sách sẽ được cập nhật ngay khi bạn thêm hoặc xóa sản phẩm.",
     },
   ];
 
@@ -103,19 +103,19 @@ export function StoreWishlistPage() {
     <StorePageShell>
       {contextHolder}
       <StoreHeroSection
-        kicker="Wishlist"
-        title="San pham ban dang de mat toi"
-        description="Tat ca mon hang ban da luu se o day de so sanh nhanh, them vao gio va quay lai mua sau."
+        kicker="Yêu thích"
+        title="Sản phẩm bạn đang để mắt tới"
+        description="Tất cả món hàng bạn đã lưu sẽ ở đây để so sánh nhanh, thêm vào giỏ và quay lại mua sau."
         action={
           <Button className={storeButtonClassNames.secondary} onClick={clear}>
-            Xoa tat ca
+            Xóa tất cả
           </Button>
         }
       >
         <StoreMetricGrid items={metrics} />
       </StoreHeroSection>
 
-      <StorePanelSection kicker="Da luu gan day" title="Chon lai va mua nhanh">
+      <StorePanelSection kicker="Đã lưu gần đây" title="Chọn lại và mua nhanh">
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
           {items.map((item) => (
             <StoreProductGridCard
@@ -132,10 +132,10 @@ export function StoreWishlistPage() {
                     className={storeButtonClassNames.primaryCompact}
                     onClick={() => void addWishlistToCart(item)}
                   >
-                    Them gio
+                    Thêm giỏ
                   </Button>
                   <Button size="small" className={storeButtonClassNames.secondaryCompact} onClick={() => removeItem(item.productId)}>
-                    Xoa
+                    Xóa
                   </Button>
                 </>
               }

@@ -508,7 +508,7 @@ export function StoreProductDetailPage() {
     }
 
     if (selectedVariant && quantity > Number(selectedVariant.stock || 0)) {
-      message.warning(`So luong vuot ton kho. Con lai ${Number(selectedVariant.stock || 0)} san pham.`);
+      message.warning(`Số lượng vượt tồn kho. Còn lại ${Number(selectedVariant.stock || 0)} sản phẩm.`);
       return;
     }
 
@@ -520,9 +520,9 @@ export function StoreProductDetailPage() {
           quantity,
         });
         setCartItems(toCartStoreItems(cart));
-        message.success("Da them san pham vao gio hang");
+        message.success("Đã thêm sản phẩm vào giỏ hàng");
       } catch (error) {
-        const messageText = error instanceof Error ? error.message : "Khong the them vao gio hang";
+        const messageText = error instanceof Error ? error.message : "Không thể thêm vào giỏ hàng";
         message.error(messageText);
       }
       return;
@@ -538,7 +538,7 @@ export function StoreProductDetailPage() {
       variantLabel: selectedVariantLabel,
       quantity,
     });
-    message.success("Da them san pham vao gio hang");
+    message.success("Đã thêm sản phẩm vào giỏ hàng");
   };
 
   const renderProductCards = (items: ProductRuntime[]) => (

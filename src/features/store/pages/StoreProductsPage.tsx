@@ -19,11 +19,11 @@ import { useCartStore } from "../../../stores/cartStore";
 import { useWishlistStore } from "../../../stores/wishlistStore";
 
 const sortOptions = [
-  { value: "featured", label: "Noi bat" },
-  { value: "newest", label: "Moi nhat" },
-  { value: "price_asc", label: "Gia tang dan" },
-  { value: "price_desc", label: "Gia giam dan" },
-  { value: "best_selling", label: "Ban chay" },
+  { value: "featured", label: "Nổi bật" },
+  { value: "newest", label: "Mới nhất" },
+  { value: "price_asc", label: "Giá tăng dần" },
+  { value: "price_desc", label: "Giá giảm dần" },
+  { value: "best_selling", label: "Bán chạy" },
 ];
 
 const sortMap: Record<string, Record<string, 1 | -1>> = {
@@ -61,7 +61,7 @@ export function StoreProductsPage() {
   }, [q]);
 
   const categoryOptions = useMemo(
-    () => [{ label: "Tat ca danh muc", value: "" }, ...categories.map((item) => ({ label: item.name, value: item.slug }))],
+    () => [{ label: "Tất cả danh mục", value: "" }, ...categories.map((item) => ({ label: item.name, value: item.slug }))],
     [categories],
   );
 
@@ -173,12 +173,12 @@ export function StoreProductsPage() {
     const image = resolveStoreProductThumbnail(item);
     const variant = (item.variants ?? []).find((entry) => entry.isActive !== false && Number(entry.stock || 0) > 0) ?? null;
     if (!variant?.sku) {
-      message.error("San pham da het hang hoac chua co bien the hop le.");
+      message.error("Sản phẩm đã hết hàng hoặc chưa có biến thể hợp lệ.");
       return;
     }
 
     const variantLabel = variant
-      ? `${variant.color?.name?.trim() || "Mac dinh"} / ${(variant.sizeLabel || variant.size).trim()}`
+      ? `${variant.color?.name?.trim() || "Mặc định"} / ${(variant.sizeLabel || variant.size).trim()}`
       : undefined;
     const unitPrice = Math.max(0, item.pricing.salePrice + Number(variant?.additionalPrice || 0));
 
@@ -190,9 +190,9 @@ export function StoreProductsPage() {
           quantity: 1,
         });
         setCartItems(toCartStoreItems(cart));
-        message.success("Da them vao gio hang");
+        message.success("Đã thêm vào giỏ hàng");
       } catch (error) {
-        const messageText = error instanceof Error ? error.message : "Khong the them vao gio hang";
+        const messageText = error instanceof Error ? error.message : "Không thể thêm vào giỏ hàng";
         message.error(messageText);
       }
       return;
@@ -208,31 +208,31 @@ export function StoreProductsPage() {
       variantLabel,
       quantity: 1,
     });
-    message.success("Da them vao gio hang");
+    message.success("Đã thêm vào giỏ hàng");
   };
 
   return (
     <StorePageShell>
       <StorePanelFrame>
         <StoreSectionHeader
-          kicker="Catalog control"
-          title="Tim nhanh san pham"
-          description="Loc theo danh muc, tu khoa va kieu sap xep de tim mon do phu hop nhanh hon."
+          kicker="Bộ lọc nhanh"
+          title="Tìm nhanh sản phẩm"
+          description="Lọc theo danh mục, từ khóa và kiểu sắp xếp để tìm món đồ phù hợp nhanh hơn."
         />
 
         <div className="flex flex-wrap items-end gap-3">
           <div className="min-w-55 flex-1">
-            <p className="m-0 mb-1 text-xs font-bold uppercase tracking-[0.14em] text-slate-500">Tim kiem</p>
+            <p className="m-0 mb-1 text-xs font-bold uppercase tracking-[0.14em] text-slate-500">Tìm kiếm</p>
             <Input
               value={keywordInput}
               onChange={(event) => setKeywordInput(event.target.value)}
               onPressEnter={onSearchSubmit}
               allowClear
-              placeholder="Nhap ten san pham, thuong hieu..."
+              placeholder="Nhập tên sản phẩm, thương hiệu..."
             />
           </div>
           <div className="min-w-55">
-            <p className="m-0 mb-1 text-xs font-bold uppercase tracking-[0.14em] text-slate-500">Danh muc</p>
+            <p className="m-0 mb-1 text-xs font-bold uppercase tracking-[0.14em] text-slate-500">Danh mục</p>
             <Select
               value={categorySlug}
               options={categoryOptions}
@@ -241,7 +241,7 @@ export function StoreProductsPage() {
             />
           </div>
           <div className="min-w-55">
-            <p className="m-0 mb-1 text-xs font-bold uppercase tracking-[0.14em] text-slate-500">Sap xep</p>
+            <p className="m-0 mb-1 text-xs font-bold uppercase tracking-[0.14em] text-slate-500">Sắp xếp</p>
             <Select
               value={sort}
               options={sortOptions}
@@ -250,7 +250,7 @@ export function StoreProductsPage() {
             />
           </div>
           <Button type="primary" className={storeButtonClassNames.primary} onClick={onSearchSubmit}>
-            Ap dung
+            Áp dụng
           </Button>
           <Button
             className={storeButtonClassNames.secondary}
@@ -259,22 +259,22 @@ export function StoreProductsPage() {
               setSearchParams(new URLSearchParams());
             }}
           >
-            Dat lai
+            Đặt lại
           </Button>
         </div>
       </StorePanelFrame>
 
       <StorePanelFrame>
         <StoreSectionHeader
-          kicker="Danh sach san pham"
-          title="San pham"
-          description={loading ? "Dang tai danh sach san pham..." : `${totalDocs} san pham dang hien thi`}
+          kicker="Danh sách sản phẩm"
+          title="Sản phẩm"
+          description={loading ? "Đang tải danh sách sản phẩm..." : `${totalDocs} sản phẩm đang hiển thị`}
         />
 
         {products.length === 0 && !loading ? (
           <StoreInlineNote
-            title="Khong tim thay san pham phu hop."
-            description="Thu thay doi bo loc, tu khoa hoac quay lai cac danh muc khac de xem them san pham."
+            title="Không tìm thấy sản phẩm phù hợp."
+            description="Thử thay đổi bộ lọc, từ khóa hoặc quay lại các danh mục khác để xem thêm sản phẩm."
           />
         ) : loading ? (
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
@@ -300,7 +300,7 @@ export function StoreProductsPage() {
                   name={item.name}
                   price={formatStoreCurrency(item.pricing.salePrice)}
                   originalPrice={hasDiscount ? formatStoreCurrency(item.pricing.basePrice) : undefined}
-                  categoryLabel={item.category?.name ?? "San pham"}
+                  categoryLabel={item.category?.name ?? "Sản phẩm"}
                   badge={discountLabel}
                   footer={
                     <>
@@ -318,7 +318,7 @@ export function StoreProductsPage() {
                           })
                         }
                       >
-                        {inWishlist ? "Da luu" : "Yeu thich"}
+                        {inWishlist ? "Đã lưu" : "Yêu thích"}
                       </Button>
                       <Button
                         size="small"
@@ -327,7 +327,7 @@ export function StoreProductsPage() {
                         icon={<ShoppingCartOutlined />}
                         onClick={() => void onAddToCart(item)}
                       >
-                        Them gio
+                        Thêm giỏ
                       </Button>
                     </>
                   }
@@ -339,7 +339,7 @@ export function StoreProductsPage() {
 
         <div className="mt-4 flex items-center justify-end gap-2">
           <Button disabled={page <= 1 || loading} className={storeButtonClassNames.ghostCompact} onClick={() => onParamChange({ page: String(page - 1) })}>
-            Truoc
+            Trước
           </Button>
           <span className="text-sm text-slate-500">
             Trang {page} / {Math.max(1, totalPages)}

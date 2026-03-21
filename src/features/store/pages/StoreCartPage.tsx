@@ -1,4 +1,4 @@
-import { Button, Input, InputNumber, Progress, message } from "antd";
+﻿import { Button, Input, InputNumber, Progress, message } from "antd";
 import { Link } from "react-router-dom";
 import { useEffect, useMemo, useState } from "react";
 import {
@@ -80,7 +80,7 @@ export function StoreCartPage() {
     item.itemId || buildCartItemId({ productId: item.productId, variantSku: item.variantSku });
 
   const getErrorMessage = (error: unknown) =>
-    error instanceof Error ? error.message : "Khong the xu ly gio hang";
+    error instanceof Error ? error.message : "Không thể xử lý giỏ hàng";
 
   const handleUpdateQuantity = async (itemId: string, quantity: number) => {
     const nextQuantity = Math.max(1, Math.floor(Number(quantity || 1)));
@@ -129,11 +129,11 @@ export function StoreCartPage() {
     const image = resolveStoreProductThumbnail(item);
     const variant = (item.variants ?? []).find((entry) => entry.isActive !== false && Number(entry.stock || 0) > 0) ?? null;
     if (!variant?.sku) {
-      messageApi.error("San pham da het hang hoac chua co bien the hop le.");
+      messageApi.error("Sản phẩm đã hết hàng hoặc chưa có biến thể hợp lệ.");
       return;
     }
 
-    const variantLabel = `${variant.color?.name?.trim() || "Mac dinh"} / ${(variant.sizeLabel || variant.size).trim()}`;
+    const variantLabel = `${variant.color?.name?.trim() || "Mặc định"} / ${(variant.sizeLabel || variant.size).trim()}`;
     const price = Math.max(
       0,
       item.pricing.salePrice + Number(variant.additionalPrice || 0),
@@ -147,7 +147,7 @@ export function StoreCartPage() {
           quantity: 1,
         });
         setCartItems(toCartStoreItems(cart));
-        messageApi.success("Da them vao gio hang");
+        messageApi.success("Đã thêm vào giỏ hàng");
       } catch (error) {
         messageApi.error(getErrorMessage(error));
       }
@@ -164,19 +164,19 @@ export function StoreCartPage() {
       variantLabel,
       quantity: 1,
     });
-    messageApi.success("Da them vao gio hang");
+    messageApi.success("Đã thêm vào giỏ hàng");
   };
 
   if (items.length === 0) {
     return (
       <StoreEmptyState
         kicker="Cart"
-        title="Gio hang dang trong"
-        description="Ban chua co san pham nao trong gio. Quay lai trang san pham de tiep tuc mua sam."
+        title="Giỏ hàng đang trống"
+        description="Bạn chưa có sản phẩm nào trong giỏ. Quay lại trang sản phẩm để tiếp tục mua sắm."
         action={
           <Link to="/">
             <Button type="primary" className={storeButtonClassNames.primary}>
-              Tiep tuc mua sam
+              Tiếp tục mua sắm
             </Button>
           </Link>
         }
@@ -186,21 +186,21 @@ export function StoreCartPage() {
 
   const cartMetrics = [
     {
-      label: "So luong",
+      label: "Số lượng",
       value: totalItems,
-      description: "Tong so san pham dang nam trong gio.",
+      description: "Tổng số sản phẩm đang nằm trong giỏ.",
     },
     {
-      label: "Tam tinh",
+      label: "Tạm tính",
       value: formatStoreCurrency(subtotal),
-      description: "Tong gia tri hang hoa truoc phi van chuyen.",
+      description: "Tổng giá trị hàng hóa trước phí vận chuyển.",
     },
     {
       label: "Freeship",
-      value: amountToFreeShip > 0 ? formatStoreCurrency(amountToFreeShip) : "Da dat",
+      value: amountToFreeShip > 0 ? formatStoreCurrency(amountToFreeShip) : "Đã đạt",
       description: amountToFreeShip > 0
-        ? "Gia tri con thieu de dat nguong mien phi giao hang."
-        : "Don hang hien tai da du dieu kien freeship.",
+        ? "Giá trị còn thiếu để đạt ngưỡng miễn phí giao hàng."
+        : "Đơn hàng hiện tại đã đủ điều kiện freeship.",
     },
   ];
 
@@ -208,12 +208,12 @@ export function StoreCartPage() {
     <StorePageShell>
       {contextHolder}
       <StoreHeroSection
-        kicker="Cart overview"
-        title="Gio hang cua ban"
-        description="Kiem tra nhanh tong gia tri, tien do freeship va nhung san pham ban dang san sang dat mua."
+        kicker="Tổng quan giỏ hàng"
+        title="Giỏ hàng của bạn"
+        description="Kiểm tra nhanh tổng giá trị, tiến độ freeship và những sản phẩm bạn đang sẵn sàng đặt mua."
         action={
           <Link to="/products">
-            <Button className={storeButtonClassNames.secondary}>Xem them san pham</Button>
+            <Button className={storeButtonClassNames.secondary}>Xem thêm sản phẩm</Button>
           </Link>
         }
       >
@@ -224,22 +224,22 @@ export function StoreCartPage() {
         <StorePanelFrame className="cart-list-wrap space-y-4">
           <div className="cart-free-ship-box">
             <div className="flex flex-wrap items-center justify-between gap-3">
-              <p className="m-0 text-sm font-semibold text-slate-700">Tien do nhan freeship</p>
+              <p className="m-0 text-sm font-semibold text-slate-700">Tiến độ nhận freeship</p>
               {amountToFreeShip > 0 ? (
-                <span className="text-sm text-slate-500">Them {formatStoreCurrency(amountToFreeShip)} de duoc mien phi van chuyen</span>
+                <span className="text-sm text-slate-500">Thêm {formatStoreCurrency(amountToFreeShip)} để được miễn phí vận chuyển</span>
               ) : (
-                <span className="text-sm font-semibold text-emerald-600">Ban da du dieu kien freeship</span>
+                <span className="text-sm font-semibold text-emerald-600">Bạn đã đủ điều kiện freeship</span>
               )}
             </div>
             <Progress percent={freeShipProgress} showInfo={false} strokeColor="#0f172a" trailColor="#e2e8f0" />
           </div>
 
           <StoreSectionHeader
-            kicker="Chi tiet gio hang"
-            title="San pham da chon"
+            kicker="Chi tiết giỏ hàng"
+            title="Sản phẩm đã chọn"
             action={
               <Button className={storeButtonClassNames.ghost} onClick={() => void handleClearCart()}>
-                Xoa tat ca
+                Xóa tất cả
               </Button>
             }
           />
@@ -260,7 +260,7 @@ export function StoreCartPage() {
                     {item.name}
                   </Link>
                   <p className="mt-2 text-sm text-slate-500">
-                    Don gia: <strong className="text-slate-900">{formatStoreCurrency(item.price)}</strong>
+                    Đơn giá: <strong className="text-slate-900">{formatStoreCurrency(item.price)}</strong>
                   </p>
                   <div className="mt-3 flex flex-wrap items-center gap-3">
                     <InputNumber
@@ -273,7 +273,7 @@ export function StoreCartPage() {
                       className={storeButtonClassNames.dangerCompact}
                       onClick={() => void handleRemoveItem(resolveItemId(item))}
                     >
-                      Xoa
+                      Xóa
                     </Button>
                   </div>
                 </div>
@@ -285,7 +285,7 @@ export function StoreCartPage() {
 
           {recommendations.length > 0 ? (
             <div className="space-y-3">
-              <StoreSectionHeader kicker="Goi y them" title="Co the ban cung thich" />
+              <StoreSectionHeader kicker="Gợi ý thêm" title="Có thể bạn cũng thích" />
               <div className="cart-recommend-grid">
                 {recommendations.map((item) => {
                   const image = resolveStoreProductThumbnail(item);
@@ -308,7 +308,7 @@ export function StoreCartPage() {
                         className={storeButtonClassNames.secondaryCompact}
                         onClick={() => void handleAddRecommendation(item)}
                       >
-                        Them
+                        Thêm
                       </Button>
                     </article>
                   );
@@ -319,26 +319,26 @@ export function StoreCartPage() {
         </StorePanelFrame>
 
         <StorePanelFrame className="cart-summary-card">
-          <StoreSectionHeader kicker="Summary" title="Tom tat don hang" />
+          <StoreSectionHeader kicker="Tóm tắt thanh toán" title="Tóm tắt đơn hàng" />
 
           <div className="cart-summary-row">
-            <span>Tam tinh</span>
+            <span>Tạm tính</span>
             <strong>{formatStoreCurrency(subtotal)}</strong>
           </div>
           <div className="cart-summary-row">
-            <span>Phi van chuyen</span>
-            <strong>{shippingFee === 0 ? "Mien phi" : formatStoreCurrency(shippingFee)}</strong>
+            <span>Phí vận chuyển</span>
+            <strong>{shippingFee === 0 ? "Miễn phí" : formatStoreCurrency(shippingFee)}</strong>
           </div>
           <div className="cart-summary-row is-total">
-            <span>Tong cong</span>
+            <span>Tổng cộng</span>
             <strong>{formatStoreCurrency(total)}</strong>
           </div>
 
           <div className="mt-5">
-            <p className="mb-2 text-xs font-bold uppercase tracking-[0.12em] text-slate-500">Ma giam gia</p>
+            <p className="mb-2 text-xs font-bold uppercase tracking-[0.12em] text-slate-500">Mã giảm giá</p>
             <div className="flex gap-2">
-              <Input placeholder="Nhap ma" className="rounded-full!" />
-              <Button className={storeButtonClassNames.ghostCompact}>Ap dung</Button>
+              <Input placeholder="Nhập mã" className="rounded-full!" />
+              <Button className={storeButtonClassNames.ghostCompact}>Áp dụng</Button>
             </div>
           </div>
 
@@ -351,10 +351,11 @@ export function StoreCartPage() {
             </Button>
           </Link>
           <Link to="/" className="mt-3 block text-center text-sm text-slate-600 hover:text-slate-900">
-            Tiep tuc mua sam
+            Tiếp tục mua sắm
           </Link>
         </StorePanelFrame>
       </div>
     </StorePageShell>
   );
 }
+

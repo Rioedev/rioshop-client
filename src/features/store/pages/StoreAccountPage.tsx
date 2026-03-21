@@ -1,4 +1,4 @@
-import { Button } from "antd";
+﻿import { Button } from "antd";
 import { Link } from "react-router-dom";
 import {
   StoreEmptyState,
@@ -19,13 +19,13 @@ export function StoreAccountPage() {
   if (!isAuthenticated || !user) {
     return (
       <StoreEmptyState
-        kicker="Tai khoan Rio"
-        title="Ban chua dang nhap"
-        description="Dang nhap de quan ly thong tin tai khoan, dia chi giao hang va lich su mua sam."
+        kicker="Tài khoản Rio"
+        title="Bạn chưa đăng nhập"
+        description="Đăng nhập để quản lý thông tin tài khoản, địa chỉ giao hàng và lịch sử mua sắm."
         action={
           <Link to="/login">
             <Button type="primary" className={storeButtonClassNames.primary}>
-              Dang nhap
+              Đăng nhập
             </Button>
           </Link>
         }
@@ -35,56 +35,56 @@ export function StoreAccountPage() {
 
   const profileCards = [
     {
-      label: "Ho ten",
+      label: "Họ tên",
       value: user.fullName,
-      description: "Ten hien thi duoc su dung cho hoa don va thong bao.",
+      description: "Tên hiển thị được sử dụng cho hóa đơn và thông báo.",
     },
     {
       label: "Email",
       value: user.email,
-      description: "Kenh nhan cap nhat don hang va thong tin uu dai.",
+      description: "Kênh nhận cập nhật đơn hàng và thông tin ưu đãi.",
     },
     {
-      label: "So dien thoai",
-      value: user.phone || "Dang cap nhat",
-      description: "Su dung cho xac nhan giao hang va ho tro nhanh.",
+      label: "Số điện thoại",
+      value: user.phone || "Đang cập nhật",
+      description: "Sử dụng cho xác nhận giao hàng và hỗ trợ nhanh.",
     },
     {
-      label: "Loai tai khoan",
+      label: "Loại tài khoản",
       value: user.accountType,
-      description: "Trang thai hien tai cua tai khoan tren he thong RioShop.",
+      description: "Trạng thái hiện tại của tài khoản trên hệ thống RioShop.",
     },
   ];
 
   return (
     <StorePageShell>
       <StoreHeroSection
-        kicker="Tai khoan Rio"
-        title={`Xin chao, ${user.fullName}`}
-        description="Theo doi don hang, cap nhat thong tin ca nhan va quay lai nhanh voi cac san pham ban da luu."
+        kicker="Tài khoản Rio"
+        title={`Xin chào, ${user.fullName}`}
+        description="Theo dõi đơn hàng, cập nhật thông tin cá nhân và quay lại nhanh với các sản phẩm bạn đã lưu."
       >
         <div className="store-page-actions">
           <Link to="/orders">
             <Button type="primary" className={storeButtonClassNames.primary}>
-              Don hang cua toi
+              Đơn hàng của tôi
             </Button>
           </Link>
           <Link to="/wishlist">
-            <Button className={storeButtonClassNames.secondary}>San pham yeu thich</Button>
+            <Button className={storeButtonClassNames.secondary}>Sản phẩm yêu thích</Button>
           </Link>
           <Button className={storeButtonClassNames.danger} onClick={() => void logout()}>
-            Dang xuat
+            Đăng xuất
           </Button>
         </div>
       </StoreHeroSection>
 
       <StorePanelSection
-        kicker="Thong tin ca nhan"
-        title="Ho so tai khoan"
+        kicker="Thông tin cá nhân"
+        title="Hồ sơ tài khoản"
         action={
           <StoreInlineNote
-            title="Tai khoan dang hoat dong"
-            description="Thong tin nay duoc su dung de dong bo dia chi giao hang, lich su mua va cac thong bao uu dai."
+            title="Tài khoản đang hoạt động"
+            description="Thông tin này được sử dụng để đồng bộ địa chỉ giao hàng, lịch sử mua và các thông báo ưu đãi."
           />
         }
       >
@@ -93,3 +93,4 @@ export function StoreAccountPage() {
     </StorePageShell>
   );
 }
+

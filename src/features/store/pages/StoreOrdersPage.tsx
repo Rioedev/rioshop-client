@@ -1,4 +1,4 @@
-import { Button, message } from "antd";
+﻿import { Button, message } from "antd";
 import { useEffect, useMemo, useState } from "react";
 import { Link, useLocation } from "react-router-dom";
 import {
@@ -16,13 +16,13 @@ import { orderService, type OrderRecord } from "../../../services/orderService";
 import { useAuthStore } from "../../../stores/authStore";
 
 const statusLabelMap: Record<string, string> = {
-  pending: "Cho xac nhan",
-  confirmed: "Da xac nhan",
-  packing: "Dang dong goi",
-  shipping: "Dang giao",
-  delivered: "Da giao",
-  cancelled: "Da huy",
-  returned: "Hoan tra",
+  pending: "Chờ xác nhận",
+  confirmed: "Đã xác nhận",
+  packing: "Đang đóng gói",
+  shipping: "Đang giao",
+  delivered: "Đã giao",
+  cancelled: "Đã hủy",
+  returned: "Hoàn trả",
 };
 
 export function StoreOrdersPage() {
@@ -46,19 +46,19 @@ export function StoreOrdersPage() {
 
     return [
       {
-        label: "Tong don",
+        label: "Tổng đơn",
         value: orders.length,
-        description: "So don hang dang hien thi trong tai khoan.",
+        description: "Số đơn hàng đang hiển thị trong tài khoản.",
       },
       {
-        label: "Dang xu ly",
+        label: "Đang xử lý",
         value: pendingCount,
-        description: "Bao gom don cho xac nhan, dong goi va dang giao.",
+        description: "Bao gồm đơn chờ xác nhận, đóng gói và đang giao.",
       },
       {
-        label: "Hoan tat",
+        label: "Hoàn tất",
         value: deliveredCount,
-        description: "Cac don da giao thanh cong.",
+        description: "Các đơn đã giao thành công.",
       },
     ];
   }, [orders]);
@@ -71,7 +71,7 @@ export function StoreOrdersPage() {
       setPage(result.page);
       setTotalPages(result.totalPages);
     } catch (error) {
-      const msg = error instanceof Error ? error.message : "Khong the tai danh sach don hang";
+      const msg = error instanceof Error ? error.message : "Không thể tải danh sách đơn hàng";
       messageApi.error(msg);
       setOrders([]);
       setTotalPages(1);
@@ -93,11 +93,11 @@ export function StoreOrdersPage() {
 
   const onCancelOrder = async (order: OrderRecord) => {
     try {
-      await orderService.cancelOrder(order.id, "Khach hang yeu cau huy don");
-      messageApi.success("Da huy don hang");
+      await orderService.cancelOrder(order.id, "Khách hàng yêu cầu hủy đơn");
+      messageApi.success("Đã hủy đơn hàng");
       await loadOrders(page);
     } catch (error) {
-      const msg = error instanceof Error ? error.message : "Khong the huy don";
+      const msg = error instanceof Error ? error.message : "Không thể hủy đơn";
       messageApi.error(msg);
     }
   };
@@ -105,13 +105,13 @@ export function StoreOrdersPage() {
   if (!isAuthenticated) {
     return (
       <StoreEmptyState
-        kicker="Don hang"
-        title="Ban can dang nhap de xem don hang"
-        description="Dang nhap de theo doi trang thai van chuyen, lich su mua sam va cap nhat moi nhat cho tung don."
+        kicker="Đơn hàng"
+        title="Bạn cần đăng nhập để xem đơn hàng"
+        description="Đăng nhập để theo dõi trạng thái vận chuyển, lịch sử mua sắm và cập nhật mới nhất cho từng đơn."
         action={
           <Link to="/login">
             <Button type="primary" className={storeButtonClassNames.primary}>
-              Dang nhap
+              Đăng nhập
             </Button>
           </Link>
         }
@@ -124,23 +124,23 @@ export function StoreOrdersPage() {
       {contextHolder}
 
       <StoreHeroSection
-        kicker="Order hub"
-        title="Don hang cua toi"
-        description="Kiem tra nhanh tien do giao hang, tong gia tri va hanh dong tiep theo cho moi don trong tai khoan cua ban."
+        kicker="Trung tâm đơn hàng"
+        title="Đơn hàng của tôi"
+        description="Kiểm tra nhanh tiến độ giao hàng, tổng giá trị và hành động tiếp theo cho mỗi đơn trong tài khoản của bạn."
         action={
           <Button className={storeButtonClassNames.secondary} onClick={() => void loadOrders(page)} loading={loading}>
-            Tai lai
+            Tải lại
           </Button>
         }
       >
         <StoreMetricGrid items={orderMetrics} />
       </StoreHeroSection>
 
-      <StorePanelSection kicker="Lich su mua sam" title="Danh sach don gan day">
+      <StorePanelSection kicker="Lịch sử mua sắm" title="Danh sách đơn gần đây">
         {orders.length === 0 && !loading ? (
           <StoreInlineNote
-            title="Ban chua co don hang nao."
-            description="San pham ban mua sau nay se xuat hien o day de theo doi trang thai va giao hang."
+            title="Bạn chưa có đơn hàng nào."
+            description="Sản phẩm bạn mua sau này sẽ xuất hiện ở đây để theo dõi trạng thái và giao hàng."
           />
         ) : null}
 
@@ -153,10 +153,10 @@ export function StoreOrdersPage() {
               <article key={order.id} className={`store-order-card ${highlighted ? "is-highlighted" : ""}`}>
                 <div className="flex flex-wrap items-start justify-between gap-3">
                   <div>
-                    <p className="m-0 text-xs font-bold uppercase tracking-[0.16em] text-slate-500">Ma don</p>
+                    <p className="m-0 text-xs font-bold uppercase tracking-[0.16em] text-slate-500">Mã đơn</p>
                     <h3 className="m-0 mt-1 text-xl font-black tracking-[-0.04em] text-slate-900">{order.orderNumber}</h3>
                     <p className="m-0 mt-2 text-sm text-slate-500">
-                      Dat luc {order.createdAt ? new Date(order.createdAt).toLocaleString("vi-VN") : "Dang cap nhat"}
+                      Đặt lúc {order.createdAt ? new Date(order.createdAt).toLocaleString("vi-VN") : "Đang cập nhật"}
                     </p>
                   </div>
 
@@ -171,7 +171,7 @@ export function StoreOrdersPage() {
                 <div className="mt-4 space-y-2">
                   {order.items.slice(0, 3).map((item, index) => (
                     <div key={`${order.id}-${item.productId ?? index}`} className="flex items-center justify-between gap-2 text-sm">
-                      <span className="truncate text-slate-700">{item.productName ?? "San pham"}</span>
+                      <span className="truncate text-slate-700">{item.productName ?? "Sản phẩm"}</span>
                       <span className="text-slate-500">x{item.quantity}</span>
                     </div>
                   ))}
@@ -180,10 +180,10 @@ export function StoreOrdersPage() {
                 <div className="mt-4 flex flex-wrap gap-2">
                   {canCancel ? (
                     <Button className={storeButtonClassNames.dangerCompact} onClick={() => void onCancelOrder(order)}>
-                      Huy don
+                      Hủy đơn
                     </Button>
                   ) : null}
-                  <Button className={storeButtonClassNames.secondaryCompact}>Theo doi van chuyen</Button>
+                  <Button className={storeButtonClassNames.secondaryCompact}>Theo dõi vận chuyển</Button>
                 </div>
               </article>
             );
@@ -192,7 +192,7 @@ export function StoreOrdersPage() {
 
         <div className="mt-5 flex items-center justify-end gap-2">
           <Button disabled={page <= 1 || loading} className={storeButtonClassNames.ghostCompact} onClick={() => void loadOrders(page - 1)}>
-            Truoc
+            Trước
           </Button>
           <span className="text-sm text-slate-500">
             Trang {page} / {Math.max(1, totalPages)}
@@ -205,3 +205,4 @@ export function StoreOrdersPage() {
     </StorePageShell>
   );
 }
+
