@@ -10,6 +10,7 @@ export type CartItem = {
   imageUrl?: string;
   variantSku?: string;
   variantLabel?: string;
+  availableStock?: number;
   quantity: number;
 };
 
@@ -46,6 +47,22 @@ const toSafeQuantity = (value: number | undefined, minimum = 1) => {
   return Math.max(minimum, Math.floor(parsed));
 };
 
+const toSafeAvailableStock = (value: number | undefined) => {
+  const parsed = Number(value);
+  if (!Number.isFinite(parsed) || parsed <= 0) {
+    return undefined;
+  }
+  return Math.floor(parsed);
+};
+
+const clampQuantityByStock = (quantity: number, availableStock?: number, minimum = 1) => {
+  const normalizedQuantity = toSafeQuantity(quantity, minimum);
+  if (!availableStock || availableStock < minimum) {
+    return normalizedQuantity;
+  }
+  return Math.min(normalizedQuantity, availableStock);
+};
+
 const normalizeCartItem = (item: CartItem): CartItem | null => {
   const productId = item.productId?.trim();
   const variantSku = item.variantSku?.trim();
@@ -62,7 +79,8 @@ const normalizeCartItem = (item: CartItem): CartItem | null => {
     imageUrl: item.imageUrl,
     variantSku,
     variantLabel: item.variantLabel?.trim() || undefined,
-    quantity: toSafeQuantity(item.quantity, 1),
+    availableStock: toSafeAvailableStock(item.availableStock),
+    quantity: clampQuantityByStock(item.quantity, toSafeAvailableStock(item.availableStock), 1),
   };
 };
 
@@ -82,9 +100,16 @@ const mergeCartItems = (items: CartItem[]) => {
       return;
     }
 
+    const nextStock = normalized.availableStock;
+    const maxStock =
+      existing.availableStock && nextStock
+        ? Math.min(existing.availableStock, nextStock)
+        : existing.availableStock || nextStock;
+
     merged.set(key, {
       ...normalized,
-      quantity: existing.quantity + normalized.quantity,
+      availableStock: maxStock,
+      quantity: clampQuantityByStock(existing.quantity + normalized.quantity, maxStock, 1),
     });
   });
 
@@ -120,12 +145,18 @@ export const useCartStore = create<CartState>()(
           const quantity = toSafeQuantity(payload.quantity, 1);
           const itemId = buildCartItemId({ productId, variantSku });
           const existing = state.items.find((item) => resolveCartItemId(item) === itemId);
+          const availableStock = toSafeAvailableStock(payload.availableStock);
 
           if (existing) {
+            const maxStock = existing.availableStock || availableStock;
             return {
               items: state.items.map((item) =>
                 resolveCartItemId(item) === itemId
-                  ? { ...item, quantity: toSafeQuantity(item.quantity + quantity, 1) }
+                  ? {
+                      ...item,
+                      availableStock: maxStock,
+                      quantity: clampQuantityByStock(item.quantity + quantity, maxStock, 1),
+                    }
                   : item,
               ),
               ownerUserId: null,
@@ -140,7 +171,8 @@ export const useCartStore = create<CartState>()(
                 productId,
                 variantSku,
                 itemId,
-                quantity,
+                availableStock,
+                quantity: clampQuantityByStock(quantity, availableStock, 1),
               },
             ],
             ownerUserId: null,
@@ -157,9 +189,15 @@ export const useCartStore = create<CartState>()(
         set((state) => ({
           items: state.items
             .map((item) =>
-              resolveCartItemId(item) === itemId
-                ? { ...item, quantity: toSafeQuantity(quantity, 0) }
-                : item,
+              resolveCartItemId(item) !== itemId
+                ? item
+                : {
+                    ...item,
+                    quantity:
+                      toSafeQuantity(quantity, 0) === 0
+                        ? 0
+                        : clampQuantityByStock(quantity, item.availableStock, 1),
+                  },
             )
             .filter((item) => item.quantity > 0),
           ownerUserId: null,

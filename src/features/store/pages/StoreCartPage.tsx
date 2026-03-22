@@ -11,9 +11,15 @@ import {
   storeButtonClassNames,
 } from "../components/StorePageChrome";
 import { formatStoreCurrency, resolveStoreProductThumbnail } from "../utils/storeFormatting";
+import {
+  blockNonNumericAndOverflowKey,
+  blockOverflowPaste,
+  clampQuantityByStock,
+  getSafeMaxQuantity,
+} from "../utils/quantityInputGuards";
 import { cartService, toCartStoreItems } from "../../../services/cartService";
 import { productService, type Product } from "../../../services/productService";
-import { buildCartItemId, useCartStore } from "../../../stores/cartStore";
+import { buildCartItemId, type CartItem, useCartStore } from "../../../stores/cartStore";
 import { useAuthStore } from "../../../stores/authStore";
 
 export function StoreCartPage() {
@@ -78,12 +84,21 @@ export function StoreCartPage() {
 
   const resolveItemId = (item: (typeof items)[number]) =>
     item.itemId || buildCartItemId({ productId: item.productId, variantSku: item.variantSku });
+  const resolveItemMaxQuantity = (item: CartItem) =>
+    getSafeMaxQuantity(item.availableStock, getSafeMaxQuantity(item.quantity, 1));
 
   const getErrorMessage = (error: unknown) =>
     error instanceof Error ? error.message : "Không thể xử lý giỏ hàng";
 
-  const handleUpdateQuantity = async (itemId: string, quantity: number) => {
-    const nextQuantity = Math.max(1, Math.floor(Number(quantity || 1)));
+  const handleUpdateQuantity = async (item: CartItem, quantity: number) => {
+    const itemId = resolveItemId(item);
+    const maxQuantity = resolveItemMaxQuantity(item);
+    const nextQuantity = clampQuantityByStock(quantity, maxQuantity, 1);
+
+    if (Number(quantity) > maxQuantity) {
+      messageApi.warning(`Số lượng vượt tồn kho. Còn lại ${maxQuantity} sản phẩm.`);
+    }
+
     if (!isAuthenticated) {
       updateQuantity(itemId, nextQuantity);
       return;
@@ -162,6 +177,7 @@ export function StoreCartPage() {
       imageUrl: image,
       variantSku: variant.sku,
       variantLabel,
+      availableStock: Math.max(1, Number(variant.stock || 1)),
       quantity: 1,
     });
     messageApi.success("Đã thêm vào giỏ hàng");
@@ -265,10 +281,14 @@ export function StoreCartPage() {
                   <div className="mt-3 flex flex-wrap items-center gap-3">
                     <InputNumber
                       min={1}
+                      max={resolveItemMaxQuantity(item)}
                       value={item.quantity}
-                      onChange={(value) => void handleUpdateQuantity(resolveItemId(item), Number(value ?? 1))}
+                      onChange={(value) => void handleUpdateQuantity(item, Number(value ?? 1))}
+                      onKeyDown={(event) => blockNonNumericAndOverflowKey(event, resolveItemMaxQuantity(item))}
+                      onPaste={(event) => blockOverflowPaste(event, resolveItemMaxQuantity(item))}
                       className="w-28! rounded-xl!"
                     />
+                    <span className="text-xs text-slate-500">Tồn kho: {resolveItemMaxQuantity(item)}</span>
                     <Button
                       className={storeButtonClassNames.dangerCompact}
                       onClick={() => void handleRemoveItem(resolveItemId(item))}

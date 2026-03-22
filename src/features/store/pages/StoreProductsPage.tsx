@@ -206,6 +206,7 @@ export function StoreProductsPage() {
       imageUrl: image,
       variantSku: variant.sku,
       variantLabel,
+      availableStock: Math.max(1, Number(variant.stock || 1)),
       quantity: 1,
     });
     message.success("Đã thêm vào giỏ hàng");

@@ -18,6 +18,12 @@ import {
   resolveStoreImageUrl as resolveImageUrl,
   resolveStoreProductThumbnail,
 } from "../utils/storeFormatting";
+import {
+  blockNonNumericAndOverflowKey,
+  blockOverflowPaste,
+  clampQuantityByStock,
+  getSafeMaxQuantity,
+} from "../utils/quantityInputGuards";
 
 const { Paragraph, Title } = Typography;
 
@@ -419,6 +425,10 @@ export function StoreProductDetailPage() {
     setSelectedImage(imageList[0]);
   }, [imageList]);
 
+  useEffect(() => {
+    setQuantity((current) => clampQuantityByStock(current, selectedVariant?.stock, 1));
+  }, [selectedVariant?.sku, selectedVariant?.stock]);
+
   const productPool = useMemo(() => {
     const all = [...relatedProducts, ...catalogProducts].filter((item) => item._id !== product?._id);
     const map = new Map<string, ProductRuntime>();
@@ -488,6 +498,7 @@ export function StoreProductDetailPage() {
   const hasDiscount = selectedVariantBasePrice > selectedVariantPrice;
   const isSelectedVariantOutOfStock =
     selectedVariant !== null && Number(selectedVariant.stock ?? 0) <= 0;
+  const selectedVariantStock = getSafeMaxQuantity(selectedVariant?.stock, 1);
   const ratingValue = reviewStats.avg > 0 ? reviewStats.avg : product.ratings?.avg ?? 4.8;
   const ratingCount = reviewStats.count > 0 ? reviewStats.count : product.ratings?.count ?? 0;
   const soldText = product.totalSold ? `${product.totalSold.toLocaleString("vi-VN")} đã bán` : "Mới cập nhật";
@@ -507,8 +518,8 @@ export function StoreProductDetailPage() {
       return;
     }
 
-    if (selectedVariant && quantity > Number(selectedVariant.stock || 0)) {
-      message.warning(`Số lượng vượt tồn kho. Còn lại ${Number(selectedVariant.stock || 0)} sản phẩm.`);
+    if (selectedVariant && quantity > selectedVariantStock) {
+      message.warning(`Số lượng vượt tồn kho. Còn lại ${selectedVariantStock} sản phẩm.`);
       return;
     }
 
@@ -536,6 +547,7 @@ export function StoreProductDetailPage() {
       imageUrl: displayImage,
       variantSku: selectedVariant?.sku,
       variantLabel: selectedVariantLabel,
+      availableStock: selectedVariantStock,
       quantity,
     });
     message.success("Đã thêm sản phẩm vào giỏ hàng");
@@ -692,8 +704,11 @@ export function StoreProductDetailPage() {
             <p className="m-0 text-sm font-semibold uppercase tracking-[0.12em] text-slate-500">Số lượng</p>
             <InputNumber
               min={1}
+              max={selectedVariantStock}
               value={quantity}
-              onChange={(value) => setQuantity(Math.max(1, Number(value ?? 1)))}
+              onChange={(value) => setQuantity(clampQuantityByStock(value, selectedVariantStock, 1))}
+              onKeyDown={(event) => blockNonNumericAndOverflowKey(event, selectedVariantStock)}
+              onPaste={(event) => blockOverflowPaste(event, selectedVariantStock)}
               className="w-28! rounded-xl!"
             />
           </div>

@@ -7,16 +7,16 @@ type ApiResponse<T> = {
 };
 
 type InventoryProductApi = {
-  _id: string;
-  name: string;
-  sku: string;
+  _id?: string;
+  name?: string;
+  sku?: string;
   slug?: string;
 };
 
 type InventoryApiItem = {
   _id?: string;
   id?: string;
-  productId: string | InventoryProductApi;
+  productId: string | InventoryProductApi | null;
   variantSku: string;
   warehouseId: string;
   warehouseName: string;
@@ -96,13 +96,10 @@ export type GetLowStockParams = {
 export type GetInventoryBySkuParams = {
   page?: number;
   limit?: number;
-  warehouseId?: string;
 };
 
 export type UpdateInventoryPayload = Partial<{
   productId: string;
-  warehouseId: string;
-  warehouseName: string;
   onHand: number;
   reserved: number;
   incoming: number;
@@ -112,13 +109,33 @@ export type UpdateInventoryPayload = Partial<{
   lastCountAt: string | null;
 }>;
 
+const resolveProductIdAndSnapshot = (
+  rawProduct: InventoryApiItem["productId"],
+): { productId: string; product?: InventoryProductApi } => {
+  if (!rawProduct) {
+    return { productId: "" };
+  }
+
+  if (typeof rawProduct === "string") {
+    return { productId: rawProduct };
+  }
+
+  const productId = typeof rawProduct._id === "string" ? rawProduct._id : "";
+  const hasSnapshot = Boolean(productId || rawProduct.name || rawProduct.sku || rawProduct.slug);
+
+  return {
+    productId,
+    product: hasSnapshot ? rawProduct : undefined,
+  };
+};
+
 const normalizeInventoryRecord = (item: InventoryApiItem): InventoryRecord => {
-  const product = typeof item.productId === "object" && item.productId !== null ? item.productId : undefined;
+  const resolvedProduct = resolveProductIdAndSnapshot(item.productId);
 
   return {
     id: item.id ?? item._id ?? "",
-    productId: typeof item.productId === "string" ? item.productId : item.productId._id,
-    product,
+    productId: resolvedProduct.productId,
+    product: resolvedProduct.product,
     variantSku: item.variantSku,
     warehouseId: item.warehouseId,
     warehouseName: item.warehouseName,
@@ -167,7 +184,6 @@ export const inventoryService = {
         params: {
           page: params.page,
           limit: params.limit,
-          warehouseId: params.warehouseId,
         },
       },
     );

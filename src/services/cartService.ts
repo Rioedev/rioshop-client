@@ -16,6 +16,7 @@ type CartApiItem = {
   variantLabel?: string;
   image?: string;
   unitPrice?: number;
+  availableStock?: number;
   quantity?: number;
 };
 
@@ -46,6 +47,14 @@ const toSafeQuantity = (value: number | undefined) => {
   return Math.floor(parsed);
 };
 
+const toSafeAvailableStock = (value: number | undefined) => {
+  const parsed = Number(value);
+  if (!Number.isFinite(parsed) || parsed <= 0) {
+    return undefined;
+  }
+  return Math.floor(parsed);
+};
+
 const toSafeItemId = (item: CartApiItem, productId: string) =>
   item.itemId?.trim() ||
   `${productId}::${item.variantSku?.trim() || DEFAULT_CART_VARIANT_KEY}`;
@@ -70,6 +79,7 @@ export const toCartStoreItems = (cart: CartSnapshot): CartItem[] =>
       imageUrl: item.image || undefined,
       variantSku,
       variantLabel: variantLabel || undefined,
+      availableStock: toSafeAvailableStock(item.availableStock),
       quantity: toSafeQuantity(item.quantity),
     });
 

@@ -27,8 +27,6 @@ const { Paragraph, Text, Title } = Typography;
 type InventoryFormValues = {
   variantSku: string;
   productId?: string;
-  warehouseId: string;
-  warehouseName: string;
   onHand: number;
   reserved: number;
   incoming: number;
@@ -61,8 +59,6 @@ const formatDateTime = (value?: string | null) => {
 const defaultFormValues = (variantSku = ""): InventoryFormValues => ({
   variantSku,
   productId: "",
-  warehouseId: "",
-  warehouseName: "",
   onHand: 0,
   reserved: 0,
   incoming: 0,
@@ -167,8 +163,6 @@ export function AdminInventoriesPage() {
     form.setFieldsValue({
       variantSku: item.variantSku,
       productId: item.productId,
-      warehouseId: item.warehouseId,
-      warehouseName: item.warehouseName,
       onHand: item.onHand,
       reserved: item.reserved,
       incoming: item.incoming,
@@ -181,8 +175,6 @@ export function AdminInventoriesPage() {
 
   const buildPayload = (values: InventoryFormValues): UpdateInventoryPayload => ({
     productId: values.productId?.trim() || undefined,
-    warehouseId: values.warehouseId.trim(),
-    warehouseName: values.warehouseName.trim(),
     onHand: values.onHand ?? 0,
     reserved: values.reserved ?? 0,
     incoming: values.incoming ?? 0,
@@ -227,8 +219,8 @@ export function AdminInventoriesPage() {
       width: 260,
       render: (_, record) => (
         <div>
-          <div>{record.product?.name ?? "-"}</div>
-          <Text type="secondary">{record.product?.sku ?? record.productId}</Text>
+          <div>{record.product?.name ?? "Sản phẩm không tồn tại"}</div>
+          <Text type="secondary">{record.product?.sku ?? record.productId ?? "-"}</Text>
         </div>
       ),
     },
@@ -386,7 +378,7 @@ export function AdminInventoriesPage() {
           Quản lý tồn kho
         </Title>
         <Paragraph className="mb-0!" type="secondary">
-          Theo dõi cảnh báo sắp hết hàng, tra cứu SKU biến thể và cập nhật tồn kho theo từng kho.
+          Theo dõi cảnh báo sắp hết hàng, tra cứu SKU biến thể và cập nhật tồn kho theo kho mặc định.
         </Paragraph>
       </div>
 
@@ -474,7 +466,7 @@ export function AdminInventoriesPage() {
             type="info"
             className="mb-4"
             message="Chưa chọn SKU biến thể"
-            description="Nhập SKU và bấm Tra cứu SKU để xem tồn kho chi tiết theo kho."
+            description="Nhập SKU và bấm Tra cứu SKU để xem tồn kho chi tiết."
           />
         )}
 
@@ -550,26 +542,13 @@ export function AdminInventoriesPage() {
             </Col>
           </Row>
 
-          <Row gutter={12}>
-            <Col xs={24} md={12}>
-              <Form.Item
-                label="Mã kho"
-                name="warehouseId"
-                rules={[{ required: true, message: "Vui lòng nhập mã kho." }]}
-              >
-                <Input placeholder="Ví dụ: wh-hcm-01" />
-              </Form.Item>
-            </Col>
-            <Col xs={24} md={12}>
-              <Form.Item
-                label="Tên kho"
-                name="warehouseName"
-                rules={[{ required: true, message: "Vui lòng nhập tên kho." }]}
-              >
-                <Input placeholder="Ví dụ: Kho Hồ Chí Minh" />
-              </Form.Item>
-            </Col>
-          </Row>
+          <Alert
+            type="info"
+            showIcon
+            className="mb-4"
+            message="Hệ thống đang chạy chế độ 1 kho"
+            description="Kho mặc định: Phú Diễn, Bắc Từ Liêm, Hà Nội."
+          />
 
           <Row gutter={12}>
             <Col xs={24} md={8}>

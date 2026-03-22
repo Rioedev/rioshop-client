@@ -54,6 +54,7 @@ export function StoreWishlistPage() {
           imageUrl: item.imageUrl,
           variantSku: variant.sku,
           variantLabel,
+          availableStock: Math.max(1, Number(variant.stock || 1)),
           quantity: 1,
         });
       }
