@@ -20,7 +20,10 @@ import { StoreProductDetailPage } from "../features/store/pages/StoreProductDeta
 import { StoreCartPage } from "../features/store/pages/StoreCartPage";
 import { StoreWishlistPage } from "../features/store/pages/StoreWishlistPage";
 import { StoreCheckoutPage } from "../features/store/pages/StoreCheckoutPage";
+import { StoreMomoReturnPage } from "../features/store/pages/StoreMomoReturnPage";
+import { StoreMomoSandboxPage } from "../features/store/pages/StoreMomoSandboxPage";
 import { StoreOrdersPage } from "../features/store/pages/StoreOrdersPage";
+import { StoreOrderDetailPage } from "../features/store/pages/StoreOrderDetailPage";
 import { StoreAccountPage } from "../features/store/pages/StoreAccountPage";
 import { LoginPage } from "../features/auth/pages/LoginPage";
 import { RegisterPage } from "../features/auth/pages/RegisterPage";
@@ -51,11 +54,14 @@ export const appRouter = createBrowserRouter([
       { path: "products/:slug", element: <StoreProductDetailPage /> },
       { path: "cart", element: <StoreCartPage /> },
       { path: "wishlist", element: <StoreWishlistPage /> },
+      { path: "payment/momo-sandbox", element: <StoreMomoSandboxPage /> },
+      { path: "payment/momo-return", element: <StoreMomoReturnPage /> },
       {
         element: <RequireStoreAuth />,
         children: [{ path: "checkout", element: <StoreCheckoutPage /> }],
       },
       { path: "orders", element: <StoreOrdersPage /> },
+      { path: "orders/:id", element: <StoreOrderDetailPage /> },
       { path: "account", element: <StoreAccountPage /> },
     ],
   },

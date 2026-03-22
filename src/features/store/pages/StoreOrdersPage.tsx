@@ -12,7 +12,8 @@ import {
   storeButtonClassNames,
 } from "../components/StorePageChrome";
 import { formatStoreCurrency } from "../utils/storeFormatting";
-import { orderService, type OrderRecord } from "../../../services/orderService";
+import { orderService, type OrderRecord, type PaymentStatus } from "../../../services/orderService";
+import { paymentService } from "../../../services/paymentService";
 import { useAuthStore } from "../../../stores/authStore";
 
 const statusLabelMap: Record<string, string> = {
@@ -25,6 +26,13 @@ const statusLabelMap: Record<string, string> = {
   returned: "Hoàn trả",
 };
 
+const paymentStatusLabelMap: Record<PaymentStatus, string> = {
+  pending: "Chưa thanh toán",
+  paid: "Đã thanh toán",
+  failed: "Thanh toán lỗi",
+  refunded: "Đã hoàn tiền",
+};
+
 export function StoreOrdersPage() {
   const location = useLocation();
   const [messageApi, contextHolder] = message.useMessage();
@@ -34,6 +42,7 @@ export function StoreOrdersPage() {
   const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
+  const [payingOrderId, setPayingOrderId] = useState<string | null>(null);
 
   const highlightedOrderId = useMemo(
     () => (location.state as { orderId?: string } | null)?.orderId,
@@ -102,6 +111,36 @@ export function StoreOrdersPage() {
     }
   };
 
+  const onRetryMomoPayment = async (order: OrderRecord) => {
+    setPayingOrderId(order.id);
+    try {
+      const initiated = await paymentService.createPayment({
+        orderId: order.id,
+        method: "momo",
+        returnUrl: `${window.location.origin}/payment/momo-return`,
+      });
+
+      const gatewayResponse = initiated.gatewayResponse ?? {};
+      const payUrl =
+        (gatewayResponse.payUrl as string | undefined) ||
+        (gatewayResponse.deeplink as string | undefined) ||
+        (gatewayResponse.qrCodeUrl as string | undefined) ||
+        null;
+
+      if (!payUrl) {
+        messageApi.warning("Không lấy được link thanh toán MoMo, vui lòng thử lại.");
+        return;
+      }
+
+      window.location.href = payUrl;
+    } catch (error) {
+      const msg = error instanceof Error ? error.message : "Không thể tạo lại giao dịch MoMo";
+      messageApi.error(msg);
+    } finally {
+      setPayingOrderId(null);
+    }
+  };
+
   if (!isAuthenticated) {
     return (
       <StoreEmptyState
@@ -147,6 +186,10 @@ export function StoreOrdersPage() {
         <div className="space-y-3">
           {orders.map((order) => {
             const canCancel = ["pending", "confirmed"].includes(order.status);
+            const canRetryMomoPayment =
+              order.paymentMethod === "momo" &&
+              ["pending", "failed"].includes(order.paymentStatus) &&
+              ["pending", "confirmed", "packing", "shipping"].includes(order.status);
             const highlighted = highlightedOrderId && highlightedOrderId === order.id;
 
             return (
@@ -161,7 +204,13 @@ export function StoreOrdersPage() {
                   </div>
 
                   <div className="text-right">
-                    <StoreStatusPill status={order.status} label={statusLabelMap[order.status] ?? order.status} />
+                    <div className="flex flex-wrap items-center justify-end gap-2">
+                      <StoreStatusPill status={order.status} label={statusLabelMap[order.status] ?? order.status} />
+                      <StoreStatusPill
+                        status={`payment-${order.paymentStatus}`}
+                        label={paymentStatusLabelMap[order.paymentStatus] ?? order.paymentStatus}
+                      />
+                    </div>
                     <p className="m-0 mt-2 text-lg font-black tracking-[-0.04em] text-slate-900">
                       {formatStoreCurrency(order.pricing.total)}
                     </p>
@@ -175,15 +224,32 @@ export function StoreOrdersPage() {
                       <span className="text-slate-500">x{item.quantity}</span>
                     </div>
                   ))}
+                  {order.items.length > 3 ? (
+                    <p className="m-0 text-xs font-semibold uppercase tracking-[0.12em] text-slate-400">
+                      +{order.items.length - 3} sản phẩm khác
+                    </p>
+                  ) : null}
                 </div>
 
                 <div className="mt-4 flex flex-wrap gap-2">
+                  <Link to={`/orders/${order.id}`}>
+                    <Button className={storeButtonClassNames.secondaryCompact}>Xem chi tiết</Button>
+                  </Link>
+                  {canRetryMomoPayment ? (
+                    <Button
+                      type="primary"
+                      loading={payingOrderId === order.id}
+                      className={storeButtonClassNames.primaryCompact}
+                      onClick={() => void onRetryMomoPayment(order)}
+                    >
+                      Thanh toán lại
+                    </Button>
+                  ) : null}
                   {canCancel ? (
                     <Button className={storeButtonClassNames.dangerCompact} onClick={() => void onCancelOrder(order)}>
                       Hủy đơn
                     </Button>
                   ) : null}
-                  <Button className={storeButtonClassNames.secondaryCompact}>Theo dõi vận chuyển</Button>
                 </div>
               </article>
             );

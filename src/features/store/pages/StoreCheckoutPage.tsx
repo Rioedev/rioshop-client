@@ -11,8 +11,10 @@ import {
   StoreSectionHeader,
   storeButtonClassNames,
 } from "../components/StorePageChrome";
+import { cartService, toCartStoreItems } from "../../../services/cartService";
 import { formatStoreCurrency } from "../utils/storeFormatting";
 import { orderService } from "../../../services/orderService";
+import { paymentService } from "../../../services/paymentService";
 import { useAuthStore } from "../../../stores/authStore";
 import { useCartStore } from "../../../stores/cartStore";
 
@@ -25,6 +27,7 @@ export function StoreCheckoutPage() {
   const user = useAuthStore((state) => state.user);
   const cartItems = useCartStore((state) => state.items);
   const clearCart = useCartStore((state) => state.clearCart);
+  const setCartItems = useCartStore((state) => state.setItems);
 
   const [fullName, setFullName] = useState(user?.fullName ?? "");
   const [phone, setPhone] = useState(user?.phone ?? "");
@@ -131,7 +134,7 @@ export function StoreCheckoutPage() {
           currency: "VND",
         },
         paymentMethod,
-        paymentStatus: paymentMethod === "cod" ? "pending" : "paid",
+        paymentStatus: "pending",
         shippingMethod,
         shippingCarrier: shippingMethod === "same_day" ? "Ahamove" : "GHN",
         note: note.trim() || undefined,
@@ -139,6 +142,44 @@ export function StoreCheckoutPage() {
       });
 
       clearCart();
+      try {
+        const cleared = await cartService.clearCart();
+        setCartItems(toCartStoreItems(cleared), user?.id ?? null);
+      } catch {
+        // Keep local cart cleared to avoid blocking checkout flow if cart API is unavailable.
+      }
+
+      if (paymentMethod === "momo") {
+        try {
+          const initiated = await paymentService.createPayment({
+            orderId: created.id,
+            method: "momo",
+            returnUrl: `${window.location.origin}/payment/momo-return`,
+          });
+
+          const gatewayResponse = initiated.gatewayResponse ?? {};
+          const payUrl =
+            (gatewayResponse.payUrl as string | undefined) ||
+            (gatewayResponse.deeplink as string | undefined) ||
+            (gatewayResponse.qrCodeUrl as string | undefined) ||
+            null;
+
+          if (payUrl) {
+            window.location.href = payUrl;
+            return;
+          }
+
+          messageApi.warning("Đã tạo đơn và lệnh thanh toán MoMo test nhưng chưa lấy được link thanh toán.");
+          navigate("/orders", { state: { orderId: created.id } });
+          return;
+        } catch (error) {
+          const paymentMessage = error instanceof Error ? error.message : "Không tạo được giao dịch MoMo test";
+          messageApi.warning(`Đơn đã tạo nhưng lỗi MoMo: ${paymentMessage}`);
+          navigate("/orders", { state: { orderId: created.id } });
+          return;
+        }
+      }
+
       messageApi.success("Đặt hàng thành công");
       navigate("/orders", { state: { orderId: created.id } });
     } catch (error) {
