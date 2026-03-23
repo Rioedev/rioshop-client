@@ -17,6 +17,7 @@ import { AdminBrandConfigPage } from "../features/admin/pages/AdminBrandConfigPa
 import { StoreHomePage } from "../features/store/pages/StoreHomePage";
 import { StoreProductsPage } from "../features/store/pages/StoreProductsPage";
 import { StoreProductDetailPage } from "../features/store/pages/StoreProductDetailPage";
+import { StoreFlashSalesPage } from "../features/store/pages/StoreFlashSalesPage";
 import { StoreCartPage } from "../features/store/pages/StoreCartPage";
 import { StoreWishlistPage } from "../features/store/pages/StoreWishlistPage";
 import { StoreCheckoutPage } from "../features/store/pages/StoreCheckoutPage";
@@ -52,6 +53,7 @@ export const appRouter = createBrowserRouter([
       { index: true, element: <StoreHomePage /> },
       { path: "products", element: <StoreProductsPage /> },
       { path: "products/:slug", element: <StoreProductDetailPage /> },
+      { path: "flash-sales", element: <StoreFlashSalesPage /> },
       { path: "cart", element: <StoreCartPage /> },
       { path: "wishlist", element: <StoreWishlistPage /> },
       { path: "payment/momo-sandbox", element: <StoreMomoSandboxPage /> },

@@ -13,7 +13,7 @@ type FlashSaleProductApi = {
 };
 
 type FlashSaleSlotApi = {
-  productId: string | FlashSaleProductApi;
+  productId: string | FlashSaleProductApi | null;
   variantSku?: string;
   salePrice: number;
   stockLimit: number;
@@ -101,26 +101,39 @@ export type CreateFlashSalePayload = {
   }>;
 };
 
+export type UpdateFlashSalePayload = Partial<CreateFlashSalePayload>;
+
 const normalizeFlashSale = (item: FlashSaleApiItem): FlashSale => ({
   id: item.id ?? item._id ?? "",
   name: item.name,
   banner: item.banner,
   startsAt: item.startsAt,
   endsAt: item.endsAt,
-  slots: (item.slots ?? []).map((slot) => {
-    const product = typeof slot.productId === "object" && slot.productId !== null
-      ? slot.productId
-      : undefined;
+  slots: (item.slots ?? []).reduce<FlashSaleSlot[]>((acc, slot) => {
+    const rawProductId = slot.productId;
+    const product =
+      typeof rawProductId === "object" && rawProductId !== null
+        ? rawProductId
+        : undefined;
+    const normalizedProductId =
+      typeof rawProductId === "string"
+        ? rawProductId.trim()
+        : product?._id?.toString().trim() || "";
 
-    return {
-      productId: typeof slot.productId === "string" ? slot.productId : slot.productId._id,
-      product: product ? { id: product._id, name: product.name, slug: product.slug } : undefined,
+    acc.push({
+      productId: normalizedProductId,
+      product:
+        product && product._id
+          ? { id: product._id, name: product.name, slug: product.slug }
+          : undefined,
       variantSku: slot.variantSku,
       salePrice: slot.salePrice,
       stockLimit: slot.stockLimit,
       sold: slot.sold ?? 0,
-    };
-  }),
+    });
+
+    return acc;
+  }, []),
   isActive: item.isActive ?? true,
   createdBy: item.createdBy,
   createdAt: item.createdAt,
@@ -160,6 +173,16 @@ export const flashSaleService = {
 
   async createFlashSale(payload: CreateFlashSalePayload): Promise<FlashSale> {
     const response = await apiClient.post<ApiResponse<FlashSaleApiItem>>("/api/flash-sales", payload);
+    return normalizeFlashSale(response.data.data);
+  },
+
+  async updateFlashSale(id: string, payload: UpdateFlashSalePayload): Promise<FlashSale> {
+    const response = await apiClient.put<ApiResponse<FlashSaleApiItem>>(`/api/flash-sales/${id}`, payload);
+    return normalizeFlashSale(response.data.data);
+  },
+
+  async deleteFlashSale(id: string): Promise<FlashSale> {
+    const response = await apiClient.delete<ApiResponse<FlashSaleApiItem>>(`/api/flash-sales/${id}`);
     return normalizeFlashSale(response.data.data);
   },
 };

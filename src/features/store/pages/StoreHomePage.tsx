@@ -1120,7 +1120,7 @@ export function StoreHomePage() {
               <p>{homeContent.sections.flashSaleMiniTitle}</p>
               <h2>{homeContent.sections.flashSaleTitle}</h2>
             </div>
-            <Link to="/products" className="store-home-v3-text-link is-light">
+            <Link to="/flash-sales" className="store-home-v3-text-link is-light">
               {homeContent.sections.flashSaleLinkLabel}
             </Link>
           </div>

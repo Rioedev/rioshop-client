@@ -28,6 +28,7 @@ const policyItems = ["Miễn phí đổi trả 60 ngày", "Miễn phí ship từ
 
 const utilityLinks = [
   { label: "Hệ thống cửa hàng", href: "/products" },
+  { label: "Flash Sale", href: "/flash-sales" },
   { label: "Tra cứu đơn hàng", href: "/orders" },
   { label: "Rio Member", href: "/account" },
 ];

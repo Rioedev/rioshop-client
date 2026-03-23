@@ -4,6 +4,7 @@ import {
   flashSaleService,
   type CreateFlashSalePayload,
   type FlashSale,
+  type UpdateFlashSalePayload,
 } from "../services/flashSaleService";
 
 type FlashSaleState = {
@@ -24,6 +25,8 @@ type FlashSaleState = {
   setCurrentOnly: (currentOnly: boolean) => void;
   setIsActiveFilter: (isActiveFilter?: boolean) => void;
   createFlashSale: (payload: CreateFlashSalePayload) => Promise<void>;
+  updateFlashSale: (id: string, payload: UpdateFlashSalePayload) => Promise<void>;
+  deleteFlashSale: (id: string) => Promise<void>;
 };
 
 const getErrorMessage = (error: unknown) => {
@@ -84,6 +87,42 @@ export const useFlashSaleStore = create<FlashSaleState>((set, get) => ({
     set({ saving: true });
     try {
       await flashSaleService.createFlashSale(payload);
+      const state = get();
+      await state.loadFlashSales({
+        page: state.page,
+        pageSize: state.pageSize,
+        currentOnly: state.currentOnly,
+        isActiveFilter: state.isActiveFilter,
+      });
+    } catch (error) {
+      throw new Error(getErrorMessage(error));
+    } finally {
+      set({ saving: false });
+    }
+  },
+
+  updateFlashSale: async (id, payload) => {
+    set({ saving: true });
+    try {
+      await flashSaleService.updateFlashSale(id, payload);
+      const state = get();
+      await state.loadFlashSales({
+        page: state.page,
+        pageSize: state.pageSize,
+        currentOnly: state.currentOnly,
+        isActiveFilter: state.isActiveFilter,
+      });
+    } catch (error) {
+      throw new Error(getErrorMessage(error));
+    } finally {
+      set({ saving: false });
+    }
+  },
+
+  deleteFlashSale: async (id) => {
+    set({ saving: true });
+    try {
+      await flashSaleService.deleteFlashSale(id);
       const state = get();
       await state.loadFlashSales({
         page: state.page,
