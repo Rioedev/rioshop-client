@@ -7,7 +7,7 @@ import {
   ThunderboltOutlined,
   TruckOutlined,
 } from "@ant-design/icons";
-import { Button, Progress } from "antd";
+import { Button, Progress, message } from "antd";
 import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import {
@@ -16,6 +16,7 @@ import {
   type StorefrontHomeValueProp,
 } from "../../../services/brandConfigService";
 import { categoryService, type Category } from "../../../services/categoryService";
+import { couponService, type Coupon } from "../../../services/couponService";
 import { flashSaleService } from "../../../services/flashSaleService";
 import { productService, type Product } from "../../../services/productService";
 import {
@@ -25,6 +26,7 @@ import {
 } from "../utils/storeFormatting";
 
 const STORE_BRAND_KEY = "rioshop-default";
+const SAVED_COUPON_STORAGE_KEY = "rioshop_saved_coupons";
 
 const FALLBACK_CATEGORY_IMAGES = [
   "https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?auto=format&fit=crop&w=900&q=80",
@@ -303,6 +305,84 @@ const formatTimeLeft = (endsAt: string) => {
   return `${hours}:${minutes}:${seconds}`;
 };
 
+const readSavedCouponCodes = () => {
+  if (typeof window === "undefined") {
+    return [] as string[];
+  }
+
+  try {
+    const raw = localStorage.getItem(SAVED_COUPON_STORAGE_KEY);
+    if (!raw) {
+      return [] as string[];
+    }
+
+    const parsed = JSON.parse(raw);
+    if (!Array.isArray(parsed)) {
+      return [] as string[];
+    }
+
+    return parsed
+      .map((entry) => (typeof entry === "string" ? entry.trim().toUpperCase() : ""))
+      .filter(Boolean);
+  } catch {
+    return [] as string[];
+  }
+};
+
+const writeSavedCouponCodes = (codes: string[]) => {
+  if (typeof window === "undefined") {
+    return;
+  }
+
+  localStorage.setItem(SAVED_COUPON_STORAGE_KEY, JSON.stringify(codes));
+};
+
+const formatCouponValue = (coupon: Coupon) => {
+  if (coupon.type === "percent") {
+    return `Giảm ${coupon.value}%`;
+  }
+  if (coupon.type === "fixed") {
+    return `Giảm ${formatCurrency(coupon.value)}`;
+  }
+  if (coupon.type === "free_ship") {
+    return "Miễn phí vận chuyển";
+  }
+  return coupon.name;
+};
+
+const formatCouponCondition = (coupon: Coupon) => {
+  const conditions: string[] = [];
+
+  if (Number(coupon.minOrderValue || 0) > 0) {
+    conditions.push(`Đơn tối thiểu ${formatCurrency(Number(coupon.minOrderValue))}`);
+  }
+
+  if (Number(coupon.maxDiscount || 0) > 0) {
+    conditions.push(`Giảm tối đa ${formatCurrency(Number(coupon.maxDiscount))}`);
+  }
+
+  if (Number(coupon.perUserLimit || 0) > 0) {
+    conditions.push(`Mỗi khách dùng tối đa ${coupon.perUserLimit} lần`);
+  }
+
+  return conditions.length > 0 ? conditions.join(" • ") : "Áp dụng theo điều kiện chương trình";
+};
+
+const formatCouponExpiry = (value: string) => {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) {
+    return "Hạn dùng đang cập nhật";
+  }
+
+  return new Intl.DateTimeFormat("vi-VN", {
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  }).format(date);
+};
+
 const mapHomeProduct = (product: ProductRuntime, index: number): HomeProduct => ({
   id: product._id,
   name: product.name,
@@ -395,14 +475,21 @@ const mergeHomeContent = (apiHome?: StorefrontHomeContent): ResolvedHomeContent 
 };
 
 export function StoreHomePage() {
+  const [messageApi, contextHolder] = message.useMessage();
   const [homeContent, setHomeContent] = useState<ResolvedHomeContent>(DEFAULT_HOME_CONTENT);
   const [quickCategories, setQuickCategories] = useState<HomeCategory[]>([]);
   const [featuredProducts, setFeaturedProducts] = useState<HomeProduct[]>([]);
   const [catalogPool, setCatalogPool] = useState<HomeProduct[]>([]);
   const [flashDeals, setFlashDeals] = useState<FlashDeal[]>([]);
+  const [activeCoupons, setActiveCoupons] = useState<Coupon[]>([]);
+  const [savedCouponCodes, setSavedCouponCodes] = useState<string[]>(() => readSavedCouponCodes());
   const [isLoading, setIsLoading] = useState(true);
   const [activeHeroIndex, setActiveHeroIndex] = useState(0);
   const [activeQuickCategoryId, setActiveQuickCategoryId] = useState("");
+
+  useEffect(() => {
+    writeSavedCouponCodes(savedCouponCodes);
+  }, [savedCouponCodes]);
 
   useEffect(() => {
     let active = true;
@@ -410,7 +497,7 @@ export function StoreHomePage() {
     const loadHomeData = async () => {
       setIsLoading(true);
 
-      const [brandConfigResult, categoryResult, featuredResult, latestResult, flashSaleResult] =
+      const [brandConfigResult, categoryResult, featuredResult, latestResult, flashSaleResult, couponResult] =
         await Promise.allSettled([
           brandConfigService.getBrandConfig(STORE_BRAND_KEY),
           categoryService.getCategories({ page: 1, limit: 24, isActive: true }),
@@ -427,6 +514,7 @@ export function StoreHomePage() {
             sort: { createdAt: -1 },
           }),
           flashSaleService.getFlashSales({ page: 1, limit: 1, currentOnly: true, isActive: true }),
+          couponService.getActiveCoupons({ page: 1, limit: 8 }),
         ]);
 
       if (!active) {
@@ -597,6 +685,7 @@ export function StoreHomePage() {
       setCatalogPool(mappedCatalogPool.length > 0 ? mappedCatalogPool : highlightedProducts);
       setQuickCategories(mappedCategories);
       setFlashDeals(mappedFlashDeals);
+      setActiveCoupons(couponResult.status === "fulfilled" ? couponResult.value.docs : []);
       setIsLoading(false);
     };
 
@@ -727,6 +816,33 @@ export function StoreHomePage() {
 
   const showcaseLeadProduct = showcaseProducts[0];
   const showcaseRailProducts = showcaseProducts.slice(1, 5);
+  const savedCouponCodeSet = useMemo(
+    () => new Set(savedCouponCodes.map((code) => code.toUpperCase())),
+    [savedCouponCodes],
+  );
+
+  const handleSaveCoupon = async (code: string) => {
+    const normalizedCode = code.trim().toUpperCase();
+    if (!normalizedCode) {
+      return;
+    }
+
+    if (savedCouponCodeSet.has(normalizedCode)) {
+      messageApi.info(`Mã ${normalizedCode} đã có trong ví ưu đãi của bạn.`);
+      return;
+    }
+
+    setSavedCouponCodes((prev) => [normalizedCode, ...prev].slice(0, 20));
+
+    try {
+      if (typeof navigator !== "undefined" && navigator.clipboard?.writeText) {
+        await navigator.clipboard.writeText(normalizedCode);
+      }
+      messageApi.success(`Đã lưu và sao chép mã ${normalizedCode}.`);
+    } catch {
+      messageApi.success(`Đã lưu mã ${normalizedCode}.`);
+    }
+  };
 
   const renderProductCard = (product: HomeProduct, large = false) => {
     const hasDiscount = typeof product.originalPrice === "number" && product.originalPrice > product.price;
@@ -786,6 +902,7 @@ export function StoreHomePage() {
 
   return (
     <div className="store-home-v3 space-y-8 md:space-y-12">
+      {contextHolder}
       {isLoading ? (
         <div className="store-home-v3-notice">Đang tải dữ liệu trang chủ...</div>
       ) : null}
@@ -1156,6 +1273,47 @@ export function StoreHomePage() {
           </div>
         </section>
       ))}
+
+      {activeCoupons.length > 0 ? (
+        <section className="store-home-v3-section store-home-v3-coupon-shell">
+          <div className="store-home-v3-section-head">
+            <div>
+              <p>Ưu đãi đang chạy</p>
+              <h2>Lưu nhanh mã giảm giá trước khi thanh toán</h2>
+            </div>
+            <Link to="/cart" className="store-home-v3-text-link">
+              Áp mã tại giỏ hàng
+            </Link>
+          </div>
+
+          <div className="store-home-v3-coupon-grid">
+            {activeCoupons.map((coupon) => {
+              const normalizedCode = coupon.code.trim().toUpperCase();
+              const isSaved = savedCouponCodeSet.has(normalizedCode);
+
+              return (
+                <article key={coupon.id} className="store-home-v3-coupon-card">
+                  <div className="store-home-v3-coupon-top">
+                    <p>{formatCouponValue(coupon)}</p>
+                    <span>HSD: {formatCouponExpiry(coupon.expiresAt)}</span>
+                  </div>
+                  <h3>{normalizedCode}</h3>
+                  <p>{coupon.description?.trim() || formatCouponCondition(coupon)}</p>
+                  <div className="store-home-v3-coupon-actions">
+                    <Button
+                      className="store-home-v3-primary-ghost h-10! rounded-full! px-5! font-bold!"
+                      onClick={() => void handleSaveCoupon(normalizedCode)}
+                    >
+                      {isSaved ? "Đã lưu" : "Lưu mã"}
+                    </Button>
+                    <span>{formatCouponCondition(coupon)}</span>
+                  </div>
+                </article>
+              );
+            })}
+          </div>
+        </section>
+      ) : null}
 
       <section className="store-home-v3-member-shell">
         <article className="store-home-v3-member-card">

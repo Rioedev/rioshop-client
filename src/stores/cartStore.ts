@@ -21,7 +21,15 @@ type AddCartPayload = Omit<CartItem, "quantity"> & {
 type CartState = {
   items: CartItem[];
   ownerUserId: string | null;
-  setItems: (items: CartItem[], ownerUserId?: string | null) => void;
+  couponCode: string | null;
+  couponDiscount: number;
+  setItems: (
+    items: CartItem[],
+    ownerUserId?: string | null,
+    couponCode?: string | null,
+    couponDiscount?: number,
+  ) => void;
+  setCoupon: (couponCode?: string | null, couponDiscount?: number) => void;
   resetCart: () => void;
   addItem: (payload: AddCartPayload) => void;
   removeItem: (itemId: string) => void;
@@ -53,6 +61,23 @@ const toSafeAvailableStock = (value: number | undefined) => {
     return undefined;
   }
   return Math.floor(parsed);
+};
+
+const toSafeCouponCode = (value: string | null | undefined) => {
+  if (typeof value !== "string") {
+    return null;
+  }
+
+  const normalized = value.trim().toUpperCase();
+  return normalized || null;
+};
+
+const toSafeCouponDiscount = (value: number | undefined) => {
+  const parsed = Number(value || 0);
+  if (!Number.isFinite(parsed) || parsed <= 0) {
+    return 0;
+  }
+  return parsed;
 };
 
 const clampQuantityByStock = (quantity: number, availableStock?: number, minimum = 1) => {
@@ -121,17 +146,37 @@ export const useCartStore = create<CartState>()(
     (set) => ({
       items: [],
       ownerUserId: null,
+      couponCode: null,
+      couponDiscount: 0,
 
-      setItems: (items, ownerUserId) =>
+      setItems: (items, ownerUserId, couponCode, couponDiscount) =>
         set((state) => ({
           items: mergeCartItems(items || []),
           ownerUserId: ownerUserId === undefined ? state.ownerUserId : ownerUserId,
+          couponCode:
+            couponCode === undefined ? state.couponCode : toSafeCouponCode(couponCode),
+          couponDiscount:
+            couponDiscount === undefined
+              ? state.couponDiscount
+              : toSafeCouponDiscount(couponDiscount),
+        })),
+
+      setCoupon: (couponCode, couponDiscount) =>
+        set((state) => ({
+          couponCode:
+            couponCode === undefined ? state.couponCode : toSafeCouponCode(couponCode),
+          couponDiscount:
+            couponDiscount === undefined
+              ? state.couponDiscount
+              : toSafeCouponDiscount(couponDiscount),
         })),
 
       resetCart: () =>
         set({
           items: [],
           ownerUserId: null,
+          couponCode: null,
+          couponDiscount: 0,
         }),
 
       addItem: (payload) =>
@@ -160,6 +205,8 @@ export const useCartStore = create<CartState>()(
                   : item,
               ),
               ownerUserId: null,
+              couponCode: null,
+              couponDiscount: 0,
             };
           }
 
@@ -176,6 +223,8 @@ export const useCartStore = create<CartState>()(
               },
             ],
             ownerUserId: null,
+            couponCode: null,
+            couponDiscount: 0,
           };
         }),
 
@@ -183,6 +232,8 @@ export const useCartStore = create<CartState>()(
         set((state) => ({
           items: state.items.filter((item) => resolveCartItemId(item) !== itemId),
           ownerUserId: null,
+          couponCode: null,
+          couponDiscount: 0,
         })),
 
       updateQuantity: (itemId, quantity) =>
@@ -201,14 +252,27 @@ export const useCartStore = create<CartState>()(
             )
             .filter((item) => item.quantity > 0),
           ownerUserId: null,
+          couponCode: null,
+          couponDiscount: 0,
         })),
 
-      clearCart: () => set({ items: [], ownerUserId: null }),
+      clearCart: () =>
+        set({
+          items: [],
+          ownerUserId: null,
+          couponCode: null,
+          couponDiscount: 0,
+        }),
     }),
     {
       name: CART_STORAGE_KEY,
       storage: createJSONStorage(() => localStorage),
-      partialize: (state) => ({ items: state.items, ownerUserId: state.ownerUserId }),
+      partialize: (state) => ({
+        items: state.items,
+        ownerUserId: state.ownerUserId,
+        couponCode: state.couponCode,
+        couponDiscount: state.couponDiscount,
+      }),
     },
   ),
 );

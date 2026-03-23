@@ -8,7 +8,7 @@ import {
   type RegisterPayload,
 } from "../services/authService";
 import { bindAuthTokenGetter } from "../services/apiClient";
-import { cartService, toCartStoreItems } from "../services/cartService";
+import { cartService, toCartCouponMeta, toCartStoreItems } from "../services/cartService";
 import { useCartStore } from "./cartStore";
 
 type AuthStorage = {
@@ -125,11 +125,14 @@ const syncCartAfterLogin = async (user: AuthUser) => {
 
   try {
     const cart = await cartService.getCart();
-    useCartStore.getState().setItems(toCartStoreItems(cart), user.id);
+    const couponMeta = toCartCouponMeta(cart);
+    useCartStore
+      .getState()
+      .setItems(toCartStoreItems(cart), user.id, couponMeta.couponCode, couponMeta.couponDiscount);
   } catch {
     if (shouldMergeGuestItems) {
       // Keep guest cart if server is unavailable to avoid data loss.
-      useCartStore.getState().setItems(guestItems, null);
+      useCartStore.getState().setItems(guestItems, null, null, 0);
     }
   }
 };

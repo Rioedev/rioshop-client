@@ -12,7 +12,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { Link, Outlet, useLocation, useNavigate } from "react-router-dom";
 import { resolveStoreImageUrl } from "../features/store/utils/storeFormatting";
 import { categoryService, type Category } from "../services/categoryService";
-import { cartService, toCartStoreItems } from "../services/cartService";
+import { cartService, toCartCouponMeta, toCartStoreItems } from "../services/cartService";
 import { useAuthStore } from "../stores/authStore";
 import { useCartStore } from "../stores/cartStore";
 import { useWishlistStore } from "../stores/wishlistStore";
@@ -298,7 +298,13 @@ export function StoreLayout() {
         if (!active) {
           return;
         }
-        setCartItems(toCartStoreItems(cart), user?.id ?? null);
+        const couponMeta = toCartCouponMeta(cart);
+        setCartItems(
+          toCartStoreItems(cart),
+          user?.id ?? null,
+          couponMeta.couponCode,
+          couponMeta.couponDiscount,
+        );
       } catch {
         // no-op: UI keeps current local state if cart API is unavailable
       }

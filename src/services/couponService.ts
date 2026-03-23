@@ -94,6 +94,37 @@ export type CouponValidationResult = {
   finalAmount: number;
 };
 
+export type GetAdminCouponsParams = {
+  page?: number;
+  limit?: number;
+  keyword?: string;
+  type?: CouponType | "all";
+  isActive?: "all" | "active" | "inactive";
+};
+
+export type GetActiveCouponsParams = {
+  page?: number;
+  limit?: number;
+};
+
+export type CouponUpsertPayload = {
+  code: string;
+  name: string;
+  description?: string;
+  type: CouponType;
+  value: number;
+  maxDiscount?: number | null;
+  minOrderValue?: number | null;
+  usageLimit?: number | null;
+  perUserLimit?: number | null;
+  isActive?: boolean;
+  startsAt: string;
+  expiresAt: string;
+  source?: CouponSource;
+};
+
+export type CouponUpdatePayload = Partial<CouponUpsertPayload>;
+
 const normalizeCoupon = (item: CouponApiItem): Coupon => ({
   id: item.id ?? item._id ?? "",
   code: item.code,
@@ -132,12 +163,47 @@ const normalizeValidation = (data: CouponValidationApiResult): CouponValidationR
 });
 
 export const couponService = {
-  async getActiveCoupons(page = 1, limit = 10): Promise<PaginatedCouponData> {
+  async getActiveCoupons(params: GetActiveCouponsParams = {}): Promise<PaginatedCouponData> {
     const response = await apiClient.get<ApiResponse<PaginatedCouponApiData>>("/api/coupons", {
-      params: { page, limit },
+      params: {
+        page: params.page,
+        limit: params.limit,
+      },
     });
 
     return normalizePaginatedData(response.data.data);
+  },
+
+  async getAdminCoupons(params: GetAdminCouponsParams = {}): Promise<PaginatedCouponData> {
+    const response = await apiClient.get<ApiResponse<PaginatedCouponApiData>>("/api/coupons/admin", {
+      params: {
+        page: params.page,
+        limit: params.limit,
+        keyword: params.keyword?.trim() || undefined,
+        type: params.type && params.type !== "all" ? params.type : undefined,
+        isActive:
+          params.isActive === "all" || params.isActive === undefined
+            ? undefined
+            : params.isActive === "active",
+      },
+    });
+
+    return normalizePaginatedData(response.data.data);
+  },
+
+  async createCoupon(payload: CouponUpsertPayload): Promise<Coupon> {
+    const response = await apiClient.post<ApiResponse<CouponApiItem>>("/api/coupons/admin", payload);
+    return normalizeCoupon(response.data.data);
+  },
+
+  async updateCoupon(id: string, payload: CouponUpdatePayload): Promise<Coupon> {
+    const response = await apiClient.put<ApiResponse<CouponApiItem>>(`/api/coupons/admin/${id}`, payload);
+    return normalizeCoupon(response.data.data);
+  },
+
+  async deleteCoupon(id: string): Promise<Coupon> {
+    const response = await apiClient.delete<ApiResponse<CouponApiItem>>(`/api/coupons/admin/${id}`);
+    return normalizeCoupon(response.data.data);
   },
 
   async getCouponByCode(code: string): Promise<Coupon> {

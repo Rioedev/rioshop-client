@@ -17,7 +17,7 @@ import {
   clampQuantityByStock,
   getSafeMaxQuantity,
 } from "../utils/quantityInputGuards";
-import { cartService, toCartStoreItems } from "../../../services/cartService";
+import { cartService, toCartCouponMeta, toCartStoreItems } from "../../../services/cartService";
 import { productService, type Product } from "../../../services/productService";
 import { buildCartItemId, type CartItem, useCartStore } from "../../../stores/cartStore";
 import { useAuthStore } from "../../../stores/authStore";
@@ -26,29 +26,41 @@ export function StoreCartPage() {
   const [messageApi, contextHolder] = message.useMessage();
   const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
   const items = useCartStore((state) => state.items);
+  const couponCode = useCartStore((state) => state.couponCode);
+  const couponDiscount = useCartStore((state) => state.couponDiscount);
   const setCartItems = useCartStore((state) => state.setItems);
+  const setCoupon = useCartStore((state) => state.setCoupon);
   const updateQuantity = useCartStore((state) => state.updateQuantity);
   const removeItem = useCartStore((state) => state.removeItem);
   const clearCart = useCartStore((state) => state.clearCart);
   const addCartItem = useCartStore((state) => state.addItem);
   const [recommendations, setRecommendations] = useState<Product[]>([]);
+  const [couponInput, setCouponInput] = useState("");
+  const [applyingCoupon, setApplyingCoupon] = useState(false);
+  const [clearingCoupon, setClearingCoupon] = useState(false);
 
-  const { subtotal, shippingFee, total, freeShipProgress, amountToFreeShip, totalItems } = useMemo(() => {
+  useEffect(() => {
+    setCouponInput(couponCode ?? "");
+  }, [couponCode]);
+
+  const { subtotal, shippingFee, discountValue, total, freeShipProgress, amountToFreeShip, totalItems } = useMemo(() => {
     const subtotalValue = items.reduce((sum, item) => sum + item.price * item.quantity, 0);
     const quantityValue = items.reduce((sum, item) => sum + item.quantity, 0);
     const threshold = 299000;
     const shipping = items.length === 0 || subtotalValue >= threshold ? 0 : 30000;
+    const discount = Math.max(0, Math.min(Number(couponDiscount || 0), subtotalValue + shipping));
     const progress = Math.min(100, Math.round((subtotalValue / threshold) * 100));
 
     return {
       subtotal: subtotalValue,
       shippingFee: shipping,
-      total: subtotalValue + shipping,
+      discountValue: discount,
+      total: Math.max(0, subtotalValue + shipping - discount),
       freeShipProgress: progress,
       amountToFreeShip: Math.max(0, threshold - subtotalValue),
       totalItems: quantityValue,
     };
-  }, [items]);
+  }, [couponDiscount, items]);
 
   useEffect(() => {
     let active = true;
@@ -90,6 +102,16 @@ export function StoreCartPage() {
   const getErrorMessage = (error: unknown) =>
     error instanceof Error ? error.message : "Không thể xử lý giỏ hàng";
 
+  const syncCartFromServer = (cart: Awaited<ReturnType<typeof cartService.getCart>>) => {
+    const couponMeta = toCartCouponMeta(cart);
+    setCartItems(
+      toCartStoreItems(cart),
+      undefined,
+      couponMeta.couponCode,
+      couponMeta.couponDiscount,
+    );
+  };
+
   const handleUpdateQuantity = async (item: CartItem, quantity: number) => {
     const itemId = resolveItemId(item);
     const maxQuantity = resolveItemMaxQuantity(item);
@@ -106,7 +128,7 @@ export function StoreCartPage() {
 
     try {
       const cart = await cartService.updateItem(itemId, nextQuantity);
-      setCartItems(toCartStoreItems(cart));
+      syncCartFromServer(cart);
     } catch (error) {
       messageApi.error(getErrorMessage(error));
     }
@@ -120,7 +142,7 @@ export function StoreCartPage() {
 
     try {
       const cart = await cartService.removeItem(itemId);
-      setCartItems(toCartStoreItems(cart));
+      syncCartFromServer(cart);
     } catch (error) {
       messageApi.error(getErrorMessage(error));
     }
@@ -134,7 +156,7 @@ export function StoreCartPage() {
 
     try {
       const cart = await cartService.clearCart();
-      setCartItems(toCartStoreItems(cart));
+      syncCartFromServer(cart);
     } catch (error) {
       messageApi.error(getErrorMessage(error));
     }
@@ -161,7 +183,7 @@ export function StoreCartPage() {
           variantSku: variant.sku,
           quantity: 1,
         });
-        setCartItems(toCartStoreItems(cart));
+        syncCartFromServer(cart);
         messageApi.success("Đã thêm vào giỏ hàng");
       } catch (error) {
         messageApi.error(getErrorMessage(error));
@@ -181,6 +203,54 @@ export function StoreCartPage() {
       quantity: 1,
     });
     messageApi.success("Đã thêm vào giỏ hàng");
+  };
+
+  const handleApplyCoupon = async () => {
+    if (!isAuthenticated) {
+      messageApi.warning("Vui lòng đăng nhập để áp dụng mã giảm giá.");
+      return;
+    }
+
+    const nextCode = couponInput.trim().toUpperCase();
+    if (!nextCode) {
+      messageApi.warning("Vui lòng nhập mã giảm giá.");
+      return;
+    }
+
+    setApplyingCoupon(true);
+    try {
+      const cart = await cartService.applyCoupon(nextCode);
+      syncCartFromServer(cart);
+      messageApi.success(`Áp dụng mã ${nextCode} thành công.`);
+    } catch (error) {
+      messageApi.error(getErrorMessage(error));
+    } finally {
+      setApplyingCoupon(false);
+    }
+  };
+
+  const handleClearCoupon = async () => {
+    if (!couponCode) {
+      return;
+    }
+
+    if (!isAuthenticated) {
+      setCoupon(null, 0);
+      setCouponInput("");
+      return;
+    }
+
+    setClearingCoupon(true);
+    try {
+      const cart = await cartService.clearCoupon();
+      syncCartFromServer(cart);
+      setCouponInput("");
+      messageApi.success("Đã gỡ mã giảm giá.");
+    } catch (error) {
+      messageApi.error(getErrorMessage(error));
+    } finally {
+      setClearingCoupon(false);
+    }
   };
 
   if (items.length === 0) {
@@ -349,6 +419,12 @@ export function StoreCartPage() {
             <span>Phí vận chuyển</span>
             <strong>{shippingFee === 0 ? "Miễn phí" : formatStoreCurrency(shippingFee)}</strong>
           </div>
+          {discountValue > 0 ? (
+            <div className="cart-summary-row cart-summary-row-discount">
+              <span>Giảm giá{couponCode ? ` (${couponCode})` : ""}</span>
+              <strong>-{formatStoreCurrency(discountValue)}</strong>
+            </div>
+          ) : null}
           <div className="cart-summary-row is-total">
             <span>Tổng cộng</span>
             <strong>{formatStoreCurrency(total)}</strong>
@@ -357,9 +433,36 @@ export function StoreCartPage() {
           <div className="mt-5">
             <p className="mb-2 text-xs font-bold uppercase tracking-[0.12em] text-slate-500">Mã giảm giá</p>
             <div className="flex gap-2">
-              <Input placeholder="Nhập mã" className="rounded-full!" />
-              <Button className={storeButtonClassNames.ghostCompact}>Áp dụng</Button>
+              <Input
+                value={couponInput}
+                onChange={(event) => setCouponInput(event.target.value)}
+                onPressEnter={() => void handleApplyCoupon()}
+                placeholder={isAuthenticated ? "Nhập mã giảm giá" : "Đăng nhập để áp mã"}
+                className="rounded-full!"
+              />
+              <Button
+                className={storeButtonClassNames.ghostCompact}
+                loading={applyingCoupon}
+                disabled={!couponInput.trim() || applyingCoupon || clearingCoupon}
+                onClick={() => void handleApplyCoupon()}
+              >
+                Áp dụng
+              </Button>
             </div>
+            {couponCode ? (
+              <div className="cart-coupon-chip mt-3">
+                <span>Mã đang dùng: {couponCode}</span>
+                <Button
+                  type="link"
+                  size="small"
+                  loading={clearingCoupon}
+                  className="px-0! text-slate-600!"
+                  onClick={() => void handleClearCoupon()}
+                >
+                  Bỏ mã
+                </Button>
+              </div>
+            ) : null}
           </div>
 
           <Link

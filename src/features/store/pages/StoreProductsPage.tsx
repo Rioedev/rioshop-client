@@ -12,7 +12,7 @@ import {
 } from "../components/StorePageChrome";
 import { formatStoreCurrency, resolveStoreProductThumbnail } from "../utils/storeFormatting";
 import { categoryService, type Category } from "../../../services/categoryService";
-import { cartService, toCartStoreItems } from "../../../services/cartService";
+import { cartService, toCartCouponMeta, toCartStoreItems } from "../../../services/cartService";
 import { productService, type Product } from "../../../services/productService";
 import { useAuthStore } from "../../../stores/authStore";
 import { useCartStore } from "../../../stores/cartStore";
@@ -189,7 +189,13 @@ export function StoreProductsPage() {
           variantSku: variant.sku,
           quantity: 1,
         });
-        setCartItems(toCartStoreItems(cart));
+        const couponMeta = toCartCouponMeta(cart);
+        setCartItems(
+          toCartStoreItems(cart),
+          undefined,
+          couponMeta.couponCode,
+          couponMeta.couponDiscount,
+        );
         message.success("Đã thêm vào giỏ hàng");
       } catch (error) {
         const messageText = error instanceof Error ? error.message : "Không thể thêm vào giỏ hàng";

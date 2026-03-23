@@ -8,7 +8,7 @@ import {
 import { Button, InputNumber, Progress, Rate, Typography, message } from "antd";
 import { useEffect, useMemo, useState } from "react";
 import { Link, useParams } from "react-router-dom";
-import { cartService, toCartStoreItems } from "../../../services/cartService";
+import { cartService, toCartCouponMeta, toCartStoreItems } from "../../../services/cartService";
 import { productService, type Product } from "../../../services/productService";
 import { reviewService, type ReviewItem } from "../../../services/reviewService";
 import { useAuthStore } from "../../../stores/authStore";
@@ -530,7 +530,13 @@ export function StoreProductDetailPage() {
           variantSku: selectedVariant?.sku || "",
           quantity,
         });
-        setCartItems(toCartStoreItems(cart));
+        const couponMeta = toCartCouponMeta(cart);
+        setCartItems(
+          toCartStoreItems(cart),
+          undefined,
+          couponMeta.couponCode,
+          couponMeta.couponDiscount,
+        );
         message.success("Đã thêm sản phẩm vào giỏ hàng");
       } catch (error) {
         const messageText = error instanceof Error ? error.message : "Không thể thêm vào giỏ hàng";

@@ -11,7 +11,7 @@ import {
   StoreSectionHeader,
   storeButtonClassNames,
 } from "../components/StorePageChrome";
-import { cartService, toCartStoreItems } from "../../../services/cartService";
+import { cartService, toCartCouponMeta, toCartStoreItems } from "../../../services/cartService";
 import { formatStoreCurrency } from "../utils/storeFormatting";
 import { orderService } from "../../../services/orderService";
 import { paymentService } from "../../../services/paymentService";
@@ -26,6 +26,8 @@ export function StoreCheckoutPage() {
   const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
   const user = useAuthStore((state) => state.user);
   const cartItems = useCartStore((state) => state.items);
+  const couponCode = useCartStore((state) => state.couponCode);
+  const couponDiscount = useCartStore((state) => state.couponDiscount);
   const clearCart = useCartStore((state) => state.clearCart);
   const setCartItems = useCartStore((state) => state.setItems);
 
@@ -40,16 +42,19 @@ export function StoreCheckoutPage() {
   const [paymentMethod, setPaymentMethod] = useState<"cod" | "momo" | "vnpay" | "bank_transfer">("cod");
   const [submitting, setSubmitting] = useState(false);
 
-  const { subtotal, shippingFee, total } = useMemo(() => {
+  const { subtotal, shippingFee, discountValue, total } = useMemo(() => {
     const subtotalValue = cartItems.reduce((sum, item) => sum + item.price * item.quantity, 0);
     const fee = shippingMethod === "same_day" ? 45000 : shippingMethod === "express" ? 30000 : 20000;
+    const shipping = subtotalValue === 0 ? 0 : fee;
+    const discount = Math.max(0, Math.min(Number(couponDiscount || 0), subtotalValue + shipping));
 
     return {
       subtotal: subtotalValue,
-      shippingFee: subtotalValue === 0 ? 0 : fee,
-      total: subtotalValue + (subtotalValue === 0 ? 0 : fee),
+      shippingFee: shipping,
+      discountValue: discount,
+      total: Math.max(0, subtotalValue + shipping - discount),
     };
-  }, [cartItems, shippingMethod]);
+  }, [cartItems, couponDiscount, shippingMethod]);
 
   const invalidProductIds = cartItems.filter((item) => !objectIdPattern.test(item.productId));
   const itemsMissingVariant = cartItems.filter((item) => !item.variantSku?.trim());
@@ -133,6 +138,8 @@ export function StoreCheckoutPage() {
           shippingFee,
           currency: "VND",
         },
+        couponCode: couponCode || undefined,
+        couponDiscount: couponCode ? discountValue : undefined,
         paymentMethod,
         paymentStatus: "pending",
         shippingMethod,
@@ -144,7 +151,13 @@ export function StoreCheckoutPage() {
       clearCart();
       try {
         const cleared = await cartService.clearCart();
-        setCartItems(toCartStoreItems(cleared), user?.id ?? null);
+        const couponMeta = toCartCouponMeta(cleared);
+        setCartItems(
+          toCartStoreItems(cleared),
+          user?.id ?? null,
+          couponMeta.couponCode,
+          couponMeta.couponDiscount,
+        );
       } catch {
         // Keep local cart cleared to avoid blocking checkout flow if cart API is unavailable.
       }
@@ -349,6 +362,12 @@ export function StoreCheckoutPage() {
             <span>Phí vận chuyển</span>
             <strong>{formatStoreCurrency(shippingFee)}</strong>
           </div>
+          {discountValue > 0 ? (
+            <div className="cart-summary-row cart-summary-row-discount">
+              <span>Giảm giá{couponCode ? ` (${couponCode})` : ""}</span>
+              <strong>-{formatStoreCurrency(discountValue)}</strong>
+            </div>
+          ) : null}
           <div className="cart-summary-row is-total">
             <span>Tổng cộng</span>
             <strong>{formatStoreCurrency(total)}</strong>

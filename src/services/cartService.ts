@@ -28,10 +28,22 @@ export type CartSnapshot = {
   updatedAt?: string;
 };
 
+type ApplyCouponApiData =
+  | CartSnapshot
+  | {
+      cart?: CartSnapshot;
+      discount?: number;
+    };
+
 export type CartAddPayload = {
   productId: string;
   variantSku: string;
   quantity?: number;
+};
+
+export type CartCouponMeta = {
+  couponCode: string | null;
+  couponDiscount: number;
 };
 
 const DEFAULT_CART_VARIANT_KEY = "__default__";
@@ -58,6 +70,19 @@ const toSafeAvailableStock = (value: number | undefined) => {
 const toSafeItemId = (item: CartApiItem, productId: string) =>
   item.itemId?.trim() ||
   `${productId}::${item.variantSku?.trim() || DEFAULT_CART_VARIANT_KEY}`;
+
+const normalizeCartSnapshot = (payload: ApplyCouponApiData): CartSnapshot => {
+  if (payload && typeof payload === "object" && "cart" in payload && payload.cart) {
+    return payload.cart;
+  }
+
+  return payload as CartSnapshot;
+};
+
+export const toCartCouponMeta = (cart: CartSnapshot): CartCouponMeta => ({
+  couponCode: cart.couponCode?.trim() || null,
+  couponDiscount: Math.max(0, Number(cart.couponDiscount || 0)),
+});
 
 export const toCartStoreItems = (cart: CartSnapshot): CartItem[] =>
   (cart.items || []).reduce<CartItem[]>((acc, item) => {
@@ -111,6 +136,18 @@ export const cartService = {
 
   async clearCart(): Promise<CartSnapshot> {
     const response = await apiClient.delete<ApiResponse<CartSnapshot>>("/api/carts/clear");
+    return response.data.data;
+  },
+
+  async applyCoupon(code: string): Promise<CartSnapshot> {
+    const response = await apiClient.post<ApiResponse<ApplyCouponApiData>>("/api/carts/apply-coupon", {
+      code,
+    });
+    return normalizeCartSnapshot(response.data.data);
+  },
+
+  async clearCoupon(): Promise<CartSnapshot> {
+    const response = await apiClient.delete<ApiResponse<CartSnapshot>>("/api/carts/coupon");
     return response.data.data;
   },
 };

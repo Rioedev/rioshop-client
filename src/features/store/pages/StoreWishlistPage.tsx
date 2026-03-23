@@ -10,7 +10,7 @@ import {
   storeButtonClassNames,
 } from "../components/StorePageChrome";
 import { formatStoreCurrency } from "../utils/storeFormatting";
-import { cartService, toCartStoreItems } from "../../../services/cartService";
+import { cartService, toCartCouponMeta, toCartStoreItems } from "../../../services/cartService";
 import { productService } from "../../../services/productService";
 import { useAuthStore } from "../../../stores/authStore";
 import { useCartStore } from "../../../stores/cartStore";
@@ -44,7 +44,13 @@ export function StoreWishlistPage() {
           variantSku: variant.sku,
           quantity: 1,
         });
-        setCartItems(toCartStoreItems(cart));
+        const couponMeta = toCartCouponMeta(cart);
+        setCartItems(
+          toCartStoreItems(cart),
+          undefined,
+          couponMeta.couponCode,
+          couponMeta.couponDiscount,
+        );
       } else {
         addCartItem({
           productId: item.productId,
