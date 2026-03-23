@@ -8,7 +8,6 @@ import {
   Popconfirm,
   Row,
   Select,
-  Space,
   Table,
   Tag,
   Typography,
@@ -74,22 +73,22 @@ const PAYMENT_STATUS_FILTER_OPTIONS: { value: PaymentStatus | "all"; label: stri
   { value: "failed", label: PAYMENT_STATUS_LABEL_MAP.failed },
 ];
 
-const STATUS_UPDATE_OPTIONS: { value: OrderStatus; label: string }[] = [
-  { value: "pending", label: STATUS_LABEL_MAP.pending },
-  { value: "confirmed", label: STATUS_LABEL_MAP.confirmed },
-  { value: "packing", label: STATUS_LABEL_MAP.packing },
-  { value: "shipping", label: STATUS_LABEL_MAP.shipping },
-  { value: "delivered", label: STATUS_LABEL_MAP.delivered },
-  { value: "cancelled", label: STATUS_LABEL_MAP.cancelled },
-  { value: "returned", label: STATUS_LABEL_MAP.returned },
-];
-
 const PAYMENT_STATUS_UPDATE_OPTIONS: { value: PaymentStatus; label: string }[] = [
   { value: "pending", label: PAYMENT_STATUS_LABEL_MAP.pending },
   { value: "paid", label: PAYMENT_STATUS_LABEL_MAP.paid },
   { value: "refunded", label: PAYMENT_STATUS_LABEL_MAP.refunded },
   { value: "failed", label: PAYMENT_STATUS_LABEL_MAP.failed },
 ];
+
+const STATUS_TRANSITION_MAP: Record<OrderStatus, OrderStatus[]> = {
+  pending: ["confirmed", "packing", "shipping", "cancelled"],
+  confirmed: ["packing", "shipping", "cancelled"],
+  packing: ["shipping", "cancelled"],
+  shipping: ["delivered", "returned", "cancelled"],
+  delivered: ["returned"],
+  cancelled: [],
+  returned: [],
+};
 
 const formatCurrency = new Intl.NumberFormat("vi-VN");
 
@@ -121,12 +120,27 @@ const formatAddress = (value: unknown) => {
   return String(value);
 };
 
+const isCancellableOrder = (status: OrderStatus) => ["pending", "confirmed"].includes(status);
+
+const getStatusUpdateOptions = (currentStatus: OrderStatus): { value: OrderStatus; label: string }[] => {
+  const nextStatuses = STATUS_TRANSITION_MAP[currentStatus] || [];
+  const uniqueStatuses = [currentStatus, ...nextStatuses].filter(
+    (status, index, source) => source.indexOf(status) === index,
+  );
+
+  return uniqueStatuses.map((status) => ({
+    value: status,
+    label: status === currentStatus ? `${STATUS_LABEL_MAP[status]} (giữ nguyên)` : STATUS_LABEL_MAP[status],
+  }));
+};
+
 export function AdminOrdersPage() {
   const [messageApi, contextHolder] = message.useMessage();
   const [searchText, setSearchText] = useState("");
-  const [detailOrder, setDetailOrder] = useState<OrderRecord | null>(null);
-  const [statusDraft, setStatusDraft] = useState<Record<string, OrderStatus>>({});
-  const [paymentStatusDraft, setPaymentStatusDraft] = useState<Record<string, PaymentStatus>>({});
+  const [managingOrder, setManagingOrder] = useState<OrderRecord | null>(null);
+  const [manageStatus, setManageStatus] = useState<OrderStatus>("pending");
+  const [managePaymentStatus, setManagePaymentStatus] = useState<PaymentStatus>("pending");
+  const [manageNote, setManageNote] = useState("");
 
   const orders = useOrderStore((state) => state.orders);
   const loading = useOrderStore((state) => state.loading);
@@ -153,19 +167,6 @@ export function AdminOrdersPage() {
     });
   }, [loadOrders, messageApi]);
 
-  useEffect(() => {
-    const nextStatusDraft: Record<string, OrderStatus> = {};
-    const nextPaymentDraft: Record<string, PaymentStatus> = {};
-
-    orders.forEach((order) => {
-      nextStatusDraft[order.id] = order.status;
-      nextPaymentDraft[order.id] = order.paymentStatus;
-    });
-
-    setStatusDraft(nextStatusDraft);
-    setPaymentStatusDraft(nextPaymentDraft);
-  }, [orders]);
-
   const filteredOrders = useMemo(() => {
     const keyword = searchText.trim().toLowerCase();
     if (!keyword) return orders;
@@ -181,6 +182,44 @@ export function AdminOrdersPage() {
   const pendingCount = orders.filter((item) => item.status === "pending").length;
   const shippingCount = orders.filter((item) => item.status === "shipping").length;
   const completedCount = orders.filter((item) => item.status === "delivered").length;
+
+  const canChangeOrderStatus = managingOrder
+    ? STATUS_TRANSITION_MAP[managingOrder.status].length > 0
+    : false;
+
+  const manageStatusOptions = useMemo(
+    () => getStatusUpdateOptions(managingOrder?.status || "pending"),
+    [managingOrder?.status],
+  );
+
+  const hasManageChanges = useMemo(() => {
+    if (!managingOrder) {
+      return false;
+    }
+
+    return (
+      manageStatus !== managingOrder.status ||
+      managePaymentStatus !== managingOrder.paymentStatus ||
+      Boolean(manageNote.trim())
+    );
+  }, [manageNote, managePaymentStatus, manageStatus, managingOrder]);
+
+  const openManageModal = (order: OrderRecord) => {
+    setManagingOrder(order);
+    setManageStatus(order.status);
+    setManagePaymentStatus(order.paymentStatus);
+    setManageNote("");
+  };
+
+  const closeManageModal = () => {
+    if (saving) {
+      return;
+    }
+    setManagingOrder(null);
+    setManageStatus("pending");
+    setManagePaymentStatus("pending");
+    setManageNote("");
+  };
 
   const handleChangeStatusFilter = async (value: OrderStatus | "all") => {
     setStatusFilter(value);
@@ -210,30 +249,38 @@ export function AdminOrdersPage() {
     }
   };
 
-  const handleUpdateOrder = async (order: OrderRecord) => {
-    const nextStatus = statusDraft[order.id] ?? order.status;
-    const nextPaymentStatus = paymentStatusDraft[order.id] ?? order.paymentStatus;
+  const handleUpdateOrder = async () => {
+    if (!managingOrder) {
+      return;
+    }
 
-    if (nextStatus === order.status && nextPaymentStatus === order.paymentStatus) {
+    if (!hasManageChanges) {
       messageApi.info("Đơn hàng chưa có thay đổi.");
       return;
     }
 
     try {
-      await updateOrderStatus(order.id, {
-        status: nextStatus,
-        paymentStatus: nextPaymentStatus,
+      await updateOrderStatus(managingOrder.id, {
+        status: manageStatus,
+        paymentStatus: managePaymentStatus,
+        note: manageNote.trim() || undefined,
       });
       messageApi.success("Cập nhật đơn hàng thành công.");
+      closeManageModal();
     } catch (error) {
       messageApi.error(getErrorMessage(error));
     }
   };
 
-  const handleCancelOrder = async (order: OrderRecord) => {
+  const handleCancelOrder = async () => {
+    if (!managingOrder) {
+      return;
+    }
+
     try {
-      await cancelOrder(order.id, "Hủy đơn từ trang quản trị");
+      await cancelOrder(managingOrder.id, manageNote.trim() || "Hủy đơn từ trang quản trị");
       messageApi.success("Hủy đơn hàng thành công.");
+      closeManageModal();
     } catch (error) {
       messageApi.error(getErrorMessage(error));
     }
@@ -244,7 +291,7 @@ export function AdminOrdersPage() {
       title: "Mã đơn",
       dataIndex: "orderNumber",
       key: "orderNumber",
-      width: 140,
+      width: 150,
     },
     {
       title: "Khách hàng",
@@ -297,48 +344,11 @@ export function AdminOrdersPage() {
     {
       title: "Thao tác",
       key: "actions",
-      width: 300,
+      width: 120,
       render: (_, record) => (
-        <Space wrap>
-          <Select<OrderStatus>
-            size="small"
-            value={statusDraft[record.id] ?? record.status}
-            options={STATUS_UPDATE_OPTIONS}
-            style={{ minWidth: 140 }}
-            onChange={(value) => setStatusDraft((prev) => ({ ...prev, [record.id]: value }))}
-            disabled={saving}
-          />
-          <Select<PaymentStatus>
-            size="small"
-            value={paymentStatusDraft[record.id] ?? record.paymentStatus}
-            options={PAYMENT_STATUS_UPDATE_OPTIONS}
-            style={{ minWidth: 150 }}
-            onChange={(value) => setPaymentStatusDraft((prev) => ({ ...prev, [record.id]: value }))}
-            disabled={saving}
-          />
-          <Button size="small" onClick={() => void handleUpdateOrder(record)} loading={saving}>
-            Lưu
-          </Button>
-          <Button size="small" onClick={() => setDetailOrder(record)}>
-            Chi tiết
-          </Button>
-          <Popconfirm
-            title="Hủy đơn hàng"
-            description="Chỉ nên hủy đơn khi khách yêu cầu hoặc đơn gặp sự cố."
-            okText="Hủy đơn"
-            cancelText="Bỏ qua"
-            onConfirm={() => void handleCancelOrder(record)}
-            disabled={saving || !["pending", "confirmed"].includes(record.status)}
-          >
-            <Button
-              size="small"
-              danger
-              disabled={saving || !["pending", "confirmed"].includes(record.status)}
-            >
-              Hủy đơn
-            </Button>
-          </Popconfirm>
-        </Space>
+        <Button size="small" onClick={() => openManageModal(record)} disabled={saving}>
+          Quản lý
+        </Button>
       ),
     },
   ];
@@ -352,7 +362,7 @@ export function AdminOrdersPage() {
           Quản lý đơn hàng
         </Title>
         <Paragraph className="mb-0!" type="secondary">
-          Theo dõi đơn hàng theo thời gian thực, cập nhật trạng thái xử lý và thanh toán trực tiếp tại bảng.
+          Theo dõi đơn hàng theo thời gian thực, mở hộp quản lý để cập nhật trạng thái xử lý và thanh toán gọn hơn.
         </Paragraph>
       </div>
 
@@ -411,7 +421,7 @@ export function AdminOrdersPage() {
           columns={columns}
           dataSource={filteredOrders}
           loading={loading || saving}
-          scroll={{ x: 1700 }}
+          scroll={{ x: 1300 }}
           pagination={{
             current: page,
             pageSize,
@@ -435,27 +445,107 @@ export function AdminOrdersPage() {
       </Card>
 
       <Modal
-        title={detailOrder ? `Chi tiết đơn ${detailOrder.orderNumber}` : "Chi tiết đơn hàng"}
-        open={Boolean(detailOrder)}
-        onCancel={() => setDetailOrder(null)}
-        footer={null}
-        width={900}
+        title={managingOrder ? `Quản lý đơn ${managingOrder.orderNumber}` : "Quản lý đơn hàng"}
+        open={Boolean(managingOrder)}
+        onCancel={closeManageModal}
+        width={960}
+        footer={[
+          <Button key="close" onClick={closeManageModal} disabled={saving}>
+            Đóng
+          </Button>,
+          <Popconfirm
+            key="cancel"
+            title="Hủy đơn hàng"
+            description="Chỉ nên hủy đơn khi khách yêu cầu hoặc đơn gặp sự cố."
+            okText="Hủy đơn"
+            cancelText="Bỏ qua"
+            onConfirm={() => void handleCancelOrder()}
+            disabled={!managingOrder || !isCancellableOrder(managingOrder.status) || saving}
+          >
+            <Button
+              danger
+              disabled={!managingOrder || !isCancellableOrder(managingOrder.status) || saving}
+            >
+              Hủy đơn
+            </Button>
+          </Popconfirm>,
+          <Button
+            key="save"
+            type="primary"
+            onClick={() => void handleUpdateOrder()}
+            loading={saving}
+            disabled={!managingOrder || !hasManageChanges}
+          >
+            Lưu cập nhật
+          </Button>,
+        ]}
       >
-        {detailOrder ? (
+        {managingOrder ? (
           <div className="space-y-4">
+            <Card size="small" title="Điều phối đơn hàng">
+              <div className="grid gap-3 md:grid-cols-2">
+                <div className="space-y-3">
+                  <div>
+                    <Text type="secondary">Trạng thái hiện tại</Text>
+                    <div className="mt-1">
+                      <Tag color={STATUS_COLOR_MAP[managingOrder.status]}>
+                        {STATUS_LABEL_MAP[managingOrder.status]}
+                      </Tag>
+                    </div>
+                  </div>
+                  <Select<OrderStatus>
+                    value={manageStatus}
+                    options={manageStatusOptions}
+                    onChange={(value) => setManageStatus(value)}
+                    disabled={saving || !canChangeOrderStatus}
+                  />
+                  {!canChangeOrderStatus ? (
+                    <Text type="secondary">Đơn ở trạng thái cuối, không thể chuyển tiếp.</Text>
+                  ) : null}
+                </div>
+
+                <div className="space-y-3">
+                  <div>
+                    <Text type="secondary">Thanh toán hiện tại</Text>
+                    <div className="mt-1">
+                      <Tag color={PAYMENT_STATUS_COLOR_MAP[managingOrder.paymentStatus]}>
+                        {PAYMENT_STATUS_LABEL_MAP[managingOrder.paymentStatus]}
+                      </Tag>
+                    </div>
+                  </div>
+                  <Select<PaymentStatus>
+                    value={managePaymentStatus}
+                    options={PAYMENT_STATUS_UPDATE_OPTIONS}
+                    onChange={(value) => setManagePaymentStatus(value)}
+                    disabled={saving}
+                  />
+                </div>
+              </div>
+
+              <Input.TextArea
+                className="mt-3"
+                value={manageNote}
+                onChange={(event) => setManageNote(event.target.value)}
+                placeholder="Ghi chú quản trị (tùy chọn)"
+                autoSize={{ minRows: 2, maxRows: 4 }}
+                maxLength={500}
+                disabled={saving}
+              />
+            </Card>
+
             <div className="grid gap-3 md:grid-cols-2">
               <Card size="small" title="Thông tin khách hàng">
-                <div><Text strong>Tên:</Text> {detailOrder.customerName}</div>
-                <div><Text strong>Email:</Text> {detailOrder.customerEmail || "-"}</div>
-                <div><Text strong>Số điện thoại:</Text> {detailOrder.customerPhone || "-"}</div>
+                <div><Text strong>Tên:</Text> {managingOrder.customerName}</div>
+                <div><Text strong>Email:</Text> {managingOrder.customerEmail || "-"}</div>
+                <div><Text strong>Số điện thoại:</Text> {managingOrder.customerPhone || "-"}</div>
               </Card>
               <Card size="small" title="Thông tin vận chuyển">
-                <div><Text strong>Phương thức:</Text> {detailOrder.shippingMethod || "-"}</div>
-                <div><Text strong>Đơn vị vận chuyển:</Text> {detailOrder.shippingCarrier || "-"}</div>
+                <div><Text strong>Phương thức:</Text> {managingOrder.shippingMethod || "-"}</div>
+                <div><Text strong>Đơn vị vận chuyển:</Text> {managingOrder.shippingCarrier || "-"}</div>
                 <div>
                   <Text strong>Địa chỉ:</Text>
                   <pre className="mt-1 whitespace-pre-wrap break-words rounded bg-slate-50 p-2 text-xs">
-                    {formatAddress(detailOrder.shippingAddress)}
+                    {formatAddress(managingOrder.shippingAddress)}
                   </pre>
                 </div>
               </Card>
@@ -463,7 +553,7 @@ export function AdminOrdersPage() {
 
             <Card size="small" title="Sản phẩm trong đơn">
               <div className="space-y-3">
-                {detailOrder.items.map((line, index) => (
+                {managingOrder.items.map((line, index) => (
                   <div key={`${line.variantSku}-${index}`} className="rounded border border-slate-200 p-3">
                     <div><Text strong>{line.productName || "Sản phẩm"}</Text></div>
                     <div>SKU biến thể: {line.variantSku || "-"}</div>
@@ -477,10 +567,10 @@ export function AdminOrdersPage() {
             </Card>
 
             <Card size="small" title="Tổng hợp thanh toán">
-              <div><Text strong>Tạm tính:</Text> {formatCurrency.format(detailOrder.pricing.subtotal)} VND</div>
-              <div><Text strong>Giảm giá:</Text> {formatCurrency.format(detailOrder.pricing.discount)} VND</div>
-              <div><Text strong>Phí vận chuyển:</Text> {formatCurrency.format(detailOrder.pricing.shippingFee)} VND</div>
-              <div><Text strong>Tổng thanh toán:</Text> {formatCurrency.format(detailOrder.pricing.total)} VND</div>
+              <div><Text strong>Tạm tính:</Text> {formatCurrency.format(managingOrder.pricing.subtotal)} VND</div>
+              <div><Text strong>Giảm giá:</Text> {formatCurrency.format(managingOrder.pricing.discount)} VND</div>
+              <div><Text strong>Phí vận chuyển:</Text> {formatCurrency.format(managingOrder.pricing.shippingFee)} VND</div>
+              <div><Text strong>Tổng thanh toán:</Text> {formatCurrency.format(managingOrder.pricing.total)} VND</div>
             </Card>
           </div>
         ) : null}
