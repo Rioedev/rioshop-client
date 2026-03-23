@@ -1,4 +1,5 @@
 ﻿import {
+  BellOutlined,
   DownOutlined,
   HeartOutlined,
   LogoutOutlined,
@@ -10,11 +11,14 @@
 import { Input } from "antd";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Link, Outlet, useLocation, useNavigate } from "react-router-dom";
+import { StoreNotificationsModal } from "../features/store/components/StoreNotificationsModal";
 import { resolveStoreImageUrl } from "../features/store/utils/storeFormatting";
 import { categoryService, type Category } from "../services/categoryService";
 import { cartService, toCartCouponMeta, toCartStoreItems } from "../services/cartService";
+import { subscribeUserNotifications } from "../services/socketClient";
 import { useAuthStore } from "../stores/authStore";
 import { useCartStore } from "../stores/cartStore";
+import { useNotificationStore } from "../stores/notificationStore";
 import { useWishlistStore } from "../stores/wishlistStore";
 
 const defaultMenuItems = [
@@ -207,10 +211,15 @@ export function StoreLayout() {
   const cartItems = useCartStore((state) => state.items);
   const setCartItems = useCartStore((state) => state.setItems);
   const wishlistItems = useWishlistStore((state) => state.items);
+  const unreadNotificationCount = useNotificationStore((state) => state.unreadCount);
+  const refreshUnreadCount = useNotificationStore((state) => state.refreshUnreadCount);
+  const applyRealtimeNotification = useNotificationStore((state) => state.applyRealtimeNotification);
+  const resetNotifications = useNotificationStore((state) => state.reset);
   const cartCount = cartItems.reduce((total, item) => total + item.quantity, 0);
 
   const [isAccountMenuOpen, setIsAccountMenuOpen] = useState(false);
   const [isMegaMenuOpen, setIsMegaMenuOpen] = useState(false);
+  const [isNotificationModalOpen, setIsNotificationModalOpen] = useState(false);
   const [searchKeyword, setSearchKeyword] = useState("");
   const [menuItems, setMenuItems] = useState(defaultMenuItems);
   const [categoryTree, setCategoryTree] = useState<Category[]>([]);
@@ -289,6 +298,7 @@ export function StoreLayout() {
 
   useEffect(() => {
     if (!isAuthenticated) {
+      resetNotifications();
       return;
     }
 
@@ -316,7 +326,23 @@ export function StoreLayout() {
     return () => {
       active = false;
     };
-  }, [isAuthenticated, setCartItems, user?.id]);
+  }, [isAuthenticated, resetNotifications, setCartItems, user?.id]);
+
+  useEffect(() => {
+    const principalId = user?.id?.toString().trim();
+    if (!isAuthenticated || !principalId) {
+      return;
+    }
+
+    void refreshUnreadCount().catch(() => undefined);
+    const unsubscribe = subscribeUserNotifications(principalId, (payload) => {
+      applyRealtimeNotification(payload);
+    });
+
+    return () => {
+      unsubscribe();
+    };
+  }, [applyRealtimeNotification, isAuthenticated, refreshUnreadCount, user?.id]);
 
   const onSearch = () => {
     const keyword = searchKeyword.trim();
@@ -428,6 +454,19 @@ export function StoreLayout() {
             </div>
 
             <div className="ml-auto flex flex-wrap items-center justify-end gap-2">
+              <button
+                type="button"
+                className="store-icon-link border-none bg-transparent p-0"
+                onClick={() => setIsNotificationModalOpen(true)}
+              >
+                <span className="store-top-icon" title="Thông báo" aria-label="Thông báo">
+                  <BellOutlined />
+                  {unreadNotificationCount > 0 ? (
+                    <span className="store-cart-count">{unreadNotificationCount}</span>
+                  ) : null}
+                </span>
+              </button>
+
               <Link to="/wishlist" className="store-icon-link">
                 <span className="store-top-icon" title="Yêu thích" aria-label="Yêu thích">
                   <HeartOutlined />
@@ -472,6 +511,17 @@ export function StoreLayout() {
                       <UserOutlined />
                       Tài khoản của tôi
                     </Link>
+                    <button
+                      type="button"
+                      className="store-user-dropdown-item"
+                      onClick={() => {
+                        setIsAccountMenuOpen(false);
+                        setIsNotificationModalOpen(true);
+                      }}
+                    >
+                      <BellOutlined />
+                      Thông báo của tôi
+                    </button>
                     <Link
                       to="/orders"
                       className="store-user-dropdown-item"
@@ -657,6 +707,8 @@ export function StoreLayout() {
           </nav>
         </div>
       </header>
+
+      <StoreNotificationsModal open={isNotificationModalOpen} onClose={() => setIsNotificationModalOpen(false)} />
 
       <div className="store-policy-strip">
         <div className="mx-auto w-full max-w-405 px-3 sm:px-4 xl:px-6">

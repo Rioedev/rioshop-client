@@ -1,7 +1,11 @@
-﻿import { Button, Layout, Menu, Typography } from "antd";
+import { BellOutlined } from "@ant-design/icons";
+import { Badge, Button, Layout, Menu, Typography } from "antd";
 import type { ItemType } from "antd/es/menu/interface";
+import { useEffect } from "react";
 import { Outlet, useLocation, useNavigate } from "react-router-dom";
+import { subscribeUserNotifications } from "../services/socketClient";
 import { useAuthStore } from "../stores/authStore";
+import { useNotificationStore } from "../stores/notificationStore";
 
 const { Header, Content, Sider } = Layout;
 const { Text, Title } = Typography;
@@ -25,7 +29,12 @@ export function AdminLayout() {
   const location = useLocation();
   const navigate = useNavigate();
   const user = useAuthStore((state) => state.user);
+  const accountType = useAuthStore((state) => state.accountType);
   const logout = useAuthStore((state) => state.logout);
+  const unreadCount = useNotificationStore((state) => state.unreadCount);
+  const refreshUnreadCount = useNotificationStore((state) => state.refreshUnreadCount);
+  const applyRealtimeNotification = useNotificationStore((state) => state.applyRealtimeNotification);
+  const resetNotifications = useNotificationStore((state) => state.reset);
   const canManageAdminAccounts = user?.role === "superadmin" || user?.role === "manager";
   const adminMenuItems: ItemType[] = canManageAdminAccounts
     ? [...baseAdminMenuItems, { key: "/admin/admin-accounts", label: "Tài khoản admin" }]
@@ -35,6 +44,23 @@ export function AdminLayout() {
     adminMenuItems.find((item) =>
       location.pathname.startsWith(String(item?.key)),
     )?.key ?? "/admin/dashboard";
+
+  useEffect(() => {
+    const principalId = user?.id?.toString().trim();
+    if (accountType !== "admin" || !principalId) {
+      resetNotifications();
+      return;
+    }
+
+    void refreshUnreadCount().catch(() => undefined);
+    const unsubscribe = subscribeUserNotifications(principalId, (payload) => {
+      applyRealtimeNotification(payload);
+    });
+
+    return () => {
+      unsubscribe();
+    };
+  }, [accountType, applyRealtimeNotification, refreshUnreadCount, resetNotifications, user?.id]);
 
   return (
     <Layout className="h-screen overflow-hidden">
@@ -63,6 +89,14 @@ export function AdminLayout() {
               Quản lý hệ thống cửa hàng RioShop
             </Title>
             <div className="flex items-center gap-3">
+              <Button type="text" onClick={() => navigate("/admin/notifications")}>
+                <span className="inline-flex items-center gap-2">
+                  <Badge count={unreadCount} overflowCount={99} size="small">
+                    <BellOutlined className="text-base" />
+                  </Badge>
+                  Thông báo
+                </span>
+              </Button>
               <Text type="secondary">{user?.fullName ?? "Khách"}</Text>
               <Button
                 onClick={async () => {

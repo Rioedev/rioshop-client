@@ -10,6 +10,7 @@ import {
 import { bindAuthTokenGetter } from "../services/apiClient";
 import { cartService, toCartCouponMeta, toCartStoreItems } from "../services/cartService";
 import { useCartStore } from "./cartStore";
+import { useNotificationStore } from "./notificationStore";
 
 type AuthStorage = {
   user: AuthUser;
@@ -206,6 +207,7 @@ export const useAuthStore = create<AuthState>((set, get) => {
       } finally {
         clearAuthStorage();
         useCartStore.getState().resetCart();
+        useNotificationStore.getState().reset();
         set({
           user: null,
           token: null,
@@ -223,6 +225,7 @@ export const useAuthStore = create<AuthState>((set, get) => {
       const stored = readAuthStorage();
 
       if (!stored) {
+        useNotificationStore.getState().reset();
         set({ isHydrated: true });
         return;
       }
@@ -245,6 +248,7 @@ export const useAuthStore = create<AuthState>((set, get) => {
       } catch {
         clearAuthStorage();
         useCartStore.getState().resetCart();
+        useNotificationStore.getState().reset();
         set({
           user: null,
           token: null,

@@ -64,6 +64,10 @@ export type NotificationQueryParams = {
   unreadOnly?: boolean;
 };
 
+type UnreadCountApiData = {
+  unreadCount?: number;
+};
+
 const normalizeNotification = (item: NotificationApiItem): NotificationItem => ({
   id: item.id ?? item._id ?? "",
   userId: item.userId,
@@ -107,6 +111,22 @@ export const notificationService = {
   async markAsRead(id: string): Promise<NotificationItem> {
     const response = await apiClient.put<ApiResponse<NotificationApiItem>>(`/api/notifications/${id}/read`);
     return normalizeNotification(response.data.data);
+  },
+
+  async markAllAsRead(): Promise<{ matchedCount: number; modifiedCount: number }> {
+    const response = await apiClient.put<ApiResponse<{ matchedCount?: number; modifiedCount?: number }>>(
+      "/api/notifications/read-all",
+    );
+
+    return {
+      matchedCount: Number(response.data.data?.matchedCount || 0),
+      modifiedCount: Number(response.data.data?.modifiedCount || 0),
+    };
+  },
+
+  async getUnreadCount(): Promise<number> {
+    const response = await apiClient.get<ApiResponse<UnreadCountApiData>>("/api/notifications/unread-count");
+    return Math.max(0, Number(response.data.data?.unreadCount || 0));
   },
 
   async deleteNotification(id: string): Promise<NotificationItem> {

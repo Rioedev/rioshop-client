@@ -73,16 +73,20 @@ export function AdminNotificationsPage() {
   const pageSize = useNotificationStore((state) => state.pageSize);
   const total = useNotificationStore((state) => state.total);
   const unreadOnly = useNotificationStore((state) => state.unreadOnly);
+  const unreadCount = useNotificationStore((state) => state.unreadCount);
   const loadNotifications = useNotificationStore((state) => state.loadNotifications);
+  const refreshUnreadCount = useNotificationStore((state) => state.refreshUnreadCount);
   const setUnreadOnly = useNotificationStore((state) => state.setUnreadOnly);
   const markAsRead = useNotificationStore((state) => state.markAsRead);
+  const markAllAsRead = useNotificationStore((state) => state.markAllAsRead);
   const deleteNotification = useNotificationStore((state) => state.deleteNotification);
 
   useEffect(() => {
     void loadNotifications({ page: 1, pageSize: 10, unreadOnly: false }).catch((error) => {
       messageApi.error(getErrorMessage(error));
     });
-  }, [loadNotifications, messageApi]);
+    void refreshUnreadCount().catch(() => undefined);
+  }, [loadNotifications, messageApi, refreshUnreadCount]);
 
   const filteredNotifications = useMemo(() => {
     const keyword = searchText.trim().toLowerCase();
@@ -117,6 +121,15 @@ export function AdminNotificationsPage() {
     try {
       await deleteNotification(id);
       messageApi.success("Đã xóa thông báo.");
+    } catch (error) {
+      messageApi.error(getErrorMessage(error));
+    }
+  };
+
+  const handleMarkAllAsRead = async () => {
+    try {
+      await markAllAsRead();
+      messageApi.success("Đã đánh dấu tất cả thông báo là đã đọc.");
     } catch (error) {
       messageApi.error(getErrorMessage(error));
     }
@@ -219,22 +232,32 @@ export function AdminNotificationsPage() {
 
       <Card>
         <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
-          <Input
-            value={searchText}
-            onChange={(event) => setSearchText(event.target.value)}
-            allowClear
-            placeholder="Tìm theo tiêu đề, nội dung hoặc loại thông báo"
-            className="min-w-[280px] max-w-[420px]"
-          />
-          <Space>
-            <Text>Lọc chưa đọc</Text>
-            <Switch
-              checked={unreadOnly}
-              checkedChildren="Bật"
-              unCheckedChildren="Tắt"
-              onChange={(checked) => void handleToggleUnreadOnly(checked)}
-              disabled={loading || saving}
+          <Space wrap>
+            <Input
+              value={searchText}
+              onChange={(event) => setSearchText(event.target.value)}
+              allowClear
+              placeholder="Tìm theo tiêu đề, nội dung hoặc loại thông báo"
+              className="min-w-[280px] max-w-[420px]"
             />
+            <Space>
+              <Text>Lọc chưa đọc</Text>
+              <Switch
+                checked={unreadOnly}
+                checkedChildren="Bật"
+                unCheckedChildren="Tắt"
+                onChange={(checked) => void handleToggleUnreadOnly(checked)}
+                disabled={loading || saving}
+              />
+            </Space>
+          </Space>
+          <Space>
+            <Tag color={unreadCount > 0 ? "gold" : "green"}>
+              Chưa đọc: {unreadCount}
+            </Tag>
+            <Button onClick={() => void handleMarkAllAsRead()} disabled={saving || unreadCount <= 0}>
+              Đánh dấu tất cả đã đọc
+            </Button>
           </Space>
         </div>
 
