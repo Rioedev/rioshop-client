@@ -25,6 +25,23 @@ export type RegisterPayload = {
   fullName: string;
 };
 
+export type ChangePasswordPayload = {
+  oldPassword: string;
+  newPassword: string;
+  confirmPassword: string;
+};
+
+export type ForgotPasswordPayload = {
+  email: string;
+};
+
+export type ResetPasswordPayload = {
+  userId: string;
+  resetToken: string;
+  newPassword: string;
+  confirmPassword: string;
+};
+
 type AuthResponse = {
   user: AuthUser;
   token: string;
@@ -137,5 +154,17 @@ export const authService = {
     }
 
     await apiClient.post("/api/auth/logout");
+  },
+
+  async changePassword(payload: ChangePasswordPayload): Promise<void> {
+    await apiClient.post("/api/auth/change-password", payload);
+  },
+
+  async forgotPassword(payload: ForgotPasswordPayload): Promise<void> {
+    await apiClient.post("/api/auth/forgot-password", payload);
+  },
+
+  async resetPassword(payload: ResetPasswordPayload): Promise<void> {
+    await apiClient.post("/api/auth/reset-password", payload);
   },
 };

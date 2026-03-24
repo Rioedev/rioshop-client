@@ -935,11 +935,11 @@ export function StoreHomePage() {
 
   const showcaseProducts = useMemo(() => {
     const preferredCategoryId = activeQuickCategory?.id;
-    const preferred = preferredCategoryId ? productPool.filter((item) => item.categoryId === preferredCategoryId) : productPool;
-    const fallback = productPool.filter((item) => item.categoryId !== preferredCategoryId);
-    const merged = [...preferred, ...fallback.filter((item) => !preferred.some((entry) => entry.id === item.id))];
+    if (!preferredCategoryId) {
+      return productPool.slice(0, 5);
+    }
 
-    return merged.slice(0, 5);
+    return productPool.filter((item) => item.categoryId === preferredCategoryId).slice(0, 5);
   }, [activeQuickCategory, productPool]);
 
   const showcaseLeadProduct = showcaseProducts[0];
@@ -1475,4 +1475,3 @@ export function StoreHomePage() {
     </div>
   );
 }
-

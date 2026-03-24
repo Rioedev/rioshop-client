@@ -28,6 +28,7 @@ import { StoreOrderDetailPage } from "../features/store/pages/StoreOrderDetailPa
 import { StoreAccountPage } from "../features/store/pages/StoreAccountPage";
 import { LoginPage } from "../features/auth/pages/LoginPage";
 import { RegisterPage } from "../features/auth/pages/RegisterPage";
+import { ForgotPasswordPage } from "../features/auth/pages/ForgotPasswordPage";
 import { AdminLoginPage } from "../features/auth/pages/AdminLoginPage";
 import { RequireAuth } from "../components/route/RequireAuth";
 import { RequireStoreAuth } from "../components/route/RequireStoreAuth";
@@ -40,6 +41,7 @@ export const appRouter = createBrowserRouter([
     children: [
       { path: "/login", element: <LoginPage /> },
       { path: "/register", element: <RegisterPage /> },
+      { path: "/forgot-password", element: <ForgotPasswordPage /> },
     ],
   },
   {

@@ -31,6 +31,7 @@ type AuthState = {
   register: (payload: RegisterPayload) => Promise<void>;
   logout: () => Promise<void>;
   hydrate: () => Promise<void>;
+  refreshUser: () => Promise<void>;
 };
 
 const AUTH_STORAGE_KEY = "rioshop_auth";
@@ -309,6 +310,25 @@ export const useAuthStore = create<AuthState>((set, get) => {
           accountType: null,
           isAuthenticated: false,
         });
+      }
+    },
+
+    refreshUser: async () => {
+      const token = get().token;
+      const accountType = get().accountType;
+
+      if (!token || !accountType) {
+        return;
+      }
+
+      try {
+        const user = await authService.getCurrentUser(accountType);
+        writeAuthStorage({ user, token });
+        set({
+          ...applyAuthState(user, token),
+        });
+      } catch (error) {
+        throw new Error(getErrorMessage(error));
       }
     },
   };

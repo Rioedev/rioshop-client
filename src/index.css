@@ -2321,21 +2321,31 @@ body {
   position: relative;
 }
 
+.store-user-menu.is-open,
+.store-account-menu.is-open,
+.store-user-menu:focus-within,
+.store-account-menu:focus-within {
+  z-index: 90;
+}
+
 .store-account-trigger {
   display: inline-flex;
   align-items: center;
-  gap: 10px;
+  justify-content: center;
   border: 1px solid #d4dbe5;
-  border-radius: 999px;
+  border-radius: 10px;
   background: #ffffff;
-  height: 40px;
-  padding: 0 6px 0 12px;
+  width: 42px;
+  height: 38px;
+  padding: 0;
   color: #0f172a;
   transition: all 180ms ease;
 }
 
 .store-account-trigger:hover {
-  border-color: #a5b4fc;
+  border-color: #8eb9f2;
+  color: var(--yody-blue);
+  transform: translateY(-1px);
 }
 
 .store-account-name {
@@ -2349,8 +2359,8 @@ body {
 }
 
 .store-avatar-wrap {
-  width: 28px;
-  height: 28px;
+  width: 26px;
+  height: 26px;
   border-radius: 999px;
   overflow: hidden;
   display: inline-flex;
@@ -2385,6 +2395,7 @@ body {
   transform: translateY(6px);
   pointer-events: none;
   transition: opacity 180ms ease, transform 180ms ease;
+  z-index: 100;
 }
 
 .store-user-menu.is-open .store-user-dropdown,

@@ -1,5 +1,5 @@
-import { Alert, Button, Checkbox, Form, Input, Typography } from "antd";
-import { useState } from "react";
+﻿import { Alert, Button, Checkbox, Form, Input, Typography } from "antd";
+import { useEffect, useState } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { useAuthStore } from "../../../stores/authStore";
 import { AuthShell } from "../components/AuthShell";
@@ -18,6 +18,18 @@ export function LoginPage() {
   const login = useAuthStore((state) => state.login);
   const isLoading = useAuthStore((state) => state.isLoading);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+
+  useEffect(() => {
+    const resetUserId = searchParams.get("resetUserId");
+    const resetToken = searchParams.get("resetToken");
+
+    if (!resetUserId || !resetToken) {
+      return;
+    }
+
+    const target = `/forgot-password?userId=${encodeURIComponent(resetUserId)}&token=${encodeURIComponent(resetToken)}`;
+    navigate(target, { replace: true });
+  }, [navigate, searchParams]);
 
   const handleSubmit = async (values: LoginFormValues) => {
     setErrorMessage(null);
@@ -62,7 +74,7 @@ export function LoginPage() {
           <Form.Item name="remember" valuePropName="checked" className="mb-0!">
             <Checkbox>Ghi nhớ đăng nhập</Checkbox>
           </Form.Item>
-          <Link to="#" className="text-sm text-cyan-700">
+          <Link to="/forgot-password" className="text-sm text-cyan-700">
             Quên mật khẩu?
           </Link>
         </div>
@@ -88,4 +100,3 @@ export function LoginPage() {
     </AuthShell>
   );
 }
-

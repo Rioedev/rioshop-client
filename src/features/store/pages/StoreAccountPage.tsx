@@ -1,5 +1,13 @@
-﻿import { Button } from "antd";
+﻿import { Alert, Button, Checkbox, Form, Input, message } from "antd";
+import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
+import { authService } from "../../../services/authService";
+import {
+  userProfileService,
+  type UserAddress,
+  type UserProfile,
+} from "../../../services/userProfileService";
+import { useAuthStore } from "../../../stores/authStore";
 import {
   StoreEmptyState,
   StoreHeroSection,
@@ -9,12 +17,109 @@ import {
   StorePanelSection,
   storeButtonClassNames,
 } from "../components/StorePageChrome";
-import { useAuthStore } from "../../../stores/authStore";
+
+type ProfileFormValues = {
+  fullName: string;
+  email: string;
+  phone: string;
+};
+
+type AddressFormValues = {
+  label?: string;
+  fullName: string;
+  phone: string;
+  province?: string;
+  district?: string;
+  ward?: string;
+  street: string;
+  isDefault?: boolean;
+};
+
+type PasswordFormValues = {
+  oldPassword: string;
+  newPassword: string;
+  confirmPassword: string;
+};
+
+const phonePattern = /^[0-9]{10,11}$/;
+
+const cleanText = (value?: string) => value?.trim() || "";
+
+const ensureAddressId = (address: UserAddress, index: number) => ({
+  ...address,
+  id: cleanText(address.id) || `addr_${Date.now()}_${index}`,
+});
+
+const formatAddressSummary = (address: UserAddress) => {
+  const chunks = [
+    cleanText(address.street),
+    cleanText(address.ward?.name),
+    cleanText(address.district?.name),
+    cleanText(address.province?.name),
+  ].filter(Boolean);
+
+  return chunks.length > 0 ? chunks.join(", ") : "Đang cập nhật";
+};
 
 export function StoreAccountPage() {
+  const [messageApi, contextHolder] = message.useMessage();
   const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
   const user = useAuthStore((state) => state.user);
   const logout = useAuthStore((state) => state.logout);
+  const refreshUser = useAuthStore((state) => state.refreshUser);
+
+  const [profileForm] = Form.useForm<ProfileFormValues>();
+  const [addressForm] = Form.useForm<AddressFormValues>();
+  const [passwordForm] = Form.useForm<PasswordFormValues>();
+
+  const [profile, setProfile] = useState<UserProfile | null>(null);
+  const [isProfileLoading, setIsProfileLoading] = useState(false);
+  const [profileLoadError, setProfileLoadError] = useState<string | null>(null);
+  const [isSavingProfile, setIsSavingProfile] = useState(false);
+  const [isSavingAddress, setIsSavingAddress] = useState(false);
+  const [isChangingPassword, setIsChangingPassword] = useState(false);
+  const [isSendingReset, setIsSendingReset] = useState(false);
+
+  useEffect(() => {
+    if (!isAuthenticated || !user) {
+      return;
+    }
+
+    let active = true;
+    const loadProfile = async () => {
+      setIsProfileLoading(true);
+      setProfileLoadError(null);
+
+      try {
+        const result = await userProfileService.getProfile();
+        if (!active) {
+          return;
+        }
+
+        setProfile(result);
+        profileForm.setFieldsValue({
+          fullName: result.fullName,
+          email: result.email,
+          phone: result.phone ?? "",
+        });
+      } catch (error) {
+        if (!active) {
+          return;
+        }
+        setProfileLoadError(error instanceof Error ? error.message : "Không tải được thông tin tài khoản");
+      } finally {
+        if (active) {
+          setIsProfileLoading(false);
+        }
+      }
+    };
+
+    void loadProfile();
+
+    return () => {
+      active = false;
+    };
+  }, [isAuthenticated, profileForm, user]);
 
   if (!isAuthenticated || !user) {
     return (
@@ -33,20 +138,33 @@ export function StoreAccountPage() {
     );
   }
 
+  const accountProfile = profile ?? {
+    id: user.id,
+    email: user.email,
+    fullName: user.fullName,
+    phone: user.phone,
+    addresses: [],
+  };
+
+  const currentDefaultAddressId =
+    cleanText(accountProfile.defaultAddressId) ||
+    accountProfile.addresses.find((item) => item.isDefault)?.id ||
+    "";
+
   const profileCards = [
     {
       label: "Họ tên",
-      value: user.fullName,
-      description: "Tên hiển thị được sử dụng cho hóa đơn và thông báo.",
+      value: accountProfile.fullName,
+      description: "Tên hiển thị trên hóa đơn và thông báo.",
     },
     {
       label: "Email",
-      value: user.email,
+      value: accountProfile.email,
       description: "Kênh nhận cập nhật đơn hàng và thông tin ưu đãi.",
     },
     {
       label: "Số điện thoại",
-      value: user.phone || "Đang cập nhật",
+      value: accountProfile.phone || "Đang cập nhật",
       description: "Sử dụng cho xác nhận giao hàng và hỗ trợ nhanh.",
     },
     {
@@ -56,12 +174,150 @@ export function StoreAccountPage() {
     },
   ];
 
+  const handleSaveProfile = async (values: ProfileFormValues) => {
+    setIsSavingProfile(true);
+    try {
+      const updatedProfile = await userProfileService.updateProfile({
+        fullName: cleanText(values.fullName),
+        email: cleanText(values.email).toLowerCase(),
+        phone: cleanText(values.phone),
+      });
+
+      setProfile(updatedProfile);
+      await refreshUser();
+      messageApi.success("Đã cập nhật thông tin cá nhân");
+    } catch (error) {
+      messageApi.error(error instanceof Error ? error.message : "Cập nhật thông tin thất bại");
+    } finally {
+      setIsSavingProfile(false);
+    }
+  };
+
+  const handleAddAddress = async (values: AddressFormValues) => {
+    if (!profile) {
+      messageApi.warning("Thông tin tài khoản đang được tải, vui lòng thử lại");
+      return;
+    }
+
+    setIsSavingAddress(true);
+    try {
+      const existing = profile.addresses.map(ensureAddressId);
+      const nextAddressId = `addr_${Date.now()}`;
+      const nextAddress: UserAddress = {
+        id: nextAddressId,
+        label: cleanText(values.label) || undefined,
+        fullName: cleanText(values.fullName),
+        phone: cleanText(values.phone),
+        province: cleanText(values.province) ? { name: cleanText(values.province) } : undefined,
+        district: cleanText(values.district) ? { name: cleanText(values.district) } : undefined,
+        ward: cleanText(values.ward) ? { name: cleanText(values.ward) } : undefined,
+        street: cleanText(values.street),
+      };
+
+      const shouldSetDefault = Boolean(values.isDefault) || !currentDefaultAddressId;
+      const nextDefaultAddressId = shouldSetDefault ? nextAddressId : currentDefaultAddressId;
+      const nextAddresses = [...existing, nextAddress].map((item) => ({
+        ...item,
+        isDefault: item.id === nextDefaultAddressId,
+      }));
+
+      const updatedProfile = await userProfileService.updateProfile({
+        addresses: nextAddresses,
+        defaultAddressId: nextDefaultAddressId,
+      });
+
+      setProfile(updatedProfile);
+      addressForm.resetFields();
+      messageApi.success("Đã thêm địa chỉ mới");
+    } catch (error) {
+      messageApi.error(error instanceof Error ? error.message : "Thêm địa chỉ thất bại");
+    } finally {
+      setIsSavingAddress(false);
+    }
+  };
+
+  const handleSetDefaultAddress = async (addressId: string) => {
+    if (!profile) {
+      return;
+    }
+
+    setIsSavingAddress(true);
+    try {
+      const nextAddresses = profile.addresses.map((item, index) => {
+        const normalized = ensureAddressId(item, index);
+        return {
+          ...normalized,
+          isDefault: normalized.id === addressId,
+        };
+      });
+
+      const updatedProfile = await userProfileService.updateProfile({
+        addresses: nextAddresses,
+        defaultAddressId: addressId,
+      });
+
+      setProfile(updatedProfile);
+      messageApi.success("Đã đặt địa chỉ mặc định");
+    } catch (error) {
+      messageApi.error(error instanceof Error ? error.message : "Không đặt được địa chỉ mặc định");
+    } finally {
+      setIsSavingAddress(false);
+    }
+  };
+
+  const handleChangePassword = async (values: PasswordFormValues) => {
+    setIsChangingPassword(true);
+    try {
+      await authService.changePassword({
+        oldPassword: values.oldPassword,
+        newPassword: values.newPassword,
+        confirmPassword: values.confirmPassword,
+      });
+
+      passwordForm.resetFields();
+      messageApi.success("Đã đổi mật khẩu thành công");
+    } catch (error) {
+      messageApi.error(error instanceof Error ? error.message : "Đổi mật khẩu thất bại");
+    } finally {
+      setIsChangingPassword(false);
+    }
+  };
+
+  const handleSendResetPassword = async () => {
+    const email = cleanText(accountProfile.email);
+    if (!email) {
+      messageApi.warning("Tài khoản chưa có email hợp lệ");
+      return;
+    }
+
+    setIsSendingReset(true);
+    try {
+      await authService.forgotPassword({ email });
+      messageApi.success("Đã gửi hướng dẫn đặt lại mật khẩu qua email");
+    } catch (error) {
+      messageApi.error(error instanceof Error ? error.message : "Không gửi được email đặt lại mật khẩu");
+    } finally {
+      setIsSendingReset(false);
+    }
+  };
+
+  const sortedAddresses = [...accountProfile.addresses].sort((a, b) => {
+    const aIsDefault = a.id === currentDefaultAddressId || Boolean(a.isDefault);
+    const bIsDefault = b.id === currentDefaultAddressId || Boolean(b.isDefault);
+    if (aIsDefault === bIsDefault) {
+      return 0;
+    }
+    return aIsDefault ? -1 : 1;
+  });
+
   return (
     <StorePageShell>
+      {contextHolder}
+
       <StoreHeroSection
         kicker="Tài khoản Rio"
-        title={`Xin chào, ${user.fullName}`}
-        description="Theo dõi đơn hàng, cập nhật thông tin cá nhân và quay lại nhanh với các sản phẩm bạn đã lưu."
+        title={`Xin chào, ${accountProfile.fullName}`}
+        description="Theo dõi đơn hàng, cập nhật thông tin cá nhân và quản lý địa chỉ giao hàng của bạn."
       >
         <div className="store-page-actions">
           <Link to="/orders">
@@ -79,18 +335,264 @@ export function StoreAccountPage() {
       </StoreHeroSection>
 
       <StorePanelSection
-        kicker="Thông tin cá nhân"
+        kicker="Thông tin tài khoản"
         title="Hồ sơ tài khoản"
         action={
           <StoreInlineNote
             title="Tài khoản đang hoạt động"
-            description="Thông tin này được sử dụng để đồng bộ địa chỉ giao hàng, lịch sử mua và các thông báo ưu đãi."
+            description="Thông tin được đồng bộ cho giao hàng, thông báo và chăm sóc khách hàng."
           />
         }
       >
+        {profileLoadError ? <Alert type="warning" message={profileLoadError} className="mb-4" /> : null}
         <StoreInfoGrid items={profileCards} />
+      </StorePanelSection>
+
+      <StorePanelSection
+        kicker="Chỉnh sửa"
+        title="Cập nhật thông tin cá nhân"
+        description="Bạn có thể đổi tên, email và số điện thoại sử dụng trên toàn hệ thống."
+      >
+        <Form<ProfileFormValues>
+          form={profileForm}
+          layout="vertical"
+          onFinish={handleSaveProfile}
+          autoComplete="off"
+          disabled={isProfileLoading}
+        >
+          <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+            <Form.Item
+              label="Họ tên"
+              name="fullName"
+              rules={[
+                { required: true, message: "Vui lòng nhập họ tên" },
+                { min: 2, message: "Họ tên tối thiểu 2 ký tự" },
+              ]}
+            >
+              <Input size="large" placeholder="Nguyễn Văn A" />
+            </Form.Item>
+
+            <Form.Item
+              label="Số điện thoại"
+              name="phone"
+              rules={[
+                { required: true, message: "Vui lòng nhập số điện thoại" },
+                { pattern: phonePattern, message: "Số điện thoại gồm 10-11 chữ số" },
+              ]}
+            >
+              <Input size="large" placeholder="0987654321" />
+            </Form.Item>
+          </div>
+
+          <Form.Item
+            label="Email"
+            name="email"
+            rules={[
+              { required: true, message: "Vui lòng nhập email" },
+              { type: "email", message: "Email không đúng định dạng" },
+            ]}
+          >
+            <Input size="large" placeholder="you@example.com" />
+          </Form.Item>
+
+          <Button
+            type="primary"
+            htmlType="submit"
+            loading={isSavingProfile}
+            className={storeButtonClassNames.primaryCompact}
+          >
+            Lưu thông tin
+          </Button>
+        </Form>
+      </StorePanelSection>
+
+      <StorePanelSection
+        kicker="Địa chỉ"
+        title="Địa chỉ giao hàng"
+        description="Thêm địa chỉ để checkout nhanh hơn. Bạn có thể đặt một địa chỉ mặc định."
+      >
+        {sortedAddresses.length > 0 ? (
+          <div className="mb-5 grid grid-cols-1 gap-3 md:grid-cols-2">
+            {sortedAddresses.map((address) => {
+              const isDefault = address.id === currentDefaultAddressId || Boolean(address.isDefault);
+              const title = cleanText(address.label) || (isDefault ? "Địa chỉ mặc định" : "Địa chỉ giao hàng");
+
+              return (
+                <article key={address.id} className="rounded-2xl border border-slate-200 bg-white p-4">
+                  <div className="mb-2 flex items-start justify-between gap-3">
+                    <div>
+                      <p className="m-0 text-xs font-semibold uppercase tracking-[0.12em] text-slate-500">{title}</p>
+                      <h3 className="m-0 mt-1 text-base font-bold text-slate-900">{address.fullName}</h3>
+                    </div>
+                    {isDefault ? (
+                      <span className="rounded-full bg-slate-900 px-3 py-1 text-xs font-semibold text-white">Mặc định</span>
+                    ) : (
+                      <Button
+                        size="small"
+                        className={storeButtonClassNames.secondaryCompact}
+                        loading={isSavingAddress}
+                        onClick={() => void handleSetDefaultAddress(address.id)}
+                      >
+                        Đặt mặc định
+                      </Button>
+                    )}
+                  </div>
+                  <p className="m-0 text-sm text-slate-700">{address.phone}</p>
+                  <p className="m-0 mt-1 text-sm text-slate-600">{formatAddressSummary(address)}</p>
+                </article>
+              );
+            })}
+          </div>
+        ) : (
+          <StoreInlineNote
+            title="Chưa có địa chỉ nào"
+            description="Thêm địa chỉ đầu tiên để việc thanh toán nhanh gọn hơn."
+          />
+        )}
+
+        <Form<AddressFormValues>
+          form={addressForm}
+          layout="vertical"
+          onFinish={handleAddAddress}
+          autoComplete="off"
+        >
+          <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+            <Form.Item label="Nhãn địa chỉ" name="label">
+              <Input size="large" placeholder="Nhà riêng, Văn phòng..." />
+            </Form.Item>
+
+            <Form.Item
+              label="Người nhận"
+              name="fullName"
+              rules={[
+                { required: true, message: "Vui lòng nhập tên người nhận" },
+                { min: 2, message: "Tên người nhận tối thiểu 2 ký tự" },
+              ]}
+            >
+              <Input size="large" placeholder="Nguyễn Văn A" />
+            </Form.Item>
+          </div>
+
+          <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+            <Form.Item
+              label="Số điện thoại"
+              name="phone"
+              rules={[
+                { required: true, message: "Vui lòng nhập số điện thoại" },
+                { pattern: phonePattern, message: "Số điện thoại gồm 10-11 chữ số" },
+              ]}
+            >
+              <Input size="large" placeholder="0987654321" />
+            </Form.Item>
+
+            <Form.Item label="Tỉnh / Thành" name="province">
+              <Input size="large" placeholder="Hà Nội" />
+            </Form.Item>
+          </div>
+
+          <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+            <Form.Item label="Quận / Huyện" name="district">
+              <Input size="large" placeholder="Bắc Từ Liêm" />
+            </Form.Item>
+
+            <Form.Item label="Phường / Xã" name="ward">
+              <Input size="large" placeholder="Phú Diễn" />
+            </Form.Item>
+          </div>
+
+          <Form.Item
+            label="Số nhà, đường"
+            name="street"
+            rules={[{ required: true, message: "Vui lòng nhập địa chỉ cụ thể" }]}
+          >
+            <Input size="large" placeholder="Số 64, ngõ 68 Đường Phú Diễn" />
+          </Form.Item>
+
+          <Form.Item name="isDefault" valuePropName="checked" className="mb-4!">
+            <Checkbox>Đặt làm địa chỉ mặc định</Checkbox>
+          </Form.Item>
+
+          <Button
+            type="primary"
+            htmlType="submit"
+            loading={isSavingAddress}
+            className={storeButtonClassNames.primaryCompact}
+          >
+            Thêm địa chỉ
+          </Button>
+        </Form>
+      </StorePanelSection>
+
+      <StorePanelSection
+        kicker="Bảo mật"
+        title="Mật khẩu và khôi phục"
+        description="Bạn có thể đổi mật khẩu ngay tại đây, hoặc gửi link đặt lại qua email."
+      >
+        <Form<PasswordFormValues>
+          form={passwordForm}
+          layout="vertical"
+          onFinish={handleChangePassword}
+          autoComplete="off"
+        >
+          <Form.Item
+            label="Mật khẩu hiện tại"
+            name="oldPassword"
+            rules={[{ required: true, message: "Vui lòng nhập mật khẩu hiện tại" }]}
+          >
+            <Input.Password size="large" placeholder="Nhập mật khẩu hiện tại" />
+          </Form.Item>
+
+          <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+            <Form.Item
+              label="Mật khẩu mới"
+              name="newPassword"
+              rules={[
+                { required: true, message: "Vui lòng nhập mật khẩu mới" },
+                { min: 6, message: "Mật khẩu mới tối thiểu 6 ký tự" },
+              ]}
+            >
+              <Input.Password size="large" placeholder="Nhập mật khẩu mới" />
+            </Form.Item>
+
+            <Form.Item
+              label="Xác nhận mật khẩu"
+              name="confirmPassword"
+              dependencies={["newPassword"]}
+              rules={[
+                { required: true, message: "Vui lòng xác nhận mật khẩu mới" },
+                ({ getFieldValue }) => ({
+                  validator(_, value) {
+                    if (!value || getFieldValue("newPassword") === value) {
+                      return Promise.resolve();
+                    }
+                    return Promise.reject(new Error("Mật khẩu xác nhận không khớp"));
+                  },
+                }),
+              ]}
+            >
+              <Input.Password size="large" placeholder="Nhập lại mật khẩu mới" />
+            </Form.Item>
+          </div>
+
+          <div className="flex flex-wrap items-center gap-3">
+            <Button
+              type="primary"
+              htmlType="submit"
+              loading={isChangingPassword}
+              className={storeButtonClassNames.primaryCompact}
+            >
+              Đổi mật khẩu
+            </Button>
+            <Button
+              className={storeButtonClassNames.secondaryCompact}
+              loading={isSendingReset}
+              onClick={() => void handleSendResetPassword()}
+            >
+              Gửi link quên mật khẩu
+            </Button>
+          </div>
+        </Form>
       </StorePanelSection>
     </StorePageShell>
   );
 }
-
