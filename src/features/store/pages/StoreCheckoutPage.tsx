@@ -1,5 +1,5 @@
 ﻿import { Button, Input, Select, message } from "antd";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import {
   StoreEmptyState,
@@ -15,6 +15,12 @@ import { cartService, toCartCouponMeta, toCartStoreItems } from "../../../servic
 import { formatStoreCurrency } from "../utils/storeFormatting";
 import { orderService } from "../../../services/orderService";
 import { paymentService } from "../../../services/paymentService";
+import {
+  shippingService,
+  type GhnDistrict,
+  type GhnProvince,
+  type GhnWard,
+} from "../../../services/shippingService";
 import { useAuthStore } from "../../../stores/authStore";
 import { useCartStore } from "../../../stores/cartStore";
 
@@ -35,26 +41,235 @@ export function StoreCheckoutPage() {
   const [phone, setPhone] = useState(user?.phone ?? "");
   const [email, setEmail] = useState(user?.email ?? "");
   const [address, setAddress] = useState("");
-  const [city, setCity] = useState("Ho Chi Minh");
-  const [district, setDistrict] = useState("");
   const [note, setNote] = useState("");
   const [shippingMethod, setShippingMethod] = useState<"standard" | "express" | "same_day">("standard");
   const [paymentMethod, setPaymentMethod] = useState<"cod" | "momo" | "vnpay" | "bank_transfer">("cod");
   const [submitting, setSubmitting] = useState(false);
+  const [locationLoading, setLocationLoading] = useState(false);
+  const [shippingFeeLoading, setShippingFeeLoading] = useState(false);
+  const [provinces, setProvinces] = useState<GhnProvince[]>([]);
+  const [districts, setDistricts] = useState<GhnDistrict[]>([]);
+  const [wards, setWards] = useState<GhnWard[]>([]);
+  const [provinceId, setProvinceId] = useState<number | undefined>(undefined);
+  const [districtId, setDistrictId] = useState<number | undefined>(undefined);
+  const [wardCode, setWardCode] = useState<string | undefined>(undefined);
+  const [shippingFee, setShippingFee] = useState(0);
 
-  const { subtotal, shippingFee, discountValue, total } = useMemo(() => {
-    const subtotalValue = cartItems.reduce((sum, item) => sum + item.price * item.quantity, 0);
-    const fee = shippingMethod === "same_day" ? 45000 : shippingMethod === "express" ? 30000 : 20000;
-    const shipping = subtotalValue === 0 ? 0 : fee;
-    const discount = Math.max(0, Math.min(Number(couponDiscount || 0), subtotalValue + shipping));
+  const selectedProvince = useMemo(
+    () => provinces.find((item) => item.ProvinceID === provinceId) ?? null,
+    [provinceId, provinces],
+  );
+  const selectedDistrict = useMemo(
+    () => districts.find((item) => item.DistrictID === districtId) ?? null,
+    [districtId, districts],
+  );
+  const selectedWard = useMemo(
+    () => wards.find((item) => item.WardCode === wardCode) ?? null,
+    [wardCode, wards],
+  );
 
+  const subtotal = useMemo(
+    () => cartItems.reduce((sum, item) => sum + item.price * item.quantity, 0),
+    [cartItems],
+  );
+
+  const packageProfile = useMemo(() => {
+    const totalQuantity = cartItems.reduce((sum, item) => sum + item.quantity, 0);
     return {
-      subtotal: subtotalValue,
-      shippingFee: shipping,
-      discountValue: discount,
-      total: Math.max(0, subtotalValue + shipping - discount),
+      weight: Math.max(100, totalQuantity * 300),
+      length: 20,
+      width: 15,
+      height: Math.max(5, totalQuantity * 4),
     };
-  }, [cartItems, couponDiscount, shippingMethod]);
+  }, [cartItems]);
+
+  const { discountValue, total } = useMemo(() => {
+    const discount = Math.max(0, Math.min(Number(couponDiscount || 0), subtotal + shippingFee));
+    return {
+      discountValue: discount,
+      total: Math.max(0, subtotal + shippingFee - discount),
+    };
+  }, [couponDiscount, shippingFee, subtotal]);
+
+  useEffect(() => {
+    if (!isAuthenticated) {
+      return;
+    }
+
+    let mounted = true;
+
+    const loadProvinces = async () => {
+      setLocationLoading(true);
+      try {
+        const provinceList = await shippingService.getGhnProvinces();
+        if (!mounted) {
+          return;
+        }
+        setProvinces(provinceList);
+        const preferred = provinceList.find((item) => item.ProvinceID === 201);
+        setProvinceId((prev) => prev ?? preferred?.ProvinceID ?? provinceList[0]?.ProvinceID);
+      } catch (error) {
+        const text = error instanceof Error ? error.message : "Không tải được danh sách tỉnh/thành GHN";
+        messageApi.error(text);
+      } finally {
+        if (mounted) {
+          setLocationLoading(false);
+        }
+      }
+    };
+
+    void loadProvinces();
+    return () => {
+      mounted = false;
+    };
+  }, [isAuthenticated, messageApi]);
+
+  useEffect(() => {
+    if (!isAuthenticated) {
+      return;
+    }
+
+    if (!provinceId) {
+      setDistricts([]);
+      setDistrictId(undefined);
+      return;
+    }
+
+    let mounted = true;
+    const loadDistricts = async () => {
+      setLocationLoading(true);
+      try {
+        const districtList = await shippingService.getGhnDistricts(provinceId);
+        if (!mounted) {
+          return;
+        }
+        setDistricts(districtList);
+        setDistrictId((prev) => {
+          if (prev && districtList.some((item) => item.DistrictID === prev)) {
+            return prev;
+          }
+          const preferred = districtList.find((item) =>
+            item.DistrictName.toLowerCase().includes("bac tu liem"),
+          );
+          return preferred?.DistrictID ?? districtList[0]?.DistrictID;
+        });
+      } catch (error) {
+        const text = error instanceof Error ? error.message : "Không tải được danh sách quận/huyện GHN";
+        messageApi.error(text);
+      } finally {
+        if (mounted) {
+          setLocationLoading(false);
+        }
+      }
+    };
+
+    setWards([]);
+    setWardCode(undefined);
+    void loadDistricts();
+
+    return () => {
+      mounted = false;
+    };
+  }, [isAuthenticated, messageApi, provinceId]);
+
+  useEffect(() => {
+    if (!isAuthenticated) {
+      return;
+    }
+
+    if (!districtId) {
+      setWards([]);
+      setWardCode(undefined);
+      return;
+    }
+
+    let mounted = true;
+    const loadWards = async () => {
+      setLocationLoading(true);
+      try {
+        const wardList = await shippingService.getGhnWards(districtId);
+        if (!mounted) {
+          return;
+        }
+        setWards(wardList);
+        setWardCode((prev) => {
+          if (prev && wardList.some((item) => item.WardCode === prev)) {
+            return prev;
+          }
+          const preferred = wardList.find((item) => item.WardName.toLowerCase().includes("phu dien"));
+          return preferred?.WardCode ?? wardList[0]?.WardCode;
+        });
+      } catch (error) {
+        const text = error instanceof Error ? error.message : "Không tải được danh sách phường/xã GHN";
+        messageApi.error(text);
+      } finally {
+        if (mounted) {
+          setLocationLoading(false);
+        }
+      }
+    };
+
+    void loadWards();
+    return () => {
+      mounted = false;
+    };
+  }, [districtId, isAuthenticated, messageApi]);
+
+  useEffect(() => {
+    if (!isAuthenticated) {
+      return;
+    }
+
+    if (subtotal <= 0) {
+      setShippingFee(0);
+      return;
+    }
+
+    if (shippingMethod === "same_day") {
+      setShippingFee(45000);
+      return;
+    }
+
+    if (!districtId || !wardCode) {
+      setShippingFee(0);
+      return;
+    }
+
+    let mounted = true;
+    const quoteFee = async () => {
+      setShippingFeeLoading(true);
+      try {
+        const result = await shippingService.calculateGhnFee({
+          toDistrictId: districtId,
+          toWardCode: wardCode,
+          shippingMethod,
+          insuranceValue: subtotal,
+          packageProfile,
+        });
+        if (!mounted) {
+          return;
+        }
+        setShippingFee(Math.max(0, Number(result.totalFee || 0)));
+      } catch (error) {
+        if (!mounted) {
+          return;
+        }
+        const fallbackFee = shippingMethod === "express" ? 30000 : 20000;
+        setShippingFee(fallbackFee);
+        const text = error instanceof Error ? error.message : "Không tính được phí GHN, tạm dùng phí mặc định.";
+        messageApi.warning(text);
+      } finally {
+        if (mounted) {
+          setShippingFeeLoading(false);
+        }
+      }
+    };
+
+    void quoteFee();
+    return () => {
+      mounted = false;
+    };
+  }, [districtId, isAuthenticated, messageApi, packageProfile, shippingMethod, subtotal, wardCode]);
 
   const invalidProductIds = cartItems.filter((item) => !objectIdPattern.test(item.productId));
   const itemsMissingVariant = cartItems.filter((item) => !item.variantSku?.trim());
@@ -99,6 +314,16 @@ export function StoreCheckoutPage() {
       return;
     }
 
+    if (!provinceId || !districtId || !wardCode || !selectedProvince || !selectedDistrict || !selectedWard) {
+      messageApi.warning("Vui lòng chọn đầy đủ Tỉnh/Thành, Quận/Huyện và Phường/Xã theo dữ liệu GHN.");
+      return;
+    }
+
+    if (shippingFeeLoading) {
+      messageApi.info("Hệ thống đang tính phí vận chuyển GHN, vui lòng thử lại sau vài giây.");
+      return;
+    }
+
     if (invalidProductIds.length > 0) {
       messageApi.error("Có sản phẩm dữ liệu cũ trong giỏ hàng, vui lòng xóa và thêm lại.");
       return;
@@ -129,8 +354,13 @@ export function StoreCheckoutPage() {
         })),
         shippingAddress: {
           line1: address.trim(),
-          district: district.trim(),
-          city,
+          provinceId: selectedProvince.ProvinceID,
+          provinceName: selectedProvince.ProvinceName,
+          districtId: selectedDistrict.DistrictID,
+          districtName: selectedDistrict.DistrictName,
+          wardCode: selectedWard.WardCode,
+          wardName: selectedWard.WardName,
+          city: selectedProvince.ProvinceName,
           country: "Vietnam",
         },
         shippingFee,
@@ -272,23 +502,47 @@ export function StoreCheckoutPage() {
               <Input value={email} onChange={(event) => setEmail(event.target.value)} />
             </div>
             <div>
-              <p className="mb-1 text-sm font-semibold text-slate-600">Thành phố</p>
+              <p className="mb-1 text-sm font-semibold text-slate-600">Tỉnh/Thành phố (GHN)</p>
               <Select
-                value={city}
-                options={[
-                  { value: "Ho Chi Minh", label: "Hồ Chí Minh" },
-                  { value: "Ha Noi", label: "Hà Nội" },
-                  { value: "Da Nang", label: "Đà Nẵng" },
-                ]}
-                onChange={(value) => setCity(value)}
+                value={provinceId}
+                loading={locationLoading && provinces.length === 0}
+                options={provinces.map((item) => ({
+                  value: item.ProvinceID,
+                  label: item.ProvinceName,
+                }))}
+                onChange={(value) => setProvinceId(value)}
                 className="w-full"
               />
             </div>
           </div>
 
-          <div>
-            <p className="mb-1 text-sm font-semibold text-slate-600">Quận/Huyện</p>
-            <Input value={district} onChange={(event) => setDistrict(event.target.value)} />
+          <div className="grid gap-3 md:grid-cols-2">
+            <div>
+              <p className="mb-1 text-sm font-semibold text-slate-600">Quận/Huyện</p>
+              <Select
+                value={districtId}
+                loading={locationLoading && districts.length === 0}
+                options={districts.map((item) => ({
+                  value: item.DistrictID,
+                  label: item.DistrictName,
+                }))}
+                onChange={(value) => setDistrictId(value)}
+                className="w-full"
+              />
+            </div>
+            <div>
+              <p className="mb-1 text-sm font-semibold text-slate-600">Phường/Xã</p>
+              <Select
+                value={wardCode}
+                loading={locationLoading && wards.length === 0}
+                options={wards.map((item) => ({
+                  value: item.WardCode,
+                  label: item.WardName,
+                }))}
+                onChange={(value) => setWardCode(value)}
+                className="w-full"
+              />
+            </div>
           </div>
 
           <div>
@@ -325,6 +579,10 @@ export function StoreCheckoutPage() {
               />
             </div>
           </div>
+
+          {shippingMethod !== "same_day" && shippingFeeLoading ? (
+            <p className="m-0 text-xs text-slate-500">Đang tính phí vận chuyển GHN...</p>
+          ) : null}
 
           <div>
             <p className="mb-1 text-sm font-semibold text-slate-600">Ghi chú đơn hàng</p>
