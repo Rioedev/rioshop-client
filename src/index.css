@@ -3703,9 +3703,13 @@ body {
 }
 
 .pdpv2-showcase-image {
-  height: 330px;
+  height: 390px;
   overflow: hidden;
   background: #e2e8f0;
+}
+
+.pdpv2-showcase-image img {
+  object-position: center top;
 }
 
 .pdpv2-showcase-content {
@@ -3962,6 +3966,78 @@ body {
   color: #334155;
 }
 
+.pdpv2-voucher-block {
+  border-radius: 16px;
+  border: 1px solid #bfdbfe;
+  background: linear-gradient(135deg, #eff6ff, #ffffff);
+  padding: 16px;
+}
+
+.pdpv2-voucher-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.pdpv2-voucher-head h4 {
+  margin: 6px 0 0;
+  font-size: 24px;
+  font-weight: 900;
+  color: #0f172a;
+}
+
+.pdpv2-voucher-grid {
+  margin-top: 14px;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.pdpv2-voucher-card {
+  border-radius: 12px;
+  border: 1px dashed #93c5fd;
+  background: #ffffff;
+  padding: 12px;
+  display: grid;
+  gap: 6px;
+}
+
+.pdpv2-voucher-value {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 800;
+  color: #1d4ed8;
+}
+
+.pdpv2-voucher-card h5 {
+  margin: 0;
+  font-size: 16px;
+  letter-spacing: 0.05em;
+  font-weight: 900;
+  color: #0f172a;
+}
+
+.pdpv2-voucher-card p {
+  margin: 0;
+  font-size: 12px;
+  color: #475569;
+  line-height: 1.5;
+}
+
+.pdpv2-voucher-card span {
+  font-size: 12px;
+  font-weight: 600;
+  color: #334155;
+}
+
+.pdpv2-voucher-empty {
+  margin: 12px 0 0;
+  font-size: 13px;
+  color: #64748b;
+}
+
 @keyframes pdpv2-fade-in {
   from {
     opacity: 0;
@@ -3984,6 +4060,10 @@ body {
   .pdpv2-review-actions {
     flex-direction: column;
     align-items: flex-start;
+  }
+
+  .pdpv2-voucher-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
   .pdpv2-showcase-grid,
@@ -4035,6 +4115,14 @@ body {
     font-size: 15px;
   }
 
+  .pdpv2-voucher-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .pdpv2-voucher-head h4 {
+    font-size: 20px;
+  }
+
   .pdpv2-overview-media-grid,
   .pdpv2-showcase-grid,
   .pdpv2-tech-grid,
@@ -4043,7 +4131,7 @@ body {
   }
 
   .pdpv2-showcase-image {
-    height: 280px;
+    height: 320px;
   }
 
   .pdpv2-section-title {

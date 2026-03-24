@@ -9,6 +9,7 @@ import { Button, Input, InputNumber, Progress, Rate, Typography, message } from 
 import { useEffect, useMemo, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { cartService, toCartCouponMeta, toCartStoreItems } from "../../../services/cartService";
+import { couponService, type Coupon } from "../../../services/couponService";
 import { productService, type Product } from "../../../services/productService";
 import { reviewService, type ReviewItem } from "../../../services/reviewService";
 import { toWishlistStoreItems, wishlistService } from "../../../services/wishlistService";
@@ -91,6 +92,32 @@ const toProductCardImage = (item: ProductRuntime, fallback = "RIO") =>
   resolveStoreProductThumbnail(item) ??
   `https://dummyimage.com/800x1000/e2e8f0/0f172a&text=${encodeURIComponent(fallback)}`;
 
+const normalizeColorHex = (value?: string) => {
+  const hex = (value || "").trim();
+  return /^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/.test(hex) ? hex : DEFAULT_COLOR_HEX;
+};
+
+const getProductColorDots = (item: ProductRuntime) => {
+  const variants = (item.variants ?? []).filter((variant) => variant.isActive !== false);
+  const map = new Map<string, { name: string; hex: string }>();
+
+  variants.forEach((variant) => {
+    const name = variant.color?.name?.trim() || "";
+    const hex = normalizeColorHex(variant.color?.hex);
+    const key = `${normalizeColorValue(name || hex)}::${hex.toLowerCase()}`;
+    if (map.has(key)) {
+      return;
+    }
+
+    map.set(key, {
+      name: name || hex,
+      hex,
+    });
+  });
+
+  return Array.from(map.values()).slice(0, 4);
+};
+
 const generateReviewPercents = (dist?: Record<string, number>, count = 0) => {
 
   if (dist && count > 0) {
@@ -122,6 +149,35 @@ const formatReviewDate = (value?: string) => {
   return new Intl.DateTimeFormat("vi-VN", {
     dateStyle: "medium",
   }).format(date);
+};
+
+const formatDetailCouponValue = (coupon: Coupon) => {
+  if (coupon.type === "percent") {
+    return `Giảm ${coupon.value}%`;
+  }
+
+  if (coupon.type === "fixed") {
+    return `Giảm ${formatCurrency(coupon.value)}`;
+  }
+
+  if (coupon.type === "free_ship") {
+    return "Miễn phí vận chuyển";
+  }
+
+  return coupon.name;
+};
+
+const formatDetailCouponExpiry = (value?: string) => {
+  if (!value) {
+    return "Không giới hạn";
+  }
+
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) {
+    return "Không giới hạn";
+  }
+
+  return new Intl.DateTimeFormat("vi-VN", { dateStyle: "short" }).format(date);
 };
 
 const stripHtmlToText = (value?: string) =>
@@ -211,6 +267,8 @@ export function StoreProductDetailPage() {
   const [reviewRating, setReviewRating] = useState(5);
   const [reviewBody, setReviewBody] = useState("");
   const [reviewSubmitting, setReviewSubmitting] = useState(false);
+  const [activeCoupons, setActiveCoupons] = useState<Coupon[]>([]);
+  const [couponLoading, setCouponLoading] = useState(false);
   const [selectedImage, setSelectedImage] = useState<string | undefined>(undefined);
   const [selectedColor, setSelectedColor] = useState(demoColors[0].name);
   const [selectedSize, setSelectedSize] = useState(demoSizes[2]);
@@ -308,6 +366,41 @@ export function StoreProductDetailPage() {
       active = false;
     };
   }, [slug]);
+
+  useEffect(() => {
+    if (!isAuthenticated) {
+      setActiveCoupons([]);
+      setCouponLoading(false);
+      return;
+    }
+
+    let active = true;
+    const loadCoupons = async () => {
+      setCouponLoading(true);
+      try {
+        const result = await couponService.getActiveCoupons({ page: 1, limit: 3 });
+        if (!active) {
+          return;
+        }
+        setActiveCoupons(result.docs || []);
+      } catch {
+        if (!active) {
+          return;
+        }
+        setActiveCoupons([]);
+      } finally {
+        if (active) {
+          setCouponLoading(false);
+        }
+      }
+    };
+
+    void loadCoupons();
+
+    return () => {
+      active = false;
+    };
+  }, [isAuthenticated]);
 
   const productVariants = useMemo(
     () => (product?.variants ?? []).filter((variant) => variant.isActive !== false),
@@ -473,9 +566,9 @@ export function StoreProductDetailPage() {
     return Array.from(map.values());
   }, [relatedProducts, catalogProducts, product?._id]);
 
-  const styleProducts = productPool.slice(0, 4);
-  const sameTechProducts = productPool.slice(4, 8).length > 0 ? productPool.slice(4, 8) : productPool.slice(0, 4);
-  const suggestedProducts = productPool.slice(8, 12).length > 0 ? productPool.slice(8, 12) : productPool.slice(2, 6);
+  const sameCategoryProducts = productPool
+    .filter((item) => (item.category?._id || "") === (product?.category?._id || ""))
+    .slice(0, 4);
 
   const viewedProducts = useMemo(() => {
     const list = [product, ...productPool].filter((item): item is ProductRuntime => Boolean(item));
@@ -666,22 +759,27 @@ export function StoreProductDetailPage() {
 
   const renderProductCards = (items: ProductRuntime[]) => (
     <div className="pdpv2-showcase-grid">
-      {items.map((item, index) => (
-        <Link key={item._id} to={`/products/${item.slug}`} className="pdpv2-showcase-card">
-          <div className="pdpv2-showcase-image">
-            <img src={toProductCardImage(item, `RIO-${index + 1}`)} alt={item.name} className="h-full w-full object-cover" />
-          </div>
-          <div className="pdpv2-showcase-content">
-            <div className="pdpv2-color-row">
-              {demoColors.slice(0, 4).map((color) => (
-                <span key={`${item._id}-${color.name}`} className="pdpv2-color-mini" style={{ background: color.hex }} />
-              ))}
+      {items.map((item, index) => {
+        const colorDots = getProductColorDots(item);
+        return (
+          <Link key={item._id} to={`/products/${item.slug}`} className="pdpv2-showcase-card">
+            <div className="pdpv2-showcase-image">
+              <img src={toProductCardImage(item, `RIO-${index + 1}`)} alt={item.name} className="h-full w-full object-cover" />
             </div>
-            <h4>{item.name}</h4>
-            <p>{formatCurrency(item.pricing.salePrice)}</p>
-          </div>
-        </Link>
-      ))}
+            <div className="pdpv2-showcase-content">
+              {colorDots.length > 0 ? (
+                <div className="pdpv2-color-row">
+                  {colorDots.map((color) => (
+                    <span key={`${item._id}-${color.name}-${color.hex}`} className="pdpv2-color-mini" style={{ background: color.hex }} />
+                  ))}
+                </div>
+              ) : null}
+              <h4>{item.name}</h4>
+              <p>{formatCurrency(item.pricing.salePrice)}</p>
+            </div>
+          </Link>
+        );
+      })}
     </div>
   );
 
@@ -899,13 +997,8 @@ export function StoreProductDetailPage() {
       </section>
 
       <section className="pdpv2-block">
-        <h3 className="pdpv2-section-title">Mua sắm theo phong cách</h3>
-        {renderProductCards(styleProducts.length > 0 ? styleProducts : relatedProducts.slice(0, 4))}
-      </section>
-
-      <section className="pdpv2-block">
-        <h3 className="pdpv2-section-title">Sản phẩm cùng công nghệ</h3>
-        {renderProductCards(sameTechProducts.length > 0 ? sameTechProducts : relatedProducts.slice(0, 4))}
+        <h3 className="pdpv2-section-title">Sản phẩm cùng danh mục</h3>
+        {renderProductCards(sameCategoryProducts.length > 0 ? sameCategoryProducts : relatedProducts.slice(0, 4))}
       </section>
 
       <section className="pdpv2-block">
@@ -924,11 +1017,6 @@ export function StoreProductDetailPage() {
             </article>
           ))}
         </div>
-      </section>
-
-      <section className="pdpv2-block">
-        <h3 className="pdpv2-section-title">Gợi ý sản phẩm</h3>
-        {renderProductCards(suggestedProducts.length > 0 ? suggestedProducts : relatedProducts.slice(0, 4))}
       </section>
 
       <section className="pdpv2-review-wrap">
@@ -1061,13 +1149,44 @@ export function StoreProductDetailPage() {
         </section>
       ) : null}
 
-      <div className="pdpv2-member-banner">
-        <div>
-          <p className="pdpv2-mini-kicker">Đặc quyền thành viên</p>
-          <h4>Ưu đãi riêng cho đơn tiếp theo</h4>
+      {isAuthenticated ? (
+        <section className="pdpv2-voucher-block">
+          <div className="pdpv2-voucher-head">
+            <div>
+              <p className="pdpv2-mini-kicker">{"Voucher d\u00e0nh cho b\u1ea1n"}</p>
+              <h4>{"\u01afu \u0111\u00e3i \u0111ang kh\u1ea3 d\u1ee5ng"}</h4>
+            </div>
+            <Link to="/cart">
+              <Button className="h-11! rounded-full! border-0! px-6! font-bold!">{"\u00c1p m\u00e3 t\u1ea1i gi\u1ecf h\u00e0ng"}</Button>
+            </Link>
+          </div>
+
+          {couponLoading ? (
+            <p className="pdpv2-voucher-empty">{"\u0110ang t\u1ea3i voucher..."}</p>
+          ) : activeCoupons.length > 0 ? (
+            <div className="pdpv2-voucher-grid">
+              {activeCoupons.map((coupon) => (
+                <article key={coupon.id} className="pdpv2-voucher-card">
+                  <p className="pdpv2-voucher-value">{formatDetailCouponValue(coupon)}</p>
+                  <h5>{coupon.code}</h5>
+                  <p>{coupon.description?.trim() || coupon.name}</p>
+                  <span>{"HSD: "}{formatDetailCouponExpiry(coupon.expiresAt)}</span>
+                </article>
+              ))}
+            </div>
+          ) : (
+            <p className="pdpv2-voucher-empty">{"Hi\u1ec7n ch\u01b0a c\u00f3 voucher ph\u00f9 h\u1ee3p cho t\u00e0i kho\u1ea3n n\u00e0y."}</p>
+          )}
+        </section>
+      ) : (
+        <div className="pdpv2-member-banner">
+          <div>
+            <p className="pdpv2-mini-kicker">{"\u0110\u1eb7c quy\u1ec1n th\u00e0nh vi\u00ean"}</p>
+            <h4>{"\u01afu \u0111\u00e3i ri\u00eang cho \u0111\u01a1n ti\u1ebfp theo"}</h4>
+          </div>
+          <Button className="h-11! rounded-full! border-0! px-7! font-bold!">{"\u0110\u0103ng k\u00fd ngay"}</Button>
         </div>
-        <Button className="h-11! rounded-full! border-0! px-7! font-bold!">Đăng ký ngay</Button>
-      </div>
+      )}
     </div>
   );
 }
