@@ -1,6 +1,9 @@
 import { Typography } from "antd";
+import { useEffect } from "react";
 import type { ReactNode } from "react";
-import { Link } from "react-router-dom";
+import { Link, useLocation } from "react-router-dom";
+import { analyticsTracker } from "../../../services/analyticsTracker";
+import { useAuthStore } from "../../../stores/authStore";
 
 const { Paragraph, Title } = Typography;
 
@@ -19,7 +22,23 @@ export function AuthShell({
   showAuthTabs = true,
   children,
 }: AuthShellProps) {
+  const location = useLocation();
+  const userId = useAuthStore((state) => state.user?.id);
   const isLogin = mode === "login";
+
+  useEffect(() => {
+    analyticsTracker.captureUtmFromSearch(location.search);
+    void analyticsTracker.track({
+      event: "page_view",
+      userId,
+      properties: {
+        path: location.pathname,
+        query: location.search,
+        title,
+        source: "auth_shell",
+      },
+    });
+  }, [location.pathname, location.search, title, userId]);
 
   return (
     <div className="auth-page relative min-h-screen overflow-hidden bg-[#071a2f] px-4 py-8">

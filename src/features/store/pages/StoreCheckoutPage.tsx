@@ -15,6 +15,7 @@ import { cartService, toCartCouponMeta, toCartStoreItems } from "../../../servic
 import { formatStoreCurrency } from "../utils/storeFormatting";
 import { orderService } from "../../../services/orderService";
 import { paymentService } from "../../../services/paymentService";
+import { analyticsTracker } from "../../../services/analyticsTracker";
 import {
   shippingService,
   type GhnDistrict,
@@ -376,6 +377,21 @@ export function StoreCheckoutPage() {
         shippingCarrier: shippingMethod === "same_day" ? "Ahamove" : "GHN",
         note: note.trim() || undefined,
         source: "web",
+      });
+
+      void analyticsTracker.track({
+        event: "purchase",
+        userId: user?.id,
+        orderId: created.id,
+        properties: {
+          orderNumber: created.orderNumber,
+          paymentMethod,
+          paymentStatus: created.paymentStatus,
+          shippingMethod,
+          itemCount: cartItems.reduce((sum, item) => sum + item.quantity, 0),
+          total: created.pricing.total,
+          currency: created.pricing.currency,
+        },
       });
 
       clearCart();

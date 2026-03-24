@@ -13,6 +13,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { Link, Outlet, useLocation, useNavigate } from "react-router-dom";
 import { StoreNotificationsModal } from "../features/store/components/StoreNotificationsModal";
 import { resolveStoreImageUrl } from "../features/store/utils/storeFormatting";
+import { analyticsTracker } from "../services/analyticsTracker";
 import { categoryService, type Category } from "../services/categoryService";
 import { cartService, toCartCouponMeta, toCartStoreItems } from "../services/cartService";
 import { toWishlistStoreItems, wishlistService } from "../services/wishlistService";
@@ -355,6 +356,17 @@ export function StoreLayout() {
 
   const onSearch = () => {
     const keyword = searchKeyword.trim();
+    if (keyword) {
+      void analyticsTracker.track({
+        event: "search",
+        userId: user?.id,
+        properties: {
+          query: keyword,
+          source: "header_search",
+          path: location.pathname,
+        },
+      });
+    }
     navigate(keyword ? `/products?q=${encodeURIComponent(keyword)}` : "/products");
   };
 
@@ -421,6 +433,19 @@ export function StoreLayout() {
   useEffect(() => {
     setIsMegaMenuOpen(false);
   }, [location.pathname]);
+
+  useEffect(() => {
+    analyticsTracker.captureUtmFromSearch(location.search);
+    void analyticsTracker.track({
+      event: "page_view",
+      userId: user?.id,
+      properties: {
+        path: location.pathname,
+        query: location.search,
+        title: typeof document !== "undefined" ? document.title : undefined,
+      },
+    });
+  }, [location.pathname, location.search, user?.id]);
 
   const isHomePage = location.pathname === "/";
 

@@ -1,4 +1,4 @@
-import { HeartOutlined, ShoppingCartOutlined } from "@ant-design/icons";
+﻿import { HeartOutlined, ShoppingCartOutlined } from "@ant-design/icons";
 import { Button, Input, Select, message } from "antd";
 import { useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "react-router-dom";
@@ -11,6 +11,7 @@ import {
   storeButtonClassNames,
 } from "../components/StorePageChrome";
 import { formatStoreCurrency, resolveStoreProductThumbnail } from "../utils/storeFormatting";
+import { analyticsTracker } from "../../../services/analyticsTracker";
 import { categoryService, type Category } from "../../../services/categoryService";
 import { cartService, toCartCouponMeta, toCartStoreItems } from "../../../services/cartService";
 import { productService, type Product } from "../../../services/productService";
@@ -20,11 +21,11 @@ import { useCartStore } from "../../../stores/cartStore";
 import { useWishlistStore } from "../../../stores/wishlistStore";
 
 const sortOptions = [
-  { value: "featured", label: "Nổi bật" },
-  { value: "newest", label: "Mới nhất" },
-  { value: "price_asc", label: "Giá tăng dần" },
-  { value: "price_desc", label: "Giá giảm dần" },
-  { value: "best_selling", label: "Bán chạy" },
+  { value: "featured", label: "Ná»•i báº­t" },
+  { value: "newest", label: "Má»›i nháº¥t" },
+  { value: "price_asc", label: "GiÃ¡ tÄƒng dáº§n" },
+  { value: "price_desc", label: "GiÃ¡ giáº£m dáº§n" },
+  { value: "best_selling", label: "BÃ¡n cháº¡y" },
 ];
 
 const sortMap: Record<string, Record<string, 1 | -1>> = {
@@ -68,7 +69,7 @@ export function StoreProductsPage() {
   }, [q]);
 
   const categoryOptions = useMemo(
-    () => [{ label: "Tất cả danh mục", value: "" }, ...categories.map((item) => ({ label: item.name, value: item.slug }))],
+    () => [{ label: "Táº¥t cáº£ danh má»¥c", value: "" }, ...categories.map((item) => ({ label: item.name, value: item.slug }))],
     [categories],
   );
 
@@ -173,19 +174,31 @@ export function StoreProductsPage() {
   };
 
   const onSearchSubmit = () => {
-    onParamChange({ q: keywordInput.trim() || null, page: "1" });
+    const keyword = keywordInput.trim();
+    if (keyword) {
+      void analyticsTracker.track({
+        event: "search",
+        userId,
+        properties: {
+          query: keyword,
+          source: "products_page",
+          path: "/products",
+        },
+      });
+    }
+    onParamChange({ q: keyword || null, page: "1" });
   };
 
   const onAddToCart = async (item: Product) => {
     const image = resolveStoreProductThumbnail(item);
     const variant = (item.variants ?? []).find((entry) => entry.isActive !== false && Number(entry.stock || 0) > 0) ?? null;
     if (!variant?.sku) {
-      message.error("Sản phẩm đã hết hàng hoặc chưa có biến thể hợp lệ.");
+      message.error("Sáº£n pháº©m Ä‘Ã£ háº¿t hÃ ng hoáº·c chÆ°a cÃ³ biáº¿n thá»ƒ há»£p lá»‡.");
       return;
     }
 
     const variantLabel = variant
-      ? `${variant.color?.name?.trim() || "Mặc định"} / ${(variant.sizeLabel || variant.size).trim()}`
+      ? `${variant.color?.name?.trim() || "Máº·c Ä‘á»‹nh"} / ${(variant.sizeLabel || variant.size).trim()}`
       : undefined;
     const unitPrice = Math.max(0, item.pricing.salePrice + Number(variant?.additionalPrice || 0));
 
@@ -203,9 +216,21 @@ export function StoreProductsPage() {
           couponMeta.couponCode,
           couponMeta.couponDiscount,
         );
-        message.success("Đã thêm vào giỏ hàng");
+        void analyticsTracker.track({
+          event: "add_to_cart",
+          userId,
+          productId: item._id,
+          properties: {
+            productName: item.name,
+            variantSku: variant.sku,
+            quantity: 1,
+            unitPrice,
+            source: "products_page",
+          },
+        });
+        message.success("ÄÃ£ thÃªm vÃ o giá» hÃ ng");
       } catch (error) {
-        const messageText = error instanceof Error ? error.message : "Không thể thêm vào giỏ hàng";
+        const messageText = error instanceof Error ? error.message : "KhÃ´ng thá»ƒ thÃªm vÃ o giá» hÃ ng";
         message.error(messageText);
       }
       return;
@@ -222,7 +247,19 @@ export function StoreProductsPage() {
       availableStock: Math.max(1, Number(variant.stock || 1)),
       quantity: 1,
     });
-    message.success("Đã thêm vào giỏ hàng");
+    void analyticsTracker.track({
+      event: "add_to_cart",
+      userId,
+      productId: item._id,
+      properties: {
+        productName: item.name,
+        variantSku: variant.sku,
+        quantity: 1,
+        unitPrice,
+        source: "products_page_guest",
+      },
+    });
+    message.success("ÄÃ£ thÃªm vÃ o giá» hÃ ng");
   };
 
   const onToggleWishlist = async (item: Product, inWishlist: boolean) => {
@@ -269,24 +306,24 @@ export function StoreProductsPage() {
     <StorePageShell>
       <StorePanelFrame>
         <StoreSectionHeader
-          kicker="Bộ lọc nhanh"
-          title="Tìm nhanh sản phẩm"
-          description="Lọc theo danh mục, từ khóa và kiểu sắp xếp để tìm món đồ phù hợp nhanh hơn."
+          kicker="Bá»™ lá»c nhanh"
+          title="TÃ¬m nhanh sáº£n pháº©m"
+          description="Lá»c theo danh má»¥c, tá»« khÃ³a vÃ  kiá»ƒu sáº¯p xáº¿p Ä‘á»ƒ tÃ¬m mÃ³n Ä‘á»“ phÃ¹ há»£p nhanh hÆ¡n."
         />
 
         <div className="flex flex-wrap items-end gap-3">
           <div className="min-w-55 flex-1">
-            <p className="m-0 mb-1 text-xs font-bold uppercase tracking-[0.14em] text-slate-500">Tìm kiếm</p>
+            <p className="m-0 mb-1 text-xs font-bold uppercase tracking-[0.14em] text-slate-500">TÃ¬m kiáº¿m</p>
             <Input
               value={keywordInput}
               onChange={(event) => setKeywordInput(event.target.value)}
               onPressEnter={onSearchSubmit}
               allowClear
-              placeholder="Nhập tên sản phẩm, thương hiệu..."
+              placeholder="Nháº­p tÃªn sáº£n pháº©m, thÆ°Æ¡ng hiá»‡u..."
             />
           </div>
           <div className="min-w-55">
-            <p className="m-0 mb-1 text-xs font-bold uppercase tracking-[0.14em] text-slate-500">Danh mục</p>
+            <p className="m-0 mb-1 text-xs font-bold uppercase tracking-[0.14em] text-slate-500">Danh má»¥c</p>
             <Select
               value={categorySlug}
               options={categoryOptions}
@@ -295,7 +332,7 @@ export function StoreProductsPage() {
             />
           </div>
           <div className="min-w-55">
-            <p className="m-0 mb-1 text-xs font-bold uppercase tracking-[0.14em] text-slate-500">Sắp xếp</p>
+            <p className="m-0 mb-1 text-xs font-bold uppercase tracking-[0.14em] text-slate-500">Sáº¯p xáº¿p</p>
             <Select
               value={sort}
               options={sortOptions}
@@ -304,7 +341,7 @@ export function StoreProductsPage() {
             />
           </div>
           <Button type="primary" className={storeButtonClassNames.primary} onClick={onSearchSubmit}>
-            Áp dụng
+            Ãp dá»¥ng
           </Button>
           <Button
             className={storeButtonClassNames.secondary}
@@ -313,22 +350,22 @@ export function StoreProductsPage() {
               setSearchParams(new URLSearchParams());
             }}
           >
-            Đặt lại
+            Äáº·t láº¡i
           </Button>
         </div>
       </StorePanelFrame>
 
       <StorePanelFrame>
         <StoreSectionHeader
-          kicker="Danh sách sản phẩm"
-          title="Sản phẩm"
-          description={loading ? "Đang tải danh sách sản phẩm..." : `${totalDocs} sản phẩm đang hiển thị`}
+          kicker="Danh sÃ¡ch sáº£n pháº©m"
+          title="Sáº£n pháº©m"
+          description={loading ? "Äang táº£i danh sÃ¡ch sáº£n pháº©m..." : `${totalDocs} sáº£n pháº©m Ä‘ang hiá»ƒn thá»‹`}
         />
 
         {products.length === 0 && !loading ? (
           <StoreInlineNote
-            title="Không tìm thấy sản phẩm phù hợp."
-            description="Thử thay đổi bộ lọc, từ khóa hoặc quay lại các danh mục khác để xem thêm sản phẩm."
+            title="KhÃ´ng tÃ¬m tháº¥y sáº£n pháº©m phÃ¹ há»£p."
+            description="Thá»­ thay Ä‘á»•i bá»™ lá»c, tá»« khÃ³a hoáº·c quay láº¡i cÃ¡c danh má»¥c khÃ¡c Ä‘á»ƒ xem thÃªm sáº£n pháº©m."
           />
         ) : loading ? (
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
@@ -354,7 +391,7 @@ export function StoreProductsPage() {
                   name={item.name}
                   price={formatStoreCurrency(item.pricing.salePrice)}
                   originalPrice={hasDiscount ? formatStoreCurrency(item.pricing.basePrice) : undefined}
-                  categoryLabel={item.category?.name ?? "Sản phẩm"}
+                  categoryLabel={item.category?.name ?? "Sáº£n pháº©m"}
                   badge={discountLabel}
                   footer={
                     <>
@@ -364,7 +401,7 @@ export function StoreProductsPage() {
                         icon={<HeartOutlined />}
                         onClick={() => void onToggleWishlist(item, inWishlist)}
                       >
-                        {inWishlist ? "Đã lưu" : "Yêu thích"}
+                        {inWishlist ? "ÄÃ£ lÆ°u" : "YÃªu thÃ­ch"}
                       </Button>
                       <Button
                         size="small"
@@ -373,7 +410,7 @@ export function StoreProductsPage() {
                         icon={<ShoppingCartOutlined />}
                         onClick={() => void onAddToCart(item)}
                       >
-                        Thêm giỏ
+                        ThÃªm giá»
                       </Button>
                     </>
                   }
@@ -385,7 +422,7 @@ export function StoreProductsPage() {
 
         <div className="mt-4 flex items-center justify-end gap-2">
           <Button disabled={page <= 1 || loading} className={storeButtonClassNames.ghostCompact} onClick={() => onParamChange({ page: String(page - 1) })}>
-            Trước
+            TrÆ°á»›c
           </Button>
           <span className="text-sm text-slate-500">
             Trang {page} / {Math.max(1, totalPages)}
@@ -398,3 +435,4 @@ export function StoreProductsPage() {
     </StorePageShell>
   );
 }
+
