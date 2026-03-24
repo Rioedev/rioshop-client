@@ -11,8 +11,10 @@ import { Link, useParams } from "react-router-dom";
 import { cartService, toCartCouponMeta, toCartStoreItems } from "../../../services/cartService";
 import { productService, type Product } from "../../../services/productService";
 import { reviewService, type ReviewItem } from "../../../services/reviewService";
+import { toWishlistStoreItems, wishlistService } from "../../../services/wishlistService";
 import { useAuthStore } from "../../../stores/authStore";
 import { useCartStore } from "../../../stores/cartStore";
+import { useWishlistStore } from "../../../stores/wishlistStore";
 import {
   formatStoreCurrency as formatCurrency,
   resolveStoreImageUrl as resolveImageUrl,
@@ -47,6 +49,8 @@ const demoColors = [
 const demoSizes = ["XS", "S", "M", "L", "XL", "2XL"];
 
 const DEFAULT_COLOR_HEX = "#cbd5e1";
+const WISHLIST_FALLBACK_IMAGE =
+  "https://dummyimage.com/400x400/e2e8f0/0f172a&text=RIO";
 
 const normalizeColorValue = (value?: string) => (value ?? "").trim().toLowerCase();
 
@@ -181,8 +185,13 @@ const sanitizeProductHtml = (html?: string) => {
 export function StoreProductDetailPage() {
   const { slug } = useParams();
   const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
+  const userId = useAuthStore((state) => state.user?.id ?? null);
   const addItem = useCartStore((state) => state.addItem);
   const setCartItems = useCartStore((state) => state.setItems);
+  const wishlistItems = useWishlistStore((state) => state.items);
+  const addWishlistItem = useWishlistStore((state) => state.addItem);
+  const removeWishlistItem = useWishlistStore((state) => state.removeItem);
+  const setWishlistItems = useWishlistStore((state) => state.setItems);
 
   const [product, setProduct] = useState<ProductRuntime | null>(null);
   const [relatedProducts, setRelatedProducts] = useState<ProductRuntime[]>([]);
@@ -528,6 +537,7 @@ export function StoreProductDetailPage() {
     reviewStats.count > 0 ? reviewStats.dist : product.ratings?.dist,
     reviewStats.count > 0 ? reviewStats.count : product.ratings?.count ?? 0,
   );
+  const isInWishlist = wishlistItems.some((item) => item.productId === product._id);
 
   const onSubmitReview = async () => {
     if (!isAuthenticated) {
@@ -612,6 +622,46 @@ export function StoreProductDetailPage() {
       quantity,
     });
     message.success("Đã thêm sản phẩm vào giỏ hàng");
+  };
+
+  const onToggleWishlist = async () => {
+    const image = displayImage || resolveStoreProductThumbnail(product) || WISHLIST_FALLBACK_IMAGE;
+
+    if (isAuthenticated) {
+      try {
+        const wishlist = isInWishlist
+          ? await wishlistService.removeItem(product._id)
+          : await wishlistService.addItem({
+              productId: product._id,
+              productSlug: product.slug,
+              name: product.name,
+              image,
+              price: selectedVariantPrice,
+            });
+
+        setWishlistItems(toWishlistStoreItems(wishlist), userId);
+        message.success(isInWishlist ? "\u0110\u00e3 x\u00f3a kh\u1ecfi y\u00eau th\u00edch" : "\u0110\u00e3 th\u00eam v\u00e0o y\u00eau th\u00edch");
+      } catch (error) {
+        const messageText = error instanceof Error ? error.message : "Kh\u00f4ng th\u1ec3 c\u1eadp nh\u1eadt y\u00eau th\u00edch";
+        message.error(messageText);
+      }
+      return;
+    }
+
+    if (isInWishlist) {
+      removeWishlistItem(product._id);
+      message.success("\u0110\u00e3 x\u00f3a kh\u1ecfi y\u00eau th\u00edch");
+      return;
+    }
+
+    addWishlistItem({
+      productId: product._id,
+      slug: product.slug,
+      name: product.name,
+      price: selectedVariantPrice,
+      imageUrl: image,
+    });
+    message.success("\u0110\u00e3 th\u00eam v\u00e0o y\u00eau th\u00edch");
   };
 
   const renderProductCards = (items: ProductRuntime[]) => (
@@ -783,6 +833,14 @@ export function StoreProductDetailPage() {
               onClick={() => void onAddToCart()}
             >
               {isSelectedVariantOutOfStock ? "Hết hàng" : "Thêm vào giỏ"}
+            </Button>
+            <Button
+              size="large"
+              className={`h-11! rounded-full! px-7! font-semibold! ${isInWishlist ? "border-rose-200! text-rose-600!" : "border-slate-300!"}`}
+              icon={<HeartOutlined />}
+              onClick={() => void onToggleWishlist()}
+            >
+              {isInWishlist ? "\u0110\u00e3 l\u01b0u" : "Y\u00eau th\u00edch"}
             </Button>
             <Link to="/cart">
               <Button size="large" className="h-11! rounded-full! border-slate-300! px-7! font-semibold!">

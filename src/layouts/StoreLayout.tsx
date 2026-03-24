@@ -15,6 +15,7 @@ import { StoreNotificationsModal } from "../features/store/components/StoreNotif
 import { resolveStoreImageUrl } from "../features/store/utils/storeFormatting";
 import { categoryService, type Category } from "../services/categoryService";
 import { cartService, toCartCouponMeta, toCartStoreItems } from "../services/cartService";
+import { toWishlistStoreItems, wishlistService } from "../services/wishlistService";
 import { subscribeUserNotifications } from "../services/socketClient";
 import { useAuthStore } from "../stores/authStore";
 import { useCartStore } from "../stores/cartStore";
@@ -211,6 +212,7 @@ export function StoreLayout() {
   const cartItems = useCartStore((state) => state.items);
   const setCartItems = useCartStore((state) => state.setItems);
   const wishlistItems = useWishlistStore((state) => state.items);
+  const setWishlistItems = useWishlistStore((state) => state.setItems);
   const unreadNotificationCount = useNotificationStore((state) => state.unreadCount);
   const refreshUnreadCount = useNotificationStore((state) => state.refreshUnreadCount);
   const applyRealtimeNotification = useNotificationStore((state) => state.applyRealtimeNotification);
@@ -303,30 +305,37 @@ export function StoreLayout() {
     }
 
     let active = true;
-    const loadServerCart = async () => {
-      try {
-        const cart = await cartService.getCart();
-        if (!active) {
-          return;
-        }
-        const couponMeta = toCartCouponMeta(cart);
+    const loadServerData = async () => {
+      const [cartResult, wishlistResult] = await Promise.allSettled([
+        cartService.getCart(),
+        wishlistService.getWishlist(),
+      ]);
+
+      if (!active) {
+        return;
+      }
+
+      if (cartResult.status === "fulfilled") {
+        const couponMeta = toCartCouponMeta(cartResult.value);
         setCartItems(
-          toCartStoreItems(cart),
+          toCartStoreItems(cartResult.value),
           user?.id ?? null,
           couponMeta.couponCode,
           couponMeta.couponDiscount,
         );
-      } catch {
-        // no-op: UI keeps current local state if cart API is unavailable
+      }
+
+      if (wishlistResult.status === "fulfilled") {
+        setWishlistItems(toWishlistStoreItems(wishlistResult.value), user?.id ?? null);
       }
     };
 
-    void loadServerCart();
+    void loadServerData();
 
     return () => {
       active = false;
     };
-  }, [isAuthenticated, resetNotifications, setCartItems, user?.id]);
+  }, [isAuthenticated, resetNotifications, setCartItems, setWishlistItems, user?.id]);
 
   useEffect(() => {
     const principalId = user?.id?.toString().trim();

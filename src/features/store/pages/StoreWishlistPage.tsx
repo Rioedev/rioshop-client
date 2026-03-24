@@ -1,4 +1,5 @@
 import { Button, message } from "antd";
+import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { StoreProductGridCard } from "../components/StoreProductGridCard";
 import {
@@ -12,6 +13,7 @@ import {
 import { formatStoreCurrency } from "../utils/storeFormatting";
 import { cartService, toCartCouponMeta, toCartStoreItems } from "../../../services/cartService";
 import { productService } from "../../../services/productService";
+import { toWishlistStoreItems, wishlistService } from "../../../services/wishlistService";
 import { useAuthStore } from "../../../stores/authStore";
 import { useCartStore } from "../../../stores/cartStore";
 import { useWishlistStore } from "../../../stores/wishlistStore";
@@ -19,14 +21,88 @@ import { useWishlistStore } from "../../../stores/wishlistStore";
 export function StoreWishlistPage() {
   const [messageApi, contextHolder] = message.useMessage();
   const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
+  const userId = useAuthStore((state) => state.user?.id ?? null);
   const items = useWishlistStore((state) => state.items);
-  const removeItem = useWishlistStore((state) => state.removeItem);
-  const clear = useWishlistStore((state) => state.clear);
+  const removeItemLocal = useWishlistStore((state) => state.removeItem);
+  const clearLocal = useWishlistStore((state) => state.clear);
+  const setWishlistItems = useWishlistStore((state) => state.setItems);
   const addCartItem = useCartStore((state) => state.addItem);
   const setCartItems = useCartStore((state) => state.setItems);
+  const [processingProductId, setProcessingProductId] = useState<string | null>(null);
+  const [clearing, setClearing] = useState(false);
+
+  useEffect(() => {
+    if (!isAuthenticated) {
+      return;
+    }
+
+    let active = true;
+    const loadWishlist = async () => {
+      try {
+        const wishlist = await wishlistService.getWishlist();
+        if (!active) {
+          return;
+        }
+        setWishlistItems(toWishlistStoreItems(wishlist), userId);
+      } catch {
+        // ignore and keep current state
+      }
+    };
+
+    void loadWishlist();
+
+    return () => {
+      active = false;
+    };
+  }, [isAuthenticated, setWishlistItems, userId]);
+
+  const removeWishlistItem = async (productId: string) => {
+    if (!isAuthenticated) {
+      removeItemLocal(productId);
+      messageApi.success("Đã xóa khỏi danh sách yêu thích");
+      return;
+    }
+
+    setProcessingProductId(productId);
+    try {
+      const wishlist = await wishlistService.removeItem(productId);
+      setWishlistItems(toWishlistStoreItems(wishlist), userId);
+      messageApi.success("Đã xóa khỏi danh sách yêu thích");
+    } catch (error) {
+      const messageText = error instanceof Error ? error.message : "Không thể xóa sản phẩm yêu thích";
+      messageApi.error(messageText);
+    } finally {
+      setProcessingProductId(null);
+    }
+  };
+
+  const clearWishlist = async () => {
+    if (!isAuthenticated) {
+      clearLocal();
+      messageApi.success("Đã xóa toàn bộ danh sách yêu thích");
+      return;
+    }
+
+    setClearing(true);
+    try {
+      const wishlist = await wishlistService.clearWishlist();
+      setWishlistItems(toWishlistStoreItems(wishlist), userId);
+      messageApi.success("Đã xóa toàn bộ danh sách yêu thích");
+    } catch (error) {
+      const messageText = error instanceof Error ? error.message : "Không thể xóa toàn bộ yêu thích";
+      messageApi.error(messageText);
+    } finally {
+      setClearing(false);
+    }
+  };
 
   const addWishlistToCart = async (item: (typeof items)[number]) => {
     try {
+      if (!item.slug?.trim()) {
+        messageApi.error("Không tìm thấy liên kết sản phẩm để thêm vào giỏ.");
+        return;
+      }
+
       const product = await productService.getProductBySlug(item.slug);
       const variant = (product.variants ?? []).find((entry) => entry.isActive !== false && Number(entry.stock || 0) > 0);
 
@@ -114,7 +190,11 @@ export function StoreWishlistPage() {
         title="Sản phẩm bạn đang để mắt tới"
         description="Tất cả món hàng bạn đã lưu sẽ ở đây để so sánh nhanh, thêm vào giỏ và quay lại mua sau."
         action={
-          <Button className={storeButtonClassNames.secondary} onClick={clear}>
+          <Button
+            className={storeButtonClassNames.secondary}
+            onClick={() => void clearWishlist()}
+            loading={clearing}
+          >
             Xóa tất cả
           </Button>
         }
@@ -138,10 +218,17 @@ export function StoreWishlistPage() {
                     type="primary"
                     className={storeButtonClassNames.primaryCompact}
                     onClick={() => void addWishlistToCart(item)}
+                    disabled={processingProductId === item.productId || clearing}
                   >
                     Thêm giỏ
                   </Button>
-                  <Button size="small" className={storeButtonClassNames.secondaryCompact} onClick={() => removeItem(item.productId)}>
+                  <Button
+                    size="small"
+                    className={storeButtonClassNames.secondaryCompact}
+                    onClick={() => void removeWishlistItem(item.productId)}
+                    loading={processingProductId === item.productId}
+                    disabled={clearing}
+                  >
                     Xóa
                   </Button>
                 </>

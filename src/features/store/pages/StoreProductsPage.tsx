@@ -14,6 +14,7 @@ import { formatStoreCurrency, resolveStoreProductThumbnail } from "../utils/stor
 import { categoryService, type Category } from "../../../services/categoryService";
 import { cartService, toCartCouponMeta, toCartStoreItems } from "../../../services/cartService";
 import { productService, type Product } from "../../../services/productService";
+import { toWishlistStoreItems, wishlistService } from "../../../services/wishlistService";
 import { useAuthStore } from "../../../stores/authStore";
 import { useCartStore } from "../../../stores/cartStore";
 import { useWishlistStore } from "../../../stores/wishlistStore";
@@ -34,13 +35,19 @@ const sortMap: Record<string, Record<string, 1 | -1>> = {
   best_selling: { totalSold: -1, createdAt: -1 },
 };
 
+const WISHLIST_FALLBACK_IMAGE =
+  "https://dummyimage.com/400x400/e2e8f0/0f172a&text=RIO";
+
 export function StoreProductsPage() {
   const [searchParams, setSearchParams] = useSearchParams();
   const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
+  const userId = useAuthStore((state) => state.user?.id ?? null);
   const addCartItem = useCartStore((state) => state.addItem);
   const setCartItems = useCartStore((state) => state.setItems);
   const wishlistItems = useWishlistStore((state) => state.items);
-  const toggleWishlist = useWishlistStore((state) => state.toggleItem);
+  const addWishlistItem = useWishlistStore((state) => state.addItem);
+  const removeWishlistItem = useWishlistStore((state) => state.removeItem);
+  const setWishlistItems = useWishlistStore((state) => state.setItems);
 
   const [categories, setCategories] = useState<Category[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
@@ -218,6 +225,46 @@ export function StoreProductsPage() {
     message.success("Đã thêm vào giỏ hàng");
   };
 
+  const onToggleWishlist = async (item: Product, inWishlist: boolean) => {
+    const image = resolveStoreProductThumbnail(item) || WISHLIST_FALLBACK_IMAGE;
+
+    if (isAuthenticated) {
+      try {
+        const wishlist = inWishlist
+          ? await wishlistService.removeItem(item._id)
+          : await wishlistService.addItem({
+              productId: item._id,
+              productSlug: item.slug,
+              name: item.name,
+              image,
+              price: item.pricing.salePrice,
+            });
+
+        setWishlistItems(toWishlistStoreItems(wishlist), userId);
+        message.success(inWishlist ? "\u0110\u00e3 x\u00f3a kh\u1ecfi y\u00eau th\u00edch" : "\u0110\u00e3 th\u00eam v\u00e0o y\u00eau th\u00edch");
+      } catch (error) {
+        const messageText = error instanceof Error ? error.message : "Kh\u00f4ng th\u1ec3 c\u1eadp nh\u1eadt y\u00eau th\u00edch";
+        message.error(messageText);
+      }
+      return;
+    }
+
+    if (inWishlist) {
+      removeWishlistItem(item._id);
+      message.success("\u0110\u00e3 x\u00f3a kh\u1ecfi y\u00eau th\u00edch");
+      return;
+    }
+
+    addWishlistItem({
+      productId: item._id,
+      slug: item.slug,
+      name: item.name,
+      price: item.pricing.salePrice,
+      imageUrl: image,
+    });
+    message.success("\u0110\u00e3 th\u00eam v\u00e0o y\u00eau th\u00edch");
+  };
+
   return (
     <StorePageShell>
       <StorePanelFrame>
@@ -315,15 +362,7 @@ export function StoreProductsPage() {
                         size="small"
                         className={inWishlist ? "rounded-full! border-rose-200! text-rose-600!" : storeButtonClassNames.secondaryCompact}
                         icon={<HeartOutlined />}
-                        onClick={() =>
-                          toggleWishlist({
-                            productId: item._id,
-                            slug: item.slug,
-                            name: item.name,
-                            price: item.pricing.salePrice,
-                            imageUrl: image,
-                          })
-                        }
+                        onClick={() => void onToggleWishlist(item, inWishlist)}
                       >
                         {inWishlist ? "Đã lưu" : "Yêu thích"}
                       </Button>

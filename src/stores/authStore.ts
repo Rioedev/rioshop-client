@@ -9,8 +9,10 @@ import {
 } from "../services/authService";
 import { bindAuthTokenGetter } from "../services/apiClient";
 import { cartService, toCartCouponMeta, toCartStoreItems } from "../services/cartService";
+import { wishlistService, toWishlistStoreItems } from "../services/wishlistService";
 import { useCartStore } from "./cartStore";
 import { useNotificationStore } from "./notificationStore";
+import { useWishlistStore } from "./wishlistStore";
 
 type AuthStorage = {
   user: AuthUser;
@@ -32,6 +34,8 @@ type AuthState = {
 };
 
 const AUTH_STORAGE_KEY = "rioshop_auth";
+const WISHLIST_FALLBACK_IMAGE =
+  "https://dummyimage.com/400x400/e2e8f0/0f172a&text=RIO";
 
 const readAuthStorage = (): AuthStorage | null => {
   const raw = localStorage.getItem(AUTH_STORAGE_KEY);
@@ -138,6 +142,48 @@ const syncCartAfterLogin = async (user: AuthUser) => {
   }
 };
 
+const syncWishlistAfterLogin = async (user: AuthUser) => {
+  if (user.accountType !== "user" || !user.id) {
+    return;
+  }
+
+  const wishlistState = useWishlistStore.getState();
+  const shouldMergeGuestItems =
+    wishlistState.ownerUserId === null && (wishlistState.items || []).length > 0;
+  const guestItems = shouldMergeGuestItems ? [...wishlistState.items] : [];
+
+  if (guestItems.length > 0) {
+    for (const item of guestItems) {
+      const productId = item.productId?.trim();
+      if (!productId) {
+        continue;
+      }
+
+      try {
+        await wishlistService.addItem({
+          productId,
+          productSlug: item.slug?.trim() || "",
+          name: item.name?.trim() || "San pham",
+          image: item.imageUrl?.trim() || WISHLIST_FALLBACK_IMAGE,
+          price: Math.max(0, Number(item.price || 0)),
+        });
+      } catch {
+        // Ignore invalid item and continue syncing the rest.
+      }
+    }
+  }
+
+  try {
+    const wishlist = await wishlistService.getWishlist();
+    useWishlistStore.getState().setItems(toWishlistStoreItems(wishlist), user.id);
+  } catch {
+    if (shouldMergeGuestItems) {
+      // Keep local wishlist if server is unavailable to avoid data loss.
+      useWishlistStore.getState().setItems(guestItems, null);
+    }
+  }
+};
+
 export const useAuthStore = create<AuthState>((set, get) => {
   bindAuthTokenGetter(() => get().token);
 
@@ -159,6 +205,7 @@ export const useAuthStore = create<AuthState>((set, get) => {
           isLoading: false,
         });
         await syncCartAfterLogin(user);
+        await syncWishlistAfterLogin(user);
       } catch (error) {
         set({ isLoading: false });
         throw new Error(getErrorMessage(error));
@@ -190,6 +237,7 @@ export const useAuthStore = create<AuthState>((set, get) => {
           isLoading: false,
         });
         await syncCartAfterLogin(user);
+        await syncWishlistAfterLogin(user);
       } catch (error) {
         set({ isLoading: false });
         throw new Error(getErrorMessage(error));
@@ -207,6 +255,7 @@ export const useAuthStore = create<AuthState>((set, get) => {
       } finally {
         clearAuthStorage();
         useCartStore.getState().resetCart();
+        useWishlistStore.getState().resetWishlist();
         useNotificationStore.getState().reset();
         set({
           user: null,
@@ -225,6 +274,9 @@ export const useAuthStore = create<AuthState>((set, get) => {
       const stored = readAuthStorage();
 
       if (!stored) {
+        if (useWishlistStore.getState().ownerUserId !== null) {
+          useWishlistStore.getState().resetWishlist();
+        }
         useNotificationStore.getState().reset();
         set({ isHydrated: true });
         return;
@@ -245,9 +297,11 @@ export const useAuthStore = create<AuthState>((set, get) => {
           isAuthenticated: true,
         });
         await syncCartAfterLogin(user);
+        await syncWishlistAfterLogin(user);
       } catch {
         clearAuthStorage();
         useCartStore.getState().resetCart();
+        useWishlistStore.getState().resetWishlist();
         useNotificationStore.getState().reset();
         set({
           user: null,

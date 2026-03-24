@@ -372,9 +372,13 @@ body {
 
 .cool-product-media {
   position: relative;
-  height: 240px;
+  height: 300px;
   overflow: hidden;
   background: linear-gradient(145deg, #eff6ff, #dbeafe);
+}
+
+.cool-product-media img {
+  object-position: center top;
 }
 
 .cool-product-fallback {
@@ -954,7 +958,7 @@ body {
   }
 
   .cool-product-media {
-    height: 210px;
+    height: 260px;
   }
 
   .cool-newsletter-form,
@@ -6028,7 +6032,7 @@ body {
 }
 
 .cool-product-media {
-  height: 290px;
+  height: 360px;
   background: #f2f6fb;
 }
 
@@ -6158,6 +6162,6 @@ body {
   }
 
   .cool-product-media {
-    height: 250px;
+    height: 300px;
   }
 }
