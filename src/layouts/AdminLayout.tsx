@@ -28,19 +28,19 @@ const { Text, Title } = Typography;
 
 const baseAdminMenuItems: ItemType[] = [
   { key: "/admin/dashboard", icon: <HomeOutlined />, label: "Tổng quan" },
-  { key: "/admin/orders", icon: <ShoppingCartOutlined />, label: "Đơn hàng" },
+  { key: "/admin/categories", icon: <TagsOutlined />, label: "Danh mục" },
   { key: "/admin/products", icon: <AppstoreOutlined />, label: "Sản phẩm" },
+  { key: "/admin/inventories", icon: <InboxOutlined />, label: "Tồn kho" },
+  { key: "/admin/orders", icon: <ShoppingCartOutlined />, label: "Đơn hàng" },
   { key: "/admin/reviews", icon: <StarOutlined />, label: "Đánh giá" },
   { key: "/admin/flash-sales", icon: <ThunderboltOutlined />, label: "Flash Sales" },
+  { key: "/admin/coupons", icon: <GiftOutlined />, label: "Mã giảm giá" },
+  { key: "/admin/users", icon: <TeamOutlined />, label: "Khách hàng" },
   {
     key: "/admin/analytics-events",
     icon: <LineChartOutlined />,
-    label: "Sự kiện phân tích",
+    label: "Analytics Events",
   },
-  { key: "/admin/coupons", icon: <GiftOutlined />, label: "Mã giảm giá" },
-  { key: "/admin/inventories", icon: <InboxOutlined />, label: "Tồn kho" },
-  { key: "/admin/categories", icon: <TagsOutlined />, label: "Danh mục" },
-  { key: "/admin/users", icon: <TeamOutlined />, label: "Khách hàng" },
   {
     key: "/admin/brand-config",
     icon: <BgColorsOutlined />,
@@ -50,15 +50,15 @@ const baseAdminMenuItems: ItemType[] = [
 
 const pageTitleMap: Record<string, string> = {
   "/admin/dashboard": "Tổng quan",
-  "/admin/orders": "Đơn hàng",
+  "/admin/categories": "Danh mục",
   "/admin/products": "Sản phẩm",
+  "/admin/inventories": "Tồn kho",
+  "/admin/orders": "Đơn hàng",
   "/admin/reviews": "Đánh giá",
   "/admin/flash-sales": "Flash Sales",
-  "/admin/analytics-events": "Sự kiện phân tích",
   "/admin/coupons": "Mã giảm giá",
-  "/admin/inventories": "Tồn kho",
-  "/admin/categories": "Danh mục",
   "/admin/users": "Khách hàng",
+  "/admin/analytics-events": "Analytics Events",
   "/admin/brand-config": "Cấu hình thương hiệu",
   "/admin/admin-accounts": "Tài khoản admin",
 };
@@ -155,7 +155,7 @@ export function AdminLayout() {
 
       <Layout className="h-screen overflow-hidden">
         <Header className="h-auto! shrink-0 border-b border-slate-200 bg-white! px-6! py-3! leading-normal! shadow-sm">
-          <div className="flex min-h-[52px] items-center justify-between gap-4">
+          <div className="flex min-h-13 items-center justify-between gap-4">
             <div className="leading-tight">
               <Text className="text-xs! uppercase! tracking-[0.12em]! text-slate-500!">Trang đang xem</Text>
               <Title level={4} className="m-0! text-slate-900! leading-tight!">
@@ -177,7 +177,7 @@ export function AdminLayout() {
                 </span>
               </Button>
 
-              <div className="min-w-[190px] rounded-full border border-slate-200 bg-slate-50 px-3 py-1.5 text-right leading-tight">
+              <div className="min-w-47.5 rounded-full border border-slate-200 bg-slate-50 px-3 py-1.5 text-right leading-tight">
                 <Text className="block text-[11px]! uppercase! tracking-[0.08em]! text-slate-500! leading-tight!">Tài khoản</Text>
                 <Text strong className="block text-sm! text-slate-800! leading-tight!">
                   {user?.fullName ?? "Khách"}
