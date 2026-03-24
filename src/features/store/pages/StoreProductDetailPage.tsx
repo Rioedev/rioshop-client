@@ -5,7 +5,7 @@ import {
   StarFilled,
   TruckOutlined,
 } from "@ant-design/icons";
-import { Button, InputNumber, Progress, Rate, Typography, message } from "antd";
+import { Button, Input, InputNumber, Progress, Rate, Typography, message } from "antd";
 import { useEffect, useMemo, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { cartService, toCartCouponMeta, toCartStoreItems } from "../../../services/cartService";
@@ -105,6 +105,21 @@ const generateReviewPercents = (dist?: Record<string, number>, count = 0) => {
   ];
 };
 
+const formatReviewDate = (value?: string) => {
+  if (!value) {
+    return "Vừa xong";
+  }
+
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) {
+    return "Vừa xong";
+  }
+
+  return new Intl.DateTimeFormat("vi-VN", {
+    dateStyle: "medium",
+  }).format(date);
+};
+
 const stripHtmlToText = (value?: string) =>
   (value ?? "")
     .replace(/<[^>]*>/g, " ")
@@ -184,9 +199,31 @@ export function StoreProductDetailPage() {
   });
   const [loading, setLoading] = useState(true);
   const [quantity, setQuantity] = useState(1);
+  const [reviewRating, setReviewRating] = useState(5);
+  const [reviewBody, setReviewBody] = useState("");
+  const [reviewSubmitting, setReviewSubmitting] = useState(false);
   const [selectedImage, setSelectedImage] = useState<string | undefined>(undefined);
   const [selectedColor, setSelectedColor] = useState(demoColors[0].name);
   const [selectedSize, setSelectedSize] = useState(demoSizes[2]);
+
+  const loadReviewData = async (productId: string, fallbackProduct?: ProductRuntime) => {
+    try {
+      const reviewResult = await reviewService.getReviewsForProduct(productId, { page: 1, limit: 12 });
+      setRecentReviews(reviewResult.docs);
+      setReviewStats({
+        avg: reviewResult.stats?.avg ?? 0,
+        count: reviewResult.stats?.count ?? 0,
+        dist: reviewResult.stats?.dist ?? { 5: 0, 4: 0, 3: 0, 2: 0, 1: 0 },
+      });
+    } catch {
+      setRecentReviews([]);
+      setReviewStats({
+        avg: fallbackProduct?.ratings?.avg ?? 0,
+        count: fallbackProduct?.ratings?.count ?? 0,
+        dist: fallbackProduct?.ratings?.dist ?? { 5: 0, 4: 0, 3: 0, 2: 0, 1: 0 },
+      });
+    }
+  };
 
   useEffect(() => {
     let active = true;
@@ -214,7 +251,7 @@ export function StoreProductDetailPage() {
 
         setProduct(result);
 
-        const [relatedResult, catalogResult, reviewResult] = await Promise.allSettled([
+        const [relatedResult, catalogResult] = await Promise.allSettled([
           productService.getRelatedProducts(result._id),
           productService.getProducts({
             page: 1,
@@ -222,7 +259,6 @@ export function StoreProductDetailPage() {
             status: "active",
             sort: { isFeatured: -1, totalSold: -1, createdAt: -1 },
           }),
-          reviewService.getReviewsForProduct(result._id, { page: 1, limit: 6 }),
         ]);
 
         if (active) {
@@ -237,23 +273,9 @@ export function StoreProductDetailPage() {
           } else {
             setCatalogProducts([]);
           }
-
-          if (reviewResult?.status === "fulfilled") {
-            setRecentReviews(reviewResult.value.docs);
-            setReviewStats({
-              avg: reviewResult.value.stats?.avg ?? 0,
-              count: reviewResult.value.stats?.count ?? 0,
-              dist: reviewResult.value.stats?.dist ?? { 5: 0, 4: 0, 3: 0, 2: 0, 1: 0 },
-            });
-          } else {
-            setRecentReviews([]);
-            setReviewStats({
-              avg: result.ratings?.avg ?? 0,
-              count: result.ratings?.count ?? 0,
-              dist: result.ratings?.dist ?? { 5: 0, 4: 0, 3: 0, 2: 0, 1: 0 },
-            });
-          }
         }
+
+        await loadReviewData(result._id, result);
       } catch {
         if (!active) {
           return;
@@ -506,6 +528,39 @@ export function StoreProductDetailPage() {
     reviewStats.count > 0 ? reviewStats.dist : product.ratings?.dist,
     reviewStats.count > 0 ? reviewStats.count : product.ratings?.count ?? 0,
   );
+
+  const onSubmitReview = async () => {
+    if (!isAuthenticated) {
+      message.info("Vui lòng đăng nhập để gửi bình luận.");
+      return;
+    }
+
+    const trimmedBody = reviewBody.trim();
+    if (!trimmedBody) {
+      message.warning("Vui lòng nhập nội dung bình luận.");
+      return;
+    }
+
+    setReviewSubmitting(true);
+    try {
+      await reviewService.createReview({
+        productId: product._id,
+        variantSku: selectedVariant?.sku || undefined,
+        rating: Math.max(1, Math.min(5, Math.round(reviewRating || 5))),
+        body: trimmedBody,
+      });
+
+      setReviewBody("");
+      setReviewRating(5);
+      message.success("Đã gửi bình luận. Admin sẽ duyệt trước khi hiển thị công khai.");
+      await loadReviewData(product._id, product);
+    } catch (error) {
+      const messageText = error instanceof Error ? error.message : "Không thể gửi bình luận";
+      message.error(messageText);
+    } finally {
+      setReviewSubmitting(false);
+    }
+  };
 
   const onAddToCart = async () => {
     if (productVariants.length > 0 && !selectedVariant?.sku) {
@@ -836,18 +891,74 @@ export function StoreProductDetailPage() {
             ))}
           </div>
         </div>
+        <div className="pdpv2-review-composer">
+          <div className="pdpv2-review-composer-head">
+            <div>
+              <p className="pdpv2-review-composer-kicker">{"Chia s\u1ebb tr\u1ea3i nghi\u1ec7m c\u1ee7a b\u1ea1n"}</p>
+              <p className="pdpv2-review-composer-hint">
+                {"\u0110\u00e1nh gi\u00e1 th\u1ef1c t\u1ebf s\u1ebd gi\u00fap ng\u01b0\u1eddi mua kh\u00e1c ch\u1ecdn \u0111\u00fang s\u1ea3n ph\u1ea9m h\u01a1n."}
+              </p>
+            </div>
+            {!isAuthenticated ? (
+              <Link to="/login" className="pdpv2-review-login">
+                {"\u0110\u0103ng nh\u1eadp \u0111\u1ec3 b\u00ecnh lu\u1eadn"}
+              </Link>
+            ) : null}
+          </div>
+
+          <div className="mt-4 space-y-3">
+            <div className="pdpv2-review-rating-line">
+              <span>{"Ch\u1ea5m \u0111i\u1ec3m c\u1ee7a b\u1ea1n"}</span>
+              <Rate
+                value={reviewRating}
+                onChange={setReviewRating}
+                disabled={!isAuthenticated || reviewSubmitting}
+              />
+            </div>
+
+            <Input.TextArea
+              value={reviewBody}
+              onChange={(event) => setReviewBody(event.target.value)}
+              placeholder={"Chia s\u1ebb tr\u1ea3i nghi\u1ec7m c\u1ee7a b\u1ea1n v\u1ec1 s\u1ea3n ph\u1ea9m..."}
+              rows={5}
+              maxLength={1000}
+              showCount
+              disabled={!isAuthenticated || reviewSubmitting}
+              className="pdpv2-review-input"
+            />
+
+            <div className="pdpv2-review-actions">
+              <span>{"Vui l\u00f2ng gi\u1eef n\u1ed9i dung l\u1ecbch s\u1ef1, h\u1eefu \u00edch v\u00e0 \u0111\u00fang tr\u1ea3i nghi\u1ec7m th\u1ef1c t\u1ebf."}</span>
+              <Button
+                type="primary"
+                onClick={() => void onSubmitReview()}
+                loading={reviewSubmitting}
+                disabled={!isAuthenticated}
+                className="rounded-full! px-5! font-semibold!"
+              >
+                {"G\u1eedi b\u00ecnh lu\u1eadn"}
+              </Button>
+            </div>
+          </div>
+        </div>
 
         <div className="mt-5 space-y-3">
           {recentReviews.length > 0 ? (
             recentReviews.slice(0, 3).map((review) => (
-              <article key={review.id} className="rounded-xl border border-slate-200 bg-white p-3">
-                <div className="flex items-center justify-between gap-2">
-                  <p className="m-0 text-sm font-semibold text-slate-900">
-                    {review.user?.fullName || "Khách hàng đã mua"}
-                  </p>
+              <article key={review.id} className="pdpv2-review-item">
+                <div className="pdpv2-review-item-head">
+                  <div>
+                    <p className="pdpv2-review-user">{review.user?.fullName || "Kh\u00e1ch h\u00e0ng \u0111\u00e3 mua"}</p>
+                    <p className="pdpv2-review-date">{formatReviewDate(review.createdAt)}</p>
+                  </div>
                   <Rate disabled value={review.rating} className="text-xs!" />
                 </div>
                 <p className="m-0 mt-2 text-sm text-slate-600">{review.body}</p>
+                {review.adminReply?.body ? (
+                  <div className="pdpv2-review-reply">
+                    <span className="font-semibold text-slate-700">{"Ph\u1ea3n h\u1ed3i t\u1eeb shop:"}</span> {review.adminReply.body}
+                  </div>
+                ) : null}
               </article>
             ))
           ) : (

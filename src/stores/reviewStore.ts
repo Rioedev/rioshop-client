@@ -30,6 +30,7 @@ type ReviewState = {
     pageSize?: number;
     includePending?: boolean;
     includeRejected?: boolean;
+    search?: string;
   }) => Promise<void>;
   setProductId: (productId: string) => void;
   setIncludePending: (value: boolean) => void;
@@ -75,25 +76,17 @@ export const useReviewStore = create<ReviewState>((set, get) => ({
     const nextPageSize = params?.pageSize ?? state.pageSize;
     const nextIncludePending = params?.includePending ?? state.includePending;
     const nextIncludeRejected = params?.includeRejected ?? state.includeRejected;
-
-    if (!nextProductId.trim()) {
-      set({
-        productId: "",
-        reviews: [],
-        stats: EMPTY_STATS,
-        total: 0,
-        page: 1,
-      });
-      return;
-    }
+    const nextSearch = params?.search ?? "";
 
     set({ loading: true });
     try {
-      const result = await reviewService.getReviewsForProduct(nextProductId.trim(), {
+      const result = await reviewService.getReviews({
         page: nextPage,
         limit: nextPageSize,
+        productId: nextProductId.trim() || undefined,
         includePending: nextIncludePending,
         includeRejected: nextIncludeRejected,
+        search: nextSearch.trim() || undefined,
       });
 
       set({

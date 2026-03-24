@@ -1,6 +1,5 @@
 import { AxiosError } from "axios";
 import {
-  Alert,
   Button,
   Card,
   Form,
@@ -95,6 +94,20 @@ export function AdminReviewsPage() {
     setProductIdInput(productId);
   }, [productId]);
 
+  useEffect(() => {
+    void loadReviews({
+      page: 1,
+      pageSize,
+      includePending,
+      includeRejected,
+    }).catch((error) => {
+      messageApi.error(getErrorMessage(error));
+    });
+    // Load initial list once when entering page.
+    // Filter toggles trigger their own reload handler.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [loadReviews, messageApi, pageSize]);
+
   const filteredReviews = useMemo(() => {
     const keyword = searchText.trim().toLowerCase();
     if (!keyword) return reviews;
@@ -103,21 +116,18 @@ export function AdminReviewsPage() {
       (review.title ?? "").toLowerCase().includes(keyword) ||
       review.body.toLowerCase().includes(keyword) ||
       (review.user?.fullName ?? "").toLowerCase().includes(keyword) ||
+      (review.product?.name ?? "").toLowerCase().includes(keyword) ||
       STATUS_LABEL_MAP[review.status].toLowerCase().includes(keyword),
     );
   }, [reviews, searchText]);
 
   const handleLoadReviews = async () => {
     const normalizedProductId = productIdInput.trim();
-    if (!normalizedProductId) {
-      messageApi.warning("Vui lòng nhập Product ID.");
-      return;
-    }
 
     setProductId(normalizedProductId);
     try {
       await loadReviews({
-        productId: normalizedProductId,
+        productId: normalizedProductId || undefined,
         page: 1,
         pageSize,
         includePending,
@@ -130,11 +140,10 @@ export function AdminReviewsPage() {
 
   const handleTogglePending = async (checked: boolean) => {
     setIncludePending(checked);
-    if (!productId.trim()) return;
 
     try {
       await loadReviews({
-        productId,
+        productId: productId.trim() || undefined,
         page: 1,
         pageSize,
         includePending: checked,
@@ -147,11 +156,10 @@ export function AdminReviewsPage() {
 
   const handleToggleRejected = async (checked: boolean) => {
     setIncludeRejected(checked);
-    if (!productId.trim()) return;
 
     try {
       await loadReviews({
-        productId,
+        productId: productId.trim() || undefined,
         page: 1,
         pageSize,
         includePending,
@@ -165,7 +173,7 @@ export function AdminReviewsPage() {
   const handleUpdateStatus = async (id: string, status: ReviewStatus) => {
     try {
       await updateReviewStatus(id, status);
-      messageApi.success("Cập nhật trạng thái đánh giá thành công.");
+      messageApi.success("Cập nhật trạng thái bình luận thành công.");
     } catch (error) {
       messageApi.error(getErrorMessage(error));
     }
@@ -174,7 +182,7 @@ export function AdminReviewsPage() {
   const handleDeleteReview = async (id: string) => {
     try {
       await deleteReview(id);
-      messageApi.success("Xóa đánh giá thành công.");
+      messageApi.success("Xóa bình luận thành công.");
     } catch (error) {
       messageApi.error(getErrorMessage(error));
     }
@@ -200,7 +208,7 @@ export function AdminReviewsPage() {
     try {
       const values = await replyForm.validateFields();
       await replyReview(replyingReview.id, values.body.trim());
-      messageApi.success("Phản hồi đánh giá thành công.");
+      messageApi.success("Phản hồi bình luận thành công.");
       closeReplyModal();
     } catch (error) {
       if (error instanceof Error && "errorFields" in error) {
@@ -211,6 +219,17 @@ export function AdminReviewsPage() {
   };
 
   const columns: ColumnsType<ReviewItem> = [
+    {
+      title: "Sản phẩm",
+      key: "product",
+      width: 250,
+      render: (_, record) => (
+        <div>
+          <div>{record.product?.name ?? "Sản phẩm không xác định"}</div>
+          <Text type="secondary">{record.productId}</Text>
+        </div>
+      ),
+    },
     {
       title: "Khách hàng",
       key: "user",
@@ -302,8 +321,8 @@ export function AdminReviewsPage() {
             Phản hồi
           </Button>
           <Popconfirm
-            title="Xóa đánh giá"
-            description="Bạn có chắc muốn xóa đánh giá này?"
+            title="Xóa bình luận"
+            description="Bạn có chắc muốn xóa bình luận này?"
             okText="Xóa"
             cancelText="Hủy"
             onConfirm={() => void handleDeleteReview(record.id)}
@@ -324,10 +343,10 @@ export function AdminReviewsPage() {
 
       <div>
         <Title level={3} className="mb-1! mt-0!">
-          Quản lý đánh giá
+          Quản lý bình luận sản phẩm
         </Title>
         <Paragraph className="mb-0!" type="secondary">
-          Duyệt, từ chối, phản hồi hoặc xóa đánh giá theo từng sản phẩm.
+          Duyệt, từ chối, phản hồi hoặc xóa bình luận theo từng sản phẩm.
         </Paragraph>
       </div>
 
@@ -337,17 +356,17 @@ export function AdminReviewsPage() {
             value={productIdInput}
             onChange={(event) => setProductIdInput(event.target.value)}
             allowClear
-            placeholder="Nhập Product ID để tải danh sách đánh giá"
+            placeholder="Lọc theo Product ID (để trống = tất cả sản phẩm)"
             className="min-w-[320px] max-w-[520px]"
           />
           <Button type="primary" onClick={() => void handleLoadReviews()} loading={loading}>
-            Tải đánh giá
+            Tải bình luận
           </Button>
           <Input
             value={searchText}
             onChange={(event) => setSearchText(event.target.value)}
             allowClear
-            placeholder="Tìm theo khách hàng, nội dung, trạng thái"
+            placeholder="Tìm theo khách hàng, sản phẩm, nội dung, trạng thái"
             className="min-w-[280px] max-w-[420px]"
           />
         </div>
@@ -378,35 +397,24 @@ export function AdminReviewsPage() {
           </Text>
         </div>
 
-        {!productId ? (
-          <Alert
-            type="info"
-            showIcon
-            message="Chưa có Product ID"
-            description="Nhập Product ID và bấm Tải đánh giá để xem dữ liệu."
-            className="mb-4"
-          />
-        ) : null}
-
         <Table<ReviewItem>
           rowKey="id"
           columns={columns}
           dataSource={filteredReviews}
           loading={loading || saving}
-          scroll={{ x: 1500 }}
+          scroll={{ x: 1800 }}
           pagination={{
             current: page,
             pageSize,
             total,
             showSizeChanger: true,
-            showTotal: (value) => `Tổng ${value} đánh giá`,
+            showTotal: (value) => `Tổng ${value} bình luận`,
           }}
           onChange={(pagination: TablePaginationConfig) => {
-            if (!productId) return;
             const nextPage = pagination.current ?? page;
             const nextPageSize = pagination.pageSize ?? pageSize;
             void loadReviews({
-              productId,
+              productId: productId.trim() || undefined,
               page: nextPage,
               pageSize: nextPageSize,
               includePending,
@@ -419,7 +427,7 @@ export function AdminReviewsPage() {
       </Card>
 
       <Modal
-        title="Phản hồi đánh giá"
+        title="Phản hồi bình luận"
         open={isReplyModalOpen}
         onCancel={closeReplyModal}
         onOk={() => void handleSubmitReply()}

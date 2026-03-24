@@ -49,6 +49,7 @@ type BrandConfigFormValues = {
   maintenanceMode: boolean;
   paymentGatewaysJson: string;
   shippingRulesJson: string;
+  storefrontHomeJson: string;
 };
 
 const getErrorMessage = (error: unknown) => {
@@ -100,6 +101,26 @@ const parseJsonArray = <T extends JsonObject>(raw: string, fieldLabel: string): 
   });
 };
 
+const parseJsonObject = <T extends JsonObject>(raw: string, fieldLabel: string): T => {
+  const text = raw.trim();
+  if (!text) {
+    return {} as T;
+  }
+
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(text);
+  } catch {
+    throw new Error(`${fieldLabel} không đúng định dạng JSON.`);
+  }
+
+  if (!isPlainObject(parsed)) {
+    throw new Error(`${fieldLabel} phải là object JSON.`);
+  }
+
+  return parsed as T;
+};
+
 const getDefaultFormValues = (brandKey = DEFAULT_BRAND_KEY): BrandConfigFormValues => ({
   brandKey,
   displayName: "",
@@ -121,6 +142,7 @@ const getDefaultFormValues = (brandKey = DEFAULT_BRAND_KEY): BrandConfigFormValu
   maintenanceMode: false,
   paymentGatewaysJson: "[]",
   shippingRulesJson: "[]",
+  storefrontHomeJson: "{}",
 });
 
 const mapConfigToFormValues = (config: BrandConfig): BrandConfigFormValues => ({
@@ -144,6 +166,7 @@ const mapConfigToFormValues = (config: BrandConfig): BrandConfigFormValues => ({
   maintenanceMode: config.maintenanceMode,
   paymentGatewaysJson: JSON.stringify(config.paymentGateways, null, 2),
   shippingRulesJson: JSON.stringify(config.shippingRules, null, 2),
+  storefrontHomeJson: JSON.stringify(config.storefront?.home ?? {}, null, 2),
 });
 
 const mapJsonToPaymentGateways = (raw: string): BrandConfigPaymentGateway[] => {
@@ -217,6 +240,9 @@ const mapFormToPayload = (values: BrandConfigFormValues): UpdateBrandConfigPaylo
   maintenanceMode: values.maintenanceMode,
   paymentGateways: mapJsonToPaymentGateways(values.paymentGatewaysJson),
   shippingRules: mapJsonToShippingRules(values.shippingRulesJson),
+  storefront: {
+    home: parseJsonObject(values.storefrontHomeJson, "Nội dung Home Storefront"),
+  },
 });
 
 const formatDateTime = (value?: string) => {
@@ -496,6 +522,28 @@ export function AdminBrandConfigPage() {
                     rows={12}
                     className="font-mono"
                     placeholder='[{"method":"standard","carriers":["GHN"],"feeSchedule":{"baseFee":25000}}]'
+                  />
+                </Form.Item>
+              </Card>
+            </Col>
+          </Row>
+
+          <Row gutter={16} className="mt-4">
+            <Col xs={24}>
+              <Card
+                size="small"
+                title="Nội dung Home Storefront (JSON)"
+                extra={<Text type="secondary">Object JSON</Text>}
+              >
+                <Form.Item
+                  name="storefrontHomeJson"
+                  className="mb-0!"
+                  rules={[{ required: true, message: "Vui lòng nhập JSON nội dung Home Storefront." }]}
+                >
+                  <Input.TextArea
+                    rows={18}
+                    className="font-mono"
+                    placeholder='{"hero":{"kicker":"Bộ sưu tập mới"},"sections":{"couponTitle":"Lưu mã giảm giá"}}'
                   />
                 </Form.Item>
               </Card>

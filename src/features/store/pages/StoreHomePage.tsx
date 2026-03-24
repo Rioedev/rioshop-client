@@ -24,6 +24,7 @@ import {
   resolveStoreImageUrl as resolveImageUrl,
   resolveStoreProductThumbnail,
 } from "../utils/storeFormatting";
+import { useAuthStore } from "../../../stores/authStore";
 
 const STORE_BRAND_KEY = "rioshop-default";
 const SAVED_COUPON_STORAGE_KEY = "rioshop_saved_coupons";
@@ -112,12 +113,25 @@ type ResolvedHomeContent = {
     categoriesMiniTitle: string;
     categoriesTitle: string;
     categoriesLinkLabel: string;
+    categoryMosaicKicker: string;
+    showcaseKicker: string;
+    showcaseTitle: string;
+    showcaseDescription: string;
     flashSaleMiniTitle: string;
     flashSaleTitle: string;
     flashSaleLinkLabel: string;
     productsMiniTitle: string;
     productsTitle: string;
     productsLinkLabel: string;
+    curatedKicker: string;
+    curatedTitle: string;
+    curatedDescription: string;
+    curatedLinkLabel: string;
+    collectionKicker: string;
+    collectionLinkLabel: string;
+    couponKicker: string;
+    couponTitle: string;
+    couponLinkLabel: string;
   };
   labels: {
     flashDeal: string;
@@ -132,6 +146,27 @@ type ResolvedHomeContent = {
     loadingCategories: string;
     loadingFlashSales: string;
     loadingProducts: string;
+    loadingHome: string;
+    heroPriceLabel: string;
+    heroSignalLabel: string;
+    heroSlideSecondaryLabel: string;
+    updatingLabel: string;
+    productOpenLabel: string;
+    shoppingCategoryLabel: string;
+    activeDealLabel: string;
+    sameDayFulfillmentLabel: string;
+    topCategoryBadgeLabel: string;
+    categoryDefaultBadge: string;
+    categoryBestSellerBadge: string;
+    categoryNewBadge: string;
+    categoryPromotionBadge: string;
+    soldUpdatedLabel: string;
+    couponSavedLabel: string;
+    couponSaveLabel: string;
+    couponAlreadySavedMessage: string;
+    couponSavedAndCopiedMessage: string;
+    couponSavedMessage: string;
+    viewCategoryLabel: string;
   };
   valueProps: Array<{
     title: string;
@@ -151,6 +186,9 @@ type ResolvedHomeContent = {
     description: string;
     emailPlaceholder: string;
     ctaLabel: string;
+    loggedInTitle: string;
+    loggedInDescription: string;
+    loggedInCtaLabel: string;
   };
   apiNotice: string;
 };
@@ -161,7 +199,7 @@ const DEFAULT_HOME_CONTENT: ResolvedHomeContent = {
     titleLine1: "Mua sắm hiện đại,",
     titleLine2: "rõ ràng về chất, đơn nhanh.",
     description:
-      "Trang chủ RioShop được thiết kế theo flow mua sắm thực tế: chiến dịch nổi bật, danh mục dễ duyệt, deal trong ngày, sản phẩm bán chạy và CTA rõ ràng để khách vào là biết nên mua gì.",
+      "Trang chủ RioShop được thiết kế theo luồng mua sắm thực tế: chiến dịch nổi bật, danh mục dễ duyệt, ưu đãi trong ngày, sản phẩm bán chạy và nút hành động rõ ràng để khách vào là biết nên mua gì.",
     primaryCtaLabel: "Mua ngay",
     secondaryCtaLabel: "Xem bộ sưu tập",
     dealDescription: "Giá tốt trong khung giờ vàng, số lượng giới hạn và được làm nổi bật để khách dễ quyết định hơn.",
@@ -170,7 +208,7 @@ const DEFAULT_HOME_CONTENT: ResolvedHomeContent = {
     sideTitleLine2: "cho tủ đồ mùa này",
     sideDescription:
       "Tập trung vào form dễ mặc, chất liệu thoáng và bảng màu trung tính để phối nhanh mỗi ngày.",
-    dealCtaLabel: "Mua deal này",
+    dealCtaLabel: "Mua ưu đãi này",
     sideCtaLabel: "Khám phá ngay",
     metrics: [
       { value: "4.9/5", label: "Đánh giá trung bình từ khách hàng mua sắm" },
@@ -182,26 +220,62 @@ const DEFAULT_HOME_CONTENT: ResolvedHomeContent = {
     categoriesMiniTitle: "Danh mục mua nhiều",
     categoriesTitle: "Chọn nhanh theo nhu cầu",
     categoriesLinkLabel: "Xem thêm",
-    flashSaleMiniTitle: "Deal hôm nay",
+    categoryMosaicKicker: "Khám phá theo danh mục",
+    showcaseKicker: "Mua nhanh hôm nay",
+    showcaseTitle: "Sản phẩm dễ chọn, dễ mua và đúng nhu cầu đang xem",
+    showcaseDescription:
+      "Gợi ý nổi bật trong danh mục đang được xem, ưu tiên sản phẩm có giá tốt, phom dễ mặc và tỷ lệ chuyển đổi cao hơn cho khu vực đầu trang.",
+    flashSaleMiniTitle: "Ưu đãi hôm nay",
     flashSaleTitle: "Khuyến mại giờ vàng",
-    flashSaleLinkLabel: "Tất cả deal",
+    flashSaleLinkLabel: "Tất cả ưu đãi",
     productsMiniTitle: "Bán chạy",
     productsTitle: "Sản phẩm nổi bật tuần này",
     productsLinkLabel: "Xem tất cả",
+    curatedKicker: "Chọn sẵn cho bạn",
+    curatedTitle: "Phối nhanh, mua gọn, hợp nhiều tình huống sử dụng",
+    curatedDescription:
+      "",
+    curatedLinkLabel: "Khám phá thêm",
+    collectionKicker: "Danh mục nổi bật",
+    collectionLinkLabel: "Xem danh mục",
+    couponKicker: "Ưu đãi đang chạy",
+    couponTitle: "Lưu nhanh mã giảm giá trước khi thanh toán",
+    couponLinkLabel: "Áp mã tại giỏ hàng",
   },
   labels: {
-    flashDeal: "Deal nổi bật",
+    flashDeal: "Ưu đãi nổi bật",
     soldPercentPrefix: "Đã bán",
     soldOutSoon: "Sắp hết hàng",
     dealFallbackTitle: "Ưu đãi trong ngày",
-    buyDeal: "Mua deal này",
+    buyDeal: "Mua ưu đãi này",
     exploreNow: "Khám phá ngay",
     noCategories: "Chưa có danh mục phù hợp để hiển thị.",
-    noFlashSales: "Hiện chưa có flash sale đang diễn ra.",
+    noFlashSales: "Hiện chưa có chương trình ưu đãi đang diễn ra.",
     noProducts: "Chưa có sản phẩm nổi bật để hiển thị.",
     loadingCategories: "Đang tải danh mục...",
-    loadingFlashSales: "Đang tải flash sale...",
+    loadingFlashSales: "Đang tải ưu đãi...",
     loadingProducts: "Đang tải sản phẩm nổi bật...",
+    loadingHome: "Đang tải dữ liệu trang chủ...",
+    heroPriceLabel: "Giá nổi bật",
+    heroSignalLabel: "Tín hiệu mua sắm",
+    heroSlideSecondaryLabel: "Xem danh mục",
+    updatingLabel: "Đang cập nhật",
+    productOpenLabel: "Sản phẩm đang mở bán",
+    shoppingCategoryLabel: "Danh mục mua sắm",
+    activeDealLabel: "Ưu đãi đang chạy",
+    sameDayFulfillmentLabel: "Xử lý đơn trong ngày",
+    topCategoryBadgeLabel: "Nổi bật",
+    categoryDefaultBadge: "Nổi bật",
+    categoryBestSellerBadge: "Bán chạy",
+    categoryNewBadge: "Mới về",
+    categoryPromotionBadge: "Ưu đãi",
+    soldUpdatedLabel: "Mới cập nhật",
+    couponSavedLabel: "Đã lưu",
+    couponSaveLabel: "Lưu mã",
+    couponAlreadySavedMessage: "Mã {code} đã có trong ví ưu đãi của bạn.",
+    couponSavedAndCopiedMessage: "Đã lưu và sao chép mã {code}.",
+    couponSavedMessage: "Đã lưu mã {code}.",
+    viewCategoryLabel: "Xem danh mục",
   },
   valueProps: [
     {
@@ -211,7 +285,7 @@ const DEFAULT_HOME_CONTENT: ResolvedHomeContent = {
     },
     {
       title: "Đổi trả 60 ngày",
-      text: "Đổi size, đổi màu hoặc hoàn tiền linh hoạt nếu sản phẩm chưa vừa ý.",
+      text: "Đổi cỡ, đổi màu hoặc hoàn tiền linh hoạt nếu sản phẩm chưa vừa ý.",
       iconKey: "return",
     },
     {
@@ -233,6 +307,9 @@ const DEFAULT_HOME_CONTENT: ResolvedHomeContent = {
     description: "Đăng ký để nhận mã giảm giá, thông báo deal mới và các đợt mở bán sớm cho thành viên.",
     emailPlaceholder: "Nhập email của bạn",
     ctaLabel: "Đăng ký",
+    loggedInTitle: "Bạn đã là Rio Member",
+    loggedInDescription: "Tài khoản của bạn đang ở trạng thái thành viên. Hãy lưu mã giảm giá và mua sắm để nhận thêm ưu đãi.",
+    loggedInCtaLabel: "Mua sắm ngay",
   },
   apiNotice:
     "Một phần dữ liệu trang chủ đang tạm thời dùng phương án dự phòng do API chưa phản hồi đầy đủ.",
@@ -262,32 +339,32 @@ const getDiscountBadge = (price: number, originalPrice?: number) => {
   return `-${percent}%`;
 };
 
-const getCategoryBadge = (product: ProductRuntime) => {
+const getCategoryBadge = (product: ProductRuntime, labels: ResolvedHomeContent["labels"]) => {
   if (product.isBestseller) {
-    return "Bán chạy";
+    return labels.categoryBestSellerBadge;
   }
 
   if (product.isNew) {
-    return "Mới về";
+    return labels.categoryNewBadge;
   }
 
   if (product.pricing.basePrice > product.pricing.salePrice) {
-    return "Ưu đãi";
+    return labels.categoryPromotionBadge;
   }
 
-  return product.category?.name ?? "Nổi bật";
+  return product.category?.name ?? labels.categoryDefaultBadge;
 };
 
-const formatSoldText = (value?: number) => {
+const formatSoldText = (value: number | undefined, labels: ResolvedHomeContent["labels"]) => {
   if (!value || value <= 0) {
-    return "Mới cập nhật";
+    return labels.soldUpdatedLabel;
   }
 
   if (value >= 1000) {
-    return `${(value / 1000).toFixed(1)}k đã bán`;
+    return `${(value / 1000).toFixed(1)}k ${labels.soldPercentPrefix}`;
   }
 
-  return `${value} đã bán`;
+  return `${value} ${labels.soldPercentPrefix}`;
 };
 
 const formatTimeLeft = (endsAt: string) => {
@@ -383,11 +460,23 @@ const formatCouponExpiry = (value: string) => {
   }).format(date);
 };
 
-const mapHomeProduct = (product: ProductRuntime, index: number): HomeProduct => ({
+const buildTemplateMessage = (
+  template: string,
+  values: Record<string, string>,
+) => Object.keys(values).reduce(
+  (messageText, key) => messageText.replaceAll(`{${key}}`, values[key]),
+  template,
+);
+
+const mapHomeProduct = (
+  product: ProductRuntime,
+  index: number,
+  labels: ResolvedHomeContent["labels"],
+): HomeProduct => ({
   id: product._id,
   name: product.name,
   slug: product.slug,
-  category: getCategoryBadge(product),
+  category: getCategoryBadge(product, labels),
   categoryId: product.category?._id,
   categoryName: product.category?.name,
   categorySlug: product.category?.slug,
@@ -398,9 +487,33 @@ const mapHomeProduct = (product: ProductRuntime, index: number): HomeProduct => 
     typeof product.ratings?.avg === "number" && product.ratings.avg > 0
       ? Number(product.ratings.avg.toFixed(1))
       : 4.8,
-  sold: formatSoldText(product.totalSold),
+  sold: formatSoldText(product.totalSold, labels),
   image: getProductImage(product, index),
 });
+
+const VIETNAMESE_DIACRITIC_REGEX =
+  /[àáạảãăằắặẳẵâầấậẩẫèéẹẻẽêềếệểễìíịỉĩòóọỏõôồốộổỗơờớợởỡùúụủũưừứựửữỳýỵỷỹđ]/i;
+const HAS_LETTER_REGEX = /[a-zA-ZÀ-ỹ]/;
+
+const resolveLocalizedText = (source: string, fallback: string) => {
+  const value = source.trim();
+  if (!value) {
+    return fallback;
+  }
+
+  if (!HAS_LETTER_REGEX.test(value)) {
+    return value;
+  }
+
+  const fallbackHasDiacritic = VIETNAMESE_DIACRITIC_REGEX.test(fallback);
+  const valueHasDiacritic = VIETNAMESE_DIACRITIC_REGEX.test(value);
+
+  if (fallbackHasDiacritic && !valueHasDiacritic) {
+    return fallback;
+  }
+
+  return value;
+};
 
 const mergeStringMap = <T extends Record<string, string>>(
   defaults: T,
@@ -414,7 +527,9 @@ const mergeStringMap = <T extends Record<string, string>>(
 
   (Object.keys(defaults) as Array<keyof T>).forEach((key) => {
     const value = source[key];
-    result[key as string] = typeof value === "string" && value.trim() ? value : defaults[key];
+    result[key as string] = typeof value === "string"
+      ? resolveLocalizedText(value, defaults[key])
+      : defaults[key];
   });
 
   return result as T;
@@ -449,33 +564,46 @@ const mergeHomeContent = (apiHome?: StorefrontHomeContent): ResolvedHomeContent 
       ...heroText,
       metrics: apiHome.hero?.metrics?.length
         ? apiHome.hero.metrics
-            .map((metric) => ({
-              value: metric.value?.trim() || "",
-              label: metric.label?.trim() || "",
-            }))
+            .map((metric, index) => {
+              const fallbackMetric = DEFAULT_HOME_CONTENT.hero.metrics[index];
+              const value = resolveLocalizedText(
+                metric.value?.trim() || "",
+                fallbackMetric?.value ?? "",
+              );
+              const label = resolveLocalizedText(
+                metric.label?.trim() || "",
+                fallbackMetric?.label ?? "",
+              );
+
+              return { value, label };
+            })
             .filter((metric) => metric.value && metric.label)
         : DEFAULT_HOME_CONTENT.hero.metrics,
     },
     sections: mergeStringMap(DEFAULT_HOME_CONTENT.sections, apiHome.sections),
     labels: mergeStringMap(DEFAULT_HOME_CONTENT.labels, apiHome.labels),
     valueProps: (apiHome.valueProps?.length ? apiHome.valueProps : DEFAULT_HOME_CONTENT.valueProps).map(
-      (item: StorefrontHomeValueProp) => ({
-        title: item.title,
-        text: item.text,
-        iconKey: item.iconKey ?? "shield",
-      }),
+      (item: StorefrontHomeValueProp, index) => {
+        const fallback = DEFAULT_HOME_CONTENT.valueProps[index];
+        return {
+          title: resolveLocalizedText(item.title, fallback?.title ?? item.title),
+          text: resolveLocalizedText(item.text, fallback?.text ?? item.text),
+          iconKey: item.iconKey ?? "shield",
+        };
+      },
     ),
     journal: mergeStringMap(DEFAULT_HOME_CONTENT.journal, apiHome.journal),
     member: mergeStringMap(DEFAULT_HOME_CONTENT.member, apiHome.member),
     apiNotice:
       typeof apiHome.apiNotice === "string" && apiHome.apiNotice.trim()
-        ? apiHome.apiNotice
+        ? resolveLocalizedText(apiHome.apiNotice, DEFAULT_HOME_CONTENT.apiNotice)
         : DEFAULT_HOME_CONTENT.apiNotice,
   };
 };
 
 export function StoreHomePage() {
   const [messageApi, contextHolder] = message.useMessage();
+  const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
   const [homeContent, setHomeContent] = useState<ResolvedHomeContent>(DEFAULT_HOME_CONTENT);
   const [quickCategories, setQuickCategories] = useState<HomeCategory[]>([]);
   const [featuredProducts, setFeaturedProducts] = useState<HomeProduct[]>([]);
@@ -521,11 +649,11 @@ export function StoreHomePage() {
         return;
       }
 
-      if (brandConfigResult.status === "fulfilled") {
-        setHomeContent(mergeHomeContent(brandConfigResult.value.storefront?.home));
-      } else {
-        setHomeContent(DEFAULT_HOME_CONTENT);
-      }
+      const resolvedHomeContent = brandConfigResult.status === "fulfilled"
+        ? mergeHomeContent(brandConfigResult.value.storefront?.home)
+        : DEFAULT_HOME_CONTENT;
+
+      setHomeContent(resolvedHomeContent);
 
       const featuredDocs =
         featuredResult.status === "fulfilled" ? (featuredResult.value.docs as ProductRuntime[]) : [];
@@ -541,8 +669,10 @@ export function StoreHomePage() {
       const uniqueProducts = Array.from(productById.values());
       const highlightedProducts = (featuredDocs.length > 0 ? featuredDocs : uniqueProducts)
         .slice(0, 8)
-        .map((item, index) => mapHomeProduct(item, index));
-      const mappedCatalogPool = uniqueProducts.slice(0, 80).map((item, index) => mapHomeProduct(item, index));
+        .map((item, index) => mapHomeProduct(item, index, resolvedHomeContent.labels));
+      const mappedCatalogPool = uniqueProducts
+        .slice(0, 80)
+        .map((item, index) => mapHomeProduct(item, index, resolvedHomeContent.labels));
 
       const categoryCountMap = new Map<string, number>();
 
@@ -566,7 +696,7 @@ export function StoreHomePage() {
             return {
               id: category._id,
               name: category.name,
-              count: productCount > 0 ? `${productCount} sản phẩm` : "Đang cập nhật",
+              count: productCount > 0 ? `${productCount} sản phẩm` : resolvedHomeContent.labels.updatingLabel,
               slug: category.slug || "",
               image:
                 resolveImageUrl(category.image) ??
@@ -633,7 +763,7 @@ export function StoreHomePage() {
 
           currentSale.slots.slice(0, 3).forEach((slot, index) => {
             const product = productById.get(slot.productId);
-            const dealName = slot.product?.name ?? product?.name ?? `Deal #${index + 1}`;
+            const dealName = slot.product?.name ?? product?.name ?? `Ưu đãi #${index + 1}`;
             const dealSlug = slot.product?.slug ?? product?.slug ?? highlightedProducts[0]?.slug;
 
             if (!dealSlug) {
@@ -709,9 +839,12 @@ export function StoreHomePage() {
   const spotlightCategories = quickCategories.slice(0, 5);
   const serviceHighlights = homeContent.valueProps.slice(0, 3);
   const socialStats = [
-    { value: `${productPool.length}+`, label: "Sản phẩm đang mở bán" },
-    { value: `${quickCategories.length}`, label: "Danh mục mua sắm" },
-    { value: flashDeals.length > 0 ? `${flashDeals.length}` : "24h", label: flashDeals.length > 0 ? "Deal đang chạy" : "Xử lý đơn trong ngày" },
+    { value: `${productPool.length}+`, label: homeContent.labels.productOpenLabel },
+    { value: `${quickCategories.length}`, label: homeContent.labels.shoppingCategoryLabel },
+    {
+      value: flashDeals.length > 0 ? `${flashDeals.length}` : "24h",
+      label: flashDeals.length > 0 ? homeContent.labels.activeDealLabel : homeContent.labels.sameDayFulfillmentLabel,
+    },
     { value: homeContent.hero.metrics[0]?.value ?? "4.9/5", label: homeContent.hero.metrics[0]?.label ?? "Khách hàng đánh giá cao" },
   ];
 
@@ -746,17 +879,12 @@ export function StoreHomePage() {
       .filter((item) => item.products.length > 0);
   }, [productPool, quickCategories]);
 
-  const editorialCards = quickCategories.slice(0, 3).map((category, index) => ({
+  const editorialCards = quickCategories.slice(0, 3).map((category) => ({
     id: category.id,
     title: category.name,
     image: category.image,
     href: category.slug ? `/products?category=${encodeURIComponent(category.slug)}` : "/products",
-    description:
-      [
-        "Những thiết kế dễ mặc, gọn gàng và hợp nhịp sống hằng ngày.",
-        "Tập trung vào chất liệu thoáng, bảng màu dễ phối và phom mặc thực tế.",
-        "Gợi ý nhanh để bạn đi làm, đi chơi hoặc lên outfit cuối tuần.",
-      ][index] ?? "Khám phá thêm các gợi ý phối đồ và sản phẩm phù hợp nhất.",
+    description: homeContent.sections.curatedDescription,
   }));
 
   const heroSlides = useMemo(() => {
@@ -778,9 +906,9 @@ export function StoreHomePage() {
       description:
         index === 0
           ? homeContent.hero.description
-          : `${product.categoryName ?? "Bộ sưu tập"} có phom dễ mặc, giá tốt và đang được khách hàng quan tâm nhiều trong tuần này.`,
+          : homeContent.hero.sideDescription,
       primaryLabel: index === 0 ? homeContent.hero.primaryCtaLabel : homeContent.labels.buyDeal,
-      secondaryLabel: index === 0 ? homeContent.hero.secondaryCtaLabel : "Xem danh mục",
+      secondaryLabel: index === 0 ? homeContent.hero.secondaryCtaLabel : homeContent.labels.heroSlideSecondaryLabel,
       priceLabel: formatCurrency(product.price),
       meta: product.sold,
       badge: product.badge ?? (index === 0 ? homeContent.labels.flashDeal : homeContent.labels.exploreNow),
@@ -828,7 +956,9 @@ export function StoreHomePage() {
     }
 
     if (savedCouponCodeSet.has(normalizedCode)) {
-      messageApi.info(`Mã ${normalizedCode} đã có trong ví ưu đãi của bạn.`);
+      messageApi.info(
+        buildTemplateMessage(homeContent.labels.couponAlreadySavedMessage, { code: normalizedCode }),
+      );
       return;
     }
 
@@ -838,9 +968,11 @@ export function StoreHomePage() {
       if (typeof navigator !== "undefined" && navigator.clipboard?.writeText) {
         await navigator.clipboard.writeText(normalizedCode);
       }
-      messageApi.success(`Đã lưu và sao chép mã ${normalizedCode}.`);
+      messageApi.success(
+        buildTemplateMessage(homeContent.labels.couponSavedAndCopiedMessage, { code: normalizedCode }),
+      );
     } catch {
-      messageApi.success(`Đã lưu mã ${normalizedCode}.`);
+      messageApi.success(buildTemplateMessage(homeContent.labels.couponSavedMessage, { code: normalizedCode }));
     }
   };
 
@@ -904,7 +1036,7 @@ export function StoreHomePage() {
     <div className="store-home-v3 space-y-8 md:space-y-12">
       {contextHolder}
       {isLoading ? (
-        <div className="store-home-v3-notice">Đang tải dữ liệu trang chủ...</div>
+        <div className="store-home-v3-notice">{homeContent.labels.loadingHome}</div>
       ) : null}
 
       <section
@@ -940,23 +1072,23 @@ export function StoreHomePage() {
 
             <div className="store-home-v3-hero-panel">
               <div className="store-home-v3-hero-panel-item">
-                <span>Giá nổi bật</span>
+                <span>{homeContent.labels.heroPriceLabel}</span>
                 <strong>{activeHeroSlide?.priceLabel ?? formatCurrency(featuredProducts[0]?.price ?? 0)}</strong>
               </div>
               <div className="store-home-v3-hero-panel-item">
-                <span>Tín hiệu mua sắm</span>
-                <strong>{activeHeroSlide?.meta ?? homeContent.hero.metrics[0]?.value ?? "Đang cập nhật"}</strong>
+                <span>{homeContent.labels.heroSignalLabel}</span>
+                <strong>{activeHeroSlide?.meta ?? homeContent.hero.metrics[0]?.value ?? homeContent.labels.updatingLabel}</strong>
               </div>
             </div>
 
             {heroSlides.length > 1 ? (
-              <div className="store-home-v3-hero-dots" aria-label="Chọn slide hero">
+              <div className="store-home-v3-hero-dots" aria-label="Chọn ảnh nổi bật">
                 {heroSlides.map((slide, index) => (
                   <button
                     key={`hero-dot-${slide.id}`}
                     type="button"
                     className={`store-home-v3-hero-dot ${index === normalizedHeroIndex ? "is-active" : ""}`}
-                    aria-label={`Hiển thị slide ${index + 1}`}
+                    aria-label={`Hiển thị ảnh nổi bật ${index + 1}`}
                     onClick={() => setActiveHeroIndex(index)}
                   />
                 ))}
@@ -1013,7 +1145,7 @@ export function StoreHomePage() {
         <section className="store-home-v3-section">
           <div className="store-home-v3-section-head">
             <div>
-              <p>Khám phá theo danh mục</p>
+              <p>{homeContent.sections.categoryMosaicKicker}</p>
               <h2>{homeContent.sections.categoriesTitle}</h2>
             </div>
             <Link to="/products" className="store-home-v3-text-link">
@@ -1058,8 +1190,8 @@ export function StoreHomePage() {
         <section className="store-home-v3-section store-home-v3-showcase">
           <div className="store-home-v3-section-head">
             <div>
-              <p>Mua nhanh hôm nay</p>
-              <h2>Sản phẩm dễ chọn, dễ mua và đúng nhu cầu đang xem</h2>
+              <p>{homeContent.sections.showcaseKicker}</p>
+              <h2>{homeContent.sections.showcaseTitle}</h2>
             </div>
             <div className="store-home-v3-pill-row">
               {quickCategories.slice(0, 6).map((item) => (
@@ -1082,10 +1214,7 @@ export function StoreHomePage() {
                   {activeQuickCategory?.name ?? showcaseLeadProduct.categoryName ?? showcaseLeadProduct.category}
                 </span>
                 <h3>{showcaseLeadProduct.name}</h3>
-                <p>
-                  Gợi ý nổi bật trong danh mục đang được xem, ưu tiên sản phẩm có giá tốt, phom dễ mặc và tỷ lệ chuyển
-                  đổi cao hơn cho khu vực đầu trang.
-                </p>
+                <p>{homeContent.sections.showcaseDescription}</p>
                 <div className="store-home-v3-showcase-price">
                   <strong>{formatCurrency(showcaseLeadProduct.price)}</strong>
                   {typeof showcaseLeadProduct.originalPrice === "number" &&
@@ -1225,15 +1354,12 @@ export function StoreHomePage() {
       {curatedProducts.length > 0 ? (
         <section className="store-home-v3-curated">
           <div className="store-home-v3-curated-copy">
-            <p className="store-home-v3-kicker">Chọn sẵn cho bạn</p>
-            <h2>Phối nhanh, mua gọn, hợp nhiều tình huống sử dụng</h2>
-            <p>
-              Từ đồ mặc hằng ngày tới các lựa chọn thoải mái cho cuối tuần, homepage gợi ý sẵn những nhóm sản phẩm
-              dễ mua nhất để bạn vào là chọn được ngay.
-            </p>
+            <p className="store-home-v3-kicker">{homeContent.sections.curatedKicker}</p>
+            <h2>{homeContent.sections.curatedTitle}</h2>
+            <p>{homeContent.sections.curatedDescription}</p>
             <Link to={secondaryCtaLink}>
               <Button className="store-home-v3-secondary-ghost h-11! rounded-full! px-7! font-bold!">
-                Khám phá thêm
+                {homeContent.sections.curatedLinkLabel}
               </Button>
             </Link>
           </div>
@@ -1255,13 +1381,13 @@ export function StoreHomePage() {
             }}
           >
             <div>
-              <p>Danh mục nổi bật</p>
+              <p>{homeContent.sections.collectionKicker}</p>
               <h2>{block.category.name}</h2>
               <span>{block.category.count}</span>
             </div>
             <Link to={block.category.slug ? `/products?category=${encodeURIComponent(block.category.slug)}` : "/products"}>
               <Button className="store-home-v3-primary-ghost h-11! rounded-full! px-7! font-bold!">
-                Xem danh mục
+                {homeContent.sections.collectionLinkLabel}
               </Button>
             </Link>
           </div>
@@ -1278,11 +1404,11 @@ export function StoreHomePage() {
         <section className="store-home-v3-section store-home-v3-coupon-shell">
           <div className="store-home-v3-section-head">
             <div>
-              <p>Ưu đãi đang chạy</p>
-              <h2>Lưu nhanh mã giảm giá trước khi thanh toán</h2>
+              <p>{homeContent.sections.couponKicker}</p>
+              <h2>{homeContent.sections.couponTitle}</h2>
             </div>
             <Link to="/cart" className="store-home-v3-text-link">
-              Áp mã tại giỏ hàng
+              {homeContent.sections.couponLinkLabel}
             </Link>
           </div>
 
@@ -1304,7 +1430,7 @@ export function StoreHomePage() {
                       className="store-home-v3-primary-ghost h-10! rounded-full! px-5! font-bold!"
                       onClick={() => void handleSaveCoupon(normalizedCode)}
                     >
-                      {isSaved ? "Đã lưu" : "Lưu mã"}
+                      {isSaved ? homeContent.labels.couponSavedLabel : homeContent.labels.couponSaveLabel}
                     </Button>
                     <span>{formatCouponCondition(coupon)}</span>
                   </div>
@@ -1318,14 +1444,22 @@ export function StoreHomePage() {
       <section className="store-home-v3-member-shell">
         <article className="store-home-v3-member-card">
           <p>{homeContent.member.kicker}</p>
-          <h2>{homeContent.member.title}</h2>
-          <p>{homeContent.member.description}</p>
-          <form className="store-home-v3-member-form" onSubmit={(event) => event.preventDefault()}>
-            <input placeholder={homeContent.member.emailPlaceholder} />
-            <Button type="primary" className="store-home-v3-primary-btn h-11! rounded-full! px-6! font-bold! shadow-none!">
-              {homeContent.member.ctaLabel}
-            </Button>
-          </form>
+          <h2>{isAuthenticated ? homeContent.member.loggedInTitle : homeContent.member.title}</h2>
+          <p>{isAuthenticated ? homeContent.member.loggedInDescription : homeContent.member.description}</p>
+          {isAuthenticated ? (
+            <Link to="/products">
+              <Button type="primary" className="store-home-v3-primary-btn h-11! rounded-full! px-6! font-bold! shadow-none!">
+                {homeContent.member.loggedInCtaLabel}
+              </Button>
+            </Link>
+          ) : (
+            <form className="store-home-v3-member-form" onSubmit={(event) => event.preventDefault()}>
+              <input placeholder={homeContent.member.emailPlaceholder} />
+              <Button type="primary" className="store-home-v3-primary-btn h-11! rounded-full! px-6! font-bold! shadow-none!">
+                {homeContent.member.ctaLabel}
+              </Button>
+            </form>
+          )}
         </article>
 
         <div className="store-home-v3-proof-list">
@@ -1341,3 +1475,4 @@ export function StoreHomePage() {
     </div>
   );
 }
+

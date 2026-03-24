@@ -30,8 +30,8 @@ type ReviewAdminReplyApi = {
 type ReviewApiItem = {
   _id?: string;
   id?: string;
-  productId: string | ReviewProductApi;
-  userId: string | ReviewUserApi;
+  productId: string | ReviewProductApi | null;
+  userId: string | ReviewUserApi | null;
   orderId?: string;
   variantSku?: string;
   rating: number;
@@ -113,8 +113,22 @@ export type PaginatedReviewData = {
 export type GetReviewsQueryParams = {
   page?: number;
   limit?: number;
+  productId?: string;
   includePending?: boolean;
   includeRejected?: boolean;
+  search?: string;
+};
+
+export type CreateReviewPayload = {
+  productId: string;
+  orderId?: string;
+  variantSku?: string;
+  rating: number;
+  title?: string;
+  body: string;
+  media?: string[];
+  fit?: ReviewFit;
+  quality?: number;
 };
 
 export type UpdateReviewPayload = Partial<{
@@ -142,12 +156,14 @@ const EMPTY_STATS: ReviewStats = {
 const normalizeReview = (item: ReviewApiItem): ReviewItem => {
   const product = typeof item.productId === "object" && item.productId !== null ? item.productId : undefined;
   const user = typeof item.userId === "object" && item.userId !== null ? item.userId : undefined;
+  const normalizedProductId = typeof item.productId === "string" ? item.productId : product?._id ?? "";
+  const normalizedUserId = typeof item.userId === "string" ? item.userId : user?._id ?? "";
 
   return {
     id: item.id ?? item._id ?? "",
-    productId: typeof item.productId === "string" ? item.productId : item.productId._id,
+    productId: normalizedProductId,
     product: product ? { id: product._id, name: product.name, slug: product.slug } : undefined,
-    userId: typeof item.userId === "string" ? item.userId : item.userId._id,
+    userId: normalizedUserId,
     user: user ? { id: user._id, fullName: user.fullName, avatar: user.avatar } : undefined,
     orderId: item.orderId,
     variantSku: item.variantSku,
@@ -178,6 +194,21 @@ const normalizeReviewPage = (data: PaginatedReviewsApiData): PaginatedReviewData
 });
 
 export const reviewService = {
+  async getReviews(params: GetReviewsQueryParams = {}): Promise<PaginatedReviewData> {
+    const response = await apiClient.get<ApiResponse<PaginatedReviewsApiData>>("/api/reviews", {
+      params: {
+        page: params.page,
+        limit: params.limit,
+        productId: params.productId,
+        includePending: params.includePending,
+        includeRejected: params.includeRejected,
+        search: params.search,
+      },
+    });
+
+    return normalizeReviewPage(response.data.data);
+  },
+
   async getReviewsForProduct(productId: string, params: GetReviewsQueryParams = {}): Promise<PaginatedReviewData> {
     const response = await apiClient.get<ApiResponse<PaginatedReviewsApiData>>(
       `/api/reviews/product/${productId}`,
@@ -192,6 +223,11 @@ export const reviewService = {
     );
 
     return normalizeReviewPage(response.data.data);
+  },
+
+  async createReview(payload: CreateReviewPayload): Promise<ReviewItem> {
+    const response = await apiClient.post<ApiResponse<ReviewApiItem>>("/api/reviews", payload);
+    return normalizeReview(response.data.data);
   },
 
   async updateReview(id: string, payload: UpdateReviewPayload): Promise<ReviewItem> {
