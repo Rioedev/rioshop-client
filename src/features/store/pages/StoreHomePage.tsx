@@ -908,7 +908,7 @@ export function StoreHomePage() {
     ];
 
     const mappedCategoryLinks = quickCategories.slice(0, 4).map((category) => ({
-      href: category.slug ? `/products?category=${encodeURIComponent(category.slug)}` : "/products",
+      href: "/blog",
       image: category.image,
     }));
 
@@ -939,7 +939,7 @@ export function StoreHomePage() {
       },
     ].map((item, index) => ({
       ...item,
-      href: mappedCategoryLinks[index]?.href ?? "/products",
+      href: mappedCategoryLinks[index]?.href ?? "/blog",
       image: mappedCategoryLinks[index]?.image ?? fallbackImages[index % fallbackImages.length],
     }));
 
@@ -950,8 +950,8 @@ export function StoreHomePage() {
         title: post.title?.trim() || fallbackCards[index]?.title || "Bài viết mới",
         excerpt: post.excerpt?.trim() || fallbackCards[index]?.excerpt || "Nội dung đang được cập nhật.",
         href: post.slug?.trim()
-          ? `/products?q=${encodeURIComponent(post.title || post.slug)}`
-          : fallbackCards[index]?.href || "/products",
+          ? `/blog/${encodeURIComponent(post.slug)}`
+          : fallbackCards[index]?.href || "/blog",
         image:
           resolveImageUrl(post.coverImage) ||
           mappedCategoryLinks[index]?.image ||
@@ -1535,7 +1535,7 @@ export function StoreHomePage() {
           </div>
 
           <div className="store-home-v3-blog-action">
-            <Link to="/products">
+            <Link to="/blog">
               <Button className="store-home-v3-secondary-ghost h-11! rounded-full! px-8! font-bold!">
                 Xem thêm
               </Button>

@@ -17,6 +17,8 @@ import { AdminBlogsPage } from "../features/admin/pages/AdminBlogsPage";
 import { StoreHomePage } from "../features/store/pages/StoreHomePage";
 import { StoreProductsPage } from "../features/store/pages/StoreProductsPage";
 import { StoreProductDetailPage } from "../features/store/pages/StoreProductDetailPage";
+import { StoreBlogsPage } from "../features/store/pages/StoreBlogsPage";
+import { StoreBlogDetailPage } from "../features/store/pages/StoreBlogDetailPage";
 import { StoreFlashSalesPage } from "../features/store/pages/StoreFlashSalesPage";
 import { StoreCartPage } from "../features/store/pages/StoreCartPage";
 import { StoreWishlistPage } from "../features/store/pages/StoreWishlistPage";
@@ -55,6 +57,8 @@ export const appRouter = createBrowserRouter([
       { index: true, element: <StoreHomePage /> },
       { path: "products", element: <StoreProductsPage /> },
       { path: "products/:slug", element: <StoreProductDetailPage /> },
+      { path: "blog", element: <StoreBlogsPage /> },
+      { path: "blog/:slug", element: <StoreBlogDetailPage /> },
       { path: "flash-sales", element: <StoreFlashSalesPage /> },
       { path: "cart", element: <StoreCartPage /> },
       { path: "wishlist", element: <StoreWishlistPage /> },
