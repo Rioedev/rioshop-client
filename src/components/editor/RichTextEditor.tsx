@@ -57,6 +57,7 @@ export function RichTextEditor({
   const handleImageSelect = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file || !editor || !onUploadImage) return;
+
     try {
       setUploading(true);
       const imageUrl = await onUploadImage(file);
@@ -75,14 +76,50 @@ export function RichTextEditor({
     <div className="rte-shell">
       {contextHolder}
       <Space size={6} wrap className="rte-toolbar">
-        <Button size="small" onClick={() => editor.chain().focus().toggleBold().run()} type={editor.isActive("bold") ? "primary" : "default"}>B</Button>
-        <Button size="small" onClick={() => editor.chain().focus().toggleItalic().run()} type={editor.isActive("italic") ? "primary" : "default"}><i>I</i></Button>
-        <Button size="small" onClick={() => editor.chain().focus().toggleUnderline().run()} type={editor.isActive("underline") ? "primary" : "default"}><u>U</u></Button>
-        <Button size="small" onClick={() => editor.chain().focus().toggleBulletList().run()} type={editor.isActive("bulletList") ? "primary" : "default"}>• List</Button>
-        <Button size="small" onClick={() => editor.chain().focus().toggleOrderedList().run()} type={editor.isActive("orderedList") ? "primary" : "default"}>1. List</Button>
-        <Button size="small" onClick={() => editor.chain().focus().setTextAlign("left").run()}>Trái</Button>
-        <Button size="small" onClick={() => editor.chain().focus().setTextAlign("center").run()}>Giữa</Button>
-        <Button size="small" onClick={() => editor.chain().focus().setTextAlign("right").run()}>Phải</Button>
+        <Button
+          size="small"
+          onClick={() => editor.chain().focus().toggleBold().run()}
+          type={editor.isActive("bold") ? "primary" : "default"}
+        >
+          B
+        </Button>
+        <Button
+          size="small"
+          onClick={() => editor.chain().focus().toggleItalic().run()}
+          type={editor.isActive("italic") ? "primary" : "default"}
+        >
+          <i>I</i>
+        </Button>
+        <Button
+          size="small"
+          onClick={() => editor.chain().focus().toggleUnderline().run()}
+          type={editor.isActive("underline") ? "primary" : "default"}
+        >
+          <u>U</u>
+        </Button>
+        <Button
+          size="small"
+          onClick={() => editor.chain().focus().toggleBulletList().run()}
+          type={editor.isActive("bulletList") ? "primary" : "default"}
+        >
+          • List
+        </Button>
+        <Button
+          size="small"
+          onClick={() => editor.chain().focus().toggleOrderedList().run()}
+          type={editor.isActive("orderedList") ? "primary" : "default"}
+        >
+          1. List
+        </Button>
+        <Button size="small" onClick={() => editor.chain().focus().setTextAlign("left").run()}>
+          Trái
+        </Button>
+        <Button size="small" onClick={() => editor.chain().focus().setTextAlign("center").run()}>
+          Giữa
+        </Button>
+        <Button size="small" onClick={() => editor.chain().focus().setTextAlign("right").run()}>
+          Phải
+        </Button>
         <Button
           size="small"
           onClick={() => {
@@ -93,7 +130,9 @@ export function RichTextEditor({
         >
           Link
         </Button>
-        <Button size="small" loading={uploading} onClick={openImagePicker}>Ảnh</Button>
+        <Button size="small" loading={uploading} onClick={openImagePicker}>
+          Ảnh
+        </Button>
       </Space>
       <EditorContent editor={editor} />
       <input

@@ -13,6 +13,7 @@ import { AdminCategoriesPage } from "../features/admin/pages/AdminCategoriesPage
 import { AdminUsersPage } from "../features/admin/pages/AdminUsersPage";
 import { AdminAccountsPage } from "../features/admin/pages/AdminAccountsPage";
 import { AdminBrandConfigPage } from "../features/admin/pages/AdminBrandConfigPage";
+import { AdminBlogsPage } from "../features/admin/pages/AdminBlogsPage";
 import { StoreHomePage } from "../features/store/pages/StoreHomePage";
 import { StoreProductsPage } from "../features/store/pages/StoreProductsPage";
 import { StoreProductDetailPage } from "../features/store/pages/StoreProductDetailPage";
@@ -88,6 +89,7 @@ export const appRouter = createBrowserRouter([
           { path: "users", element: <AdminUsersPage /> },
           { path: "admin-accounts", element: <AdminAccountsPage /> },
           { path: "brand-config", element: <AdminBrandConfigPage /> },
+          { path: "blogs", element: <AdminBlogsPage /> },
           { path: "*", element: <Navigate to="/admin/dashboard" replace /> },
         ],
       },

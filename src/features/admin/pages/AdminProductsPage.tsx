@@ -1,5 +1,4 @@
-﻿import { AxiosError } from "axios";
-import {
+﻿import {
   AutoComplete,
   Button,
   Card,
@@ -34,6 +33,11 @@ import {
   type ProductVariant,
   type ProductVariantSize,
 } from "../../../services/productService";
+import {
+  ensureImageFile,
+  getImageValidationError,
+} from "../../../services/mediaUploadService";
+import { getErrorMessage } from "../../../utils/errorMessage";
 import { useProductStore } from "../../../stores/productStore";
 import { RichTextEditor } from "../../../components/editor/RichTextEditor";
 import {
@@ -162,16 +166,6 @@ const AGE_GROUP_OPTIONS: { value: "adult" | "teen" | "kids" | "baby"; label: str
 ];
 
 const formatCurrency = new Intl.NumberFormat("vi-VN");
-
-const getErrorMessage = (error: unknown) => {
-  if (error instanceof AxiosError) {
-    return (error.response?.data as { message?: string } | undefined)?.message ?? error.message;
-  }
-  if (error instanceof Error) {
-    return error.message;
-  }
-  return "Yêu cầu thất bại";
-};
 
 const toSlug = (value: string) =>
   value
@@ -600,24 +594,16 @@ export function AdminProductsPage() {
     };
 
   const beforeUpload: UploadProps["beforeUpload"] = (file) => {
-    if (!file.type.startsWith("image/")) {
-      messageApi.error("Chỉ chấp nhận file ảnh");
-      return false;
-    }
-    if (file.size / 1024 / 1024 > 5) {
-      messageApi.error("Kích thước ảnh phải nhỏ hơn 5MB");
+    const validationError = getImageValidationError(file as File, 5);
+    if (validationError) {
+      messageApi.error(validationError);
       return false;
     }
     return true;
   };
 
   const handleEditorImageUpload = async (file: File) => {
-    if (!file.type.startsWith("image/")) {
-      throw new Error("Chỉ chấp nhận file ảnh");
-    }
-    if (file.size / 1024 / 1024 > 5) {
-      throw new Error("Kích thước ảnh phải nhỏ hơn 5MB");
-    }
+    ensureImageFile(file, 5);
     return productService.uploadProductImage(file);
   };
 
@@ -1247,5 +1233,7 @@ export function AdminProductsPage() {
     </div>
   );
 }
+
+
 
 

@@ -1,10 +1,6 @@
 import { apiClient } from "./apiClient";
-
-type ApiResponse<T> = {
-  success: boolean;
-  message: string;
-  data: T;
-};
+import { type ApiResponse } from "./apiTypes";
+import { uploadImageToApi } from "./mediaUploadService";
 
 export type BlogPost = {
   _id: string;
@@ -36,7 +32,20 @@ export type BlogQueryParams = {
   q?: string;
   tag?: string;
   featured?: boolean;
+  isPublished?: boolean | "all";
+};
+
+export type BlogPayload = {
+  title: string;
+  slug?: string;
+  excerpt?: string;
+  content?: string;
+  coverImage?: string;
+  tags?: string[];
+  authorName?: string;
   isPublished?: boolean;
+  isFeatured?: boolean;
+  publishedAt?: string;
 };
 
 export const blogService = {
@@ -51,5 +60,23 @@ export const blogService = {
   async getBlogBySlug(slug: string): Promise<BlogPost> {
     const response = await apiClient.get<ApiResponse<BlogPost>>(`/api/blogs/${encodeURIComponent(slug)}`);
     return response.data.data;
+  },
+
+  async createBlog(payload: BlogPayload): Promise<BlogPost> {
+    const response = await apiClient.post<ApiResponse<BlogPost>>("/api/blogs", payload);
+    return response.data.data;
+  },
+
+  async updateBlog(id: string, payload: Partial<BlogPayload>): Promise<BlogPost> {
+    const response = await apiClient.put<ApiResponse<BlogPost>>(`/api/blogs/${id}`, payload);
+    return response.data.data;
+  },
+
+  async deleteBlog(id: string): Promise<void> {
+    await apiClient.delete(`/api/blogs/${id}`);
+  },
+
+  async uploadBlogImage(file: File): Promise<string> {
+    return uploadImageToApi("/api/blogs/upload-image", file);
   },
 };

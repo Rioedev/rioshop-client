@@ -1,4 +1,6 @@
 import { apiClient } from "./apiClient";
+import { type ApiResponse } from "./apiTypes";
+import { uploadImageToApi } from "./mediaUploadService";
 
 export type ProductStatus = "draft" | "active" | "archived" | "out_of_stock";
 export type ProductStatusFilter = ProductStatus | "all";
@@ -116,12 +118,6 @@ export type ProductPayload = {
   isBestseller?: boolean;
 };
 
-type ApiResponse<T> = {
-  success: boolean;
-  message: string;
-  data: T;
-};
-
 export type PaginatedProductData = {
   docs: Product[];
   totalDocs: number;
@@ -193,19 +189,6 @@ export const productService = {
   },
 
   async uploadProductImage(file: File): Promise<string> {
-    const formData = new FormData();
-    formData.append("file", file);
-
-    const response = await apiClient.post<ApiResponse<{ url: string }>>(
-      "/api/products/upload-image",
-      formData,
-      {
-        headers: {
-          "Content-Type": "multipart/form-data",
-        },
-      },
-    );
-
-    return response.data.data.url;
+    return uploadImageToApi("/api/products/upload-image", file);
   },
 };

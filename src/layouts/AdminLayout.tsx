@@ -5,6 +5,7 @@
   GiftOutlined,
   HomeOutlined,
   InboxOutlined,
+  ReadOutlined,
   LineChartOutlined,
   LogoutOutlined,
   ShoppingCartOutlined,
@@ -41,6 +42,7 @@ const baseAdminMenuItems: ItemType[] = [
     icon: <LineChartOutlined />,
     label: "Analytics Events",
   },
+  { key: "/admin/blogs", icon: <ReadOutlined />, label: "Blog" },
   {
     key: "/admin/brand-config",
     icon: <BgColorsOutlined />,
@@ -59,6 +61,7 @@ const pageTitleMap: Record<string, string> = {
   "/admin/coupons": "Mã giảm giá",
   "/admin/users": "Khách hàng",
   "/admin/analytics-events": "Analytics Events",
+  "/admin/blogs": "Blog",
   "/admin/brand-config": "Cấu hình thương hiệu",
   "/admin/admin-accounts": "Tài khoản admin",
 };

@@ -1,4 +1,6 @@
 import { apiClient } from "./apiClient";
+import { type ApiResponse } from "./apiTypes";
+import { uploadImageToApi } from "./mediaUploadService";
 
 export type CategoryParent = {
   _id: string;
@@ -21,12 +23,6 @@ export type Category = {
   children?: Category[];
   createdAt?: string;
   updatedAt?: string;
-};
-
-type ApiResponse<T> = {
-  success: boolean;
-  message: string;
-  data: T;
 };
 
 type PaginatedCategoryData = {
@@ -103,19 +99,6 @@ export const categoryService = {
   },
 
   async uploadCategoryImage(file: File): Promise<string> {
-    const formData = new FormData();
-    formData.append("file", file);
-
-    const response = await apiClient.post<ApiResponse<{ url: string }>>(
-      "/api/categories/upload-image",
-      formData,
-      {
-        headers: {
-          "Content-Type": "multipart/form-data",
-        },
-      },
-    );
-
-    return response.data.data.url;
+    return uploadImageToApi("/api/categories/upload-image", file);
   },
 };

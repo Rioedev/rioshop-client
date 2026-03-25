@@ -125,6 +125,24 @@ body {
   outline: none;
 }
 
+.rte-content p {
+  margin: 0 0 10px;
+}
+
+.rte-content ul,
+.rte-content ol {
+  margin: 0 0 10px;
+  padding-left: 18px;
+}
+
+.rte-content img {
+  display: block;
+  max-width: 100%;
+  height: auto;
+  margin: 12px 0;
+  border-radius: 10px;
+}
+
 .rte-content p.is-editor-empty:first-child::before {
   color: #94a3b8;
   content: attr(data-placeholder);
