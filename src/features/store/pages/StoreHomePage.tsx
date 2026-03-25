@@ -1,4 +1,4 @@
-import {
+﻿import {
   ClockCircleOutlined,
   FireOutlined,
   ReloadOutlined,
@@ -16,6 +16,7 @@ import {
   type StorefrontHomeValueProp,
 } from "../../../services/brandConfigService";
 import { categoryService, type Category } from "../../../services/categoryService";
+import { blogService, type BlogPost } from "../../../services/blogService";
 import { couponService, type Coupon } from "../../../services/couponService";
 import { flashSaleService } from "../../../services/flashSaleService";
 import { productService, type Product } from "../../../services/productService";
@@ -460,6 +461,23 @@ const formatCouponExpiry = (value: string) => {
   }).format(date);
 };
 
+const formatBlogDate = (value?: string) => {
+  if (!value) {
+    return "Cập nhật gần đây";
+  }
+
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) {
+    return "Cập nhật gần đây";
+  }
+
+  return new Intl.DateTimeFormat("vi-VN", {
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+  }).format(date);
+};
+
 const buildTemplateMessage = (
   template: string,
   values: Record<string, string>,
@@ -491,9 +509,8 @@ const mapHomeProduct = (
   image: getProductImage(product, index),
 });
 
-const VIETNAMESE_DIACRITIC_REGEX =
-  /[àáạảãăằắặẳẵâầấậẩẫèéẹẻẽêềếệểễìíịỉĩòóọỏõôồốộổỗơờớợởỡùúụủũưừứựửữỳýỵỷỹđ]/i;
-const HAS_LETTER_REGEX = /[a-zA-ZÀ-ỹ]/;
+const VIETNAMESE_DIACRITIC_REGEX = /[\u00C0-\u024F\u1E00-\u1EFF]/;
+const HAS_LETTER_REGEX = /[A-Za-z\u00C0-\u024F\u1E00-\u1EFF]/;
 
 const resolveLocalizedText = (source: string, fallback: string) => {
   const value = source.trim();
@@ -610,6 +627,7 @@ export function StoreHomePage() {
   const [catalogPool, setCatalogPool] = useState<HomeProduct[]>([]);
   const [flashDeals, setFlashDeals] = useState<FlashDeal[]>([]);
   const [activeCoupons, setActiveCoupons] = useState<Coupon[]>([]);
+  const [blogPosts, setBlogPosts] = useState<BlogPost[]>([]);
   const [savedCouponCodes, setSavedCouponCodes] = useState<string[]>(() => readSavedCouponCodes());
   const [isLoading, setIsLoading] = useState(true);
   const [activeHeroIndex, setActiveHeroIndex] = useState(0);
@@ -625,7 +643,7 @@ export function StoreHomePage() {
     const loadHomeData = async () => {
       setIsLoading(true);
 
-      const [brandConfigResult, categoryResult, featuredResult, latestResult, flashSaleResult, couponResult] =
+      const [brandConfigResult, categoryResult, featuredResult, latestResult, flashSaleResult, couponResult, blogResult] =
         await Promise.allSettled([
           brandConfigService.getBrandConfig(STORE_BRAND_KEY),
           categoryService.getCategories({ page: 1, limit: 24, isActive: true }),
@@ -643,6 +661,7 @@ export function StoreHomePage() {
           }),
           flashSaleService.getFlashSales({ page: 1, limit: 1, currentOnly: true, isActive: true }),
           couponService.getActiveCoupons({ page: 1, limit: 8 }),
+          blogService.getBlogs({ page: 1, limit: 8, isPublished: true }),
         ]);
 
       if (!active) {
@@ -816,6 +835,7 @@ export function StoreHomePage() {
       setQuickCategories(mappedCategories);
       setFlashDeals(mappedFlashDeals);
       setActiveCoupons(couponResult.status === "fulfilled" ? couponResult.value.docs : []);
+      setBlogPosts(blogResult.status === "fulfilled" ? blogResult.value.docs : []);
       setIsLoading(false);
     };
 
@@ -879,13 +899,68 @@ export function StoreHomePage() {
       .filter((item) => item.products.length > 0);
   }, [productPool, quickCategories]);
 
-  const editorialCards = quickCategories.slice(0, 3).map((category) => ({
-    id: category.id,
-    title: category.name,
-    image: category.image,
-    href: category.slug ? `/products?category=${encodeURIComponent(category.slug)}` : "/products",
-    description: homeContent.sections.curatedDescription,
-  }));
+  const blogCards = useMemo(() => {
+    const fallbackImages = [
+      "https://images.unsplash.com/photo-1523381210434-271e8be1f52b?auto=format&fit=crop&w=1200&q=80",
+      "https://images.unsplash.com/photo-1516257984-b1b4d707412e?auto=format&fit=crop&w=1200&q=80",
+      "https://images.unsplash.com/photo-1622470953794-aa9c70b0fb9d?auto=format&fit=crop&w=1200&q=80",
+      "https://images.unsplash.com/photo-1591195853828-11db59a44f6b?auto=format&fit=crop&w=1200&q=80",
+    ];
+
+    const mappedCategoryLinks = quickCategories.slice(0, 4).map((category) => ({
+      href: category.slug ? `/products?category=${encodeURIComponent(category.slug)}` : "/products",
+      image: category.image,
+    }));
+
+    const fallbackCards = [
+      {
+        id: "blog-1",
+        date: "23/03/2026",
+        title: "Hướng dẫn kiểm tra hạng thành viên RioShop nhanh chóng",
+        excerpt: "Mẹo theo dõi quyền lợi và điểm tích lũy để mua sắm tối ưu hơn.",
+      },
+      {
+        id: "blog-2",
+        date: "21/03/2026",
+        title: "Bí kíp mặc đẹp cùng quần jean rách nam: Cách phối đồ & xu hướng 2026",
+        excerpt: "Gợi ý phối đồ thực tế để giữ vẻ ngoài gọn, hiện đại và nam tính.",
+      },
+      {
+        id: "blog-3",
+        date: "21/03/2026",
+        title: "Bí quyết phối đồ cực chất: Nâng tầm phong cách cùng quần jean áo thun nam",
+        excerpt: "Công thức phối nhanh cho đi làm, đi chơi và dạo phố cuối tuần.",
+      },
+      {
+        id: "blog-4",
+        date: "21/03/2026",
+        title: "Top 15+ kiểu áo mặc với quần jean ống rộng cực tôn dáng, chuẩn gu fashionista",
+        excerpt: "Danh sách outfit dễ áp dụng giúp trang phục cân đối và thời trang hơn.",
+      },
+    ].map((item, index) => ({
+      ...item,
+      href: mappedCategoryLinks[index]?.href ?? "/products",
+      image: mappedCategoryLinks[index]?.image ?? fallbackImages[index % fallbackImages.length],
+    }));
+
+    if (blogPosts.length > 0) {
+      return blogPosts.slice(0, 4).map((post, index) => ({
+        id: post._id,
+        date: formatBlogDate(post.publishedAt || post.createdAt),
+        title: post.title?.trim() || fallbackCards[index]?.title || "Bài viết mới",
+        excerpt: post.excerpt?.trim() || fallbackCards[index]?.excerpt || "Nội dung đang được cập nhật.",
+        href: post.slug?.trim()
+          ? `/products?q=${encodeURIComponent(post.title || post.slug)}`
+          : fallbackCards[index]?.href || "/products",
+        image:
+          resolveImageUrl(post.coverImage) ||
+          mappedCategoryLinks[index]?.image ||
+          fallbackImages[index % fallbackImages.length],
+      }));
+    }
+
+    return fallbackCards;
+  }, [blogPosts, quickCategories]);
 
   const heroSlides = useMemo(() => {
     const source = (featuredProducts.length > 0 ? featuredProducts : productPool).slice(0, 3);
@@ -1296,41 +1371,6 @@ export function StoreHomePage() {
         </section>
       ) : null}
 
-      {editorialCards.length > 0 ? (
-        <section className="store-home-v3-editorial">
-          <div className="store-home-v3-editorial-copy">
-            <p>{homeContent.journal.kicker}</p>
-            <h2>
-              {homeContent.journal.titleLine1}
-              <br />
-              {homeContent.journal.titleLine2}
-            </h2>
-            <p>{homeContent.journal.description}</p>
-            <Link to={primaryCtaLink}>
-              <Button className="store-home-v3-primary-ghost h-11! rounded-full! px-7! font-bold!">
-                {homeContent.journal.ctaLabel}
-              </Button>
-            </Link>
-          </div>
-
-          <div className="store-home-v3-editorial-grid">
-            {editorialCards.map((card) => (
-              <Link
-                key={`editorial-${card.id}`}
-                to={card.href}
-                className="store-home-v3-editorial-card"
-                style={{
-                  backgroundImage: `linear-gradient(140deg, rgba(15, 23, 42, 0.72), rgba(15, 23, 42, 0.14)), url(${card.image})`,
-                }}
-              >
-                <h3>{card.title}</h3>
-                <p>{card.description}</p>
-              </Link>
-            ))}
-          </div>
-        </section>
-      ) : null}
-
       {bestsellingProducts.length > 0 ? (
         <section className="store-home-v3-section">
           <div className="store-home-v3-section-head">
@@ -1472,6 +1512,40 @@ export function StoreHomePage() {
         </div>
       </section>
 
+      {blogCards.length > 0 ? (
+        <section className="store-home-v3-blog">
+          <div className="store-home-v3-blog-head">
+            <p>Tin tức thời trang</p>
+            <h2>BLOG RIOSHOP</h2>
+          </div>
+
+          <div className="store-home-v3-blog-grid">
+            {blogCards.map((card) => (
+              <article key={card.id} className="store-home-v3-blog-card">
+                <Link to={card.href} className="store-home-v3-blog-media">
+                  <img src={card.image} alt={card.title} className="h-full w-full object-cover" />
+                </Link>
+                <p className="store-home-v3-blog-date">Ngày đăng: {card.date}</p>
+                <Link to={card.href} className="store-home-v3-blog-title">
+                  {card.title}
+                </Link>
+                <p className="store-home-v3-blog-excerpt">{card.excerpt}</p>
+              </article>
+            ))}
+          </div>
+
+          <div className="store-home-v3-blog-action">
+            <Link to="/products">
+              <Button className="store-home-v3-secondary-ghost h-11! rounded-full! px-8! font-bold!">
+                Xem thêm
+              </Button>
+            </Link>
+          </div>
+        </section>
+      ) : null}
+
     </div>
   );
 }
+
+

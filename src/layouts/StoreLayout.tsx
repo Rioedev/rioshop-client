@@ -1,12 +1,19 @@
 ﻿import {
   BellOutlined,
   DownOutlined,
+  EnvironmentOutlined,
+  FacebookOutlined,
   HeartOutlined,
+  InstagramOutlined,
   LogoutOutlined,
+  MailOutlined,
+  MessageOutlined,
   PhoneOutlined,
   ProfileOutlined,
   ShoppingCartOutlined,
+  TikTokOutlined,
   UserOutlined,
+  YoutubeOutlined,
 } from "@ant-design/icons";
 import { Input } from "antd";
 import { useEffect, useMemo, useRef, useState } from "react";
@@ -14,6 +21,7 @@ import { Link, Outlet, useLocation, useNavigate } from "react-router-dom";
 import { StoreNotificationsModal } from "../features/store/components/StoreNotificationsModal";
 import { resolveStoreImageUrl } from "../features/store/utils/storeFormatting";
 import { analyticsTracker } from "../services/analyticsTracker";
+import { brandConfigService } from "../services/brandConfigService";
 import { categoryService, type Category } from "../services/categoryService";
 import { cartService, toCartCouponMeta, toCartStoreItems } from "../services/cartService";
 import { toWishlistStoreItems, wishlistService } from "../services/wishlistService";
@@ -38,6 +46,8 @@ const utilityLinks = [
   { label: "Tra cứu đơn hàng", href: "/orders" },
   { label: "Rio Member", href: "/account" },
 ];
+
+const STORE_BRAND_KEY = "rioshop-default";
 
 type MegaLeaf = {
   key: string;
@@ -226,6 +236,10 @@ export function StoreLayout() {
   const [searchKeyword, setSearchKeyword] = useState("");
   const [menuItems, setMenuItems] = useState(defaultMenuItems);
   const [categoryTree, setCategoryTree] = useState<Category[]>([]);
+  const [footerSocialLinks, setFooterSocialLinks] = useState<{
+    facebook?: string;
+    instagram?: string;
+  }>({});
   const [activeMegaItemKeys, setActiveMegaItemKeys] = useState<Partial<Record<MegaColumn["key"], string>>>({});
   const accountMenuRef = useRef<HTMLDivElement | null>(null);
   const megaMenuRef = useRef<HTMLDivElement | null>(null);
@@ -293,6 +307,33 @@ export function StoreLayout() {
     };
 
     void loadCategories();
+
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  useEffect(() => {
+    let active = true;
+
+    const loadBrandConfig = async () => {
+      try {
+        const config = await brandConfigService.getBrandConfig(STORE_BRAND_KEY);
+        if (!active) {
+          return;
+        }
+        setFooterSocialLinks({
+          facebook: config.socialLinks?.facebook?.trim() || undefined,
+          instagram: config.socialLinks?.instagram?.trim() || undefined,
+        });
+      } catch {
+        if (active) {
+          setFooterSocialLinks({});
+        }
+      }
+    };
+
+    void loadBrandConfig();
 
     return () => {
       active = false;
@@ -762,33 +803,105 @@ export function StoreLayout() {
       </main>
 
       <footer className="store-footer">
-        <div className="mx-auto grid w-full max-w-405 gap-8 px-3 py-10 sm:px-4 lg:grid-cols-4 xl:px-6">
-          <div>
-            <h4 className="store-footer-title">RIO SHOP</h4>
-            <p className="store-footer-text">Thời trang hằng ngày cho gia đình Việt.</p>
-            <p className="store-footer-text">Hotline: 1900 8888</p>
-            <p className="store-footer-text">Email: cskh@rioshop.vn</p>
+        <div className="mx-auto w-full max-w-405 px-3 py-10 sm:px-4 xl:px-6">
+          <div className="store-footer-top">
+            <div className="store-footer-intro">
+              <h4>RIOSHOP XIN CHÀO 💖</h4>
+              <p>
+                Chúng tôi luôn quý trọng và tiếp thu mọi ý kiến đóng góp từ khách hàng, nhằm không ngừng cải thiện
+                và nâng tầm trải nghiệm dịch vụ cùng chất lượng sản phẩm.
+              </p>
+              <form className="store-footer-subscribe" onSubmit={(event) => event.preventDefault()}>
+                <input placeholder="Nhập địa chỉ email của bạn" />
+                <button type="submit">Gửi</button>
+              </form>
+            </div>
+
+            <div className="store-footer-contact">
+              <div className="store-footer-contact-item">
+                <PhoneOutlined />
+                <div>
+                  <p>Hotline</p>
+                  <strong>1800 2086</strong>
+                  <span>Bấm phím 1 để được tư vấn mua hàng</span>
+                  <span>Bấm phím 2 để góp ý, khiếu nại</span>
+                </div>
+              </div>
+              <div className="store-footer-contact-item">
+                <MailOutlined />
+                <div>
+                  <p>Email</p>
+                  <strong>chamsockhachhang@rioshop.vn</strong>
+                </div>
+              </div>
+              <div className="store-footer-contact-item">
+                <EnvironmentOutlined />
+                <div>
+                  <p>Địa chỉ</p>
+                  <strong>Đường An Định - Phường Việt Hòa - TP Hải Phòng</strong>
+                </div>
+              </div>
+            </div>
+
+            <div className="store-footer-social">
+              <a href="#" aria-label="Zalo">Z</a>
+              <a href="#" aria-label="Messenger"><MessageOutlined /></a>
+              <a href="#" aria-label="TikTok"><TikTokOutlined /></a>
+              <a href="#" aria-label="YouTube"><YoutubeOutlined /></a>
+              <a
+                href={footerSocialLinks.instagram || "#"}
+                aria-label="Instagram"
+                target={footerSocialLinks.instagram ? "_blank" : undefined}
+                rel={footerSocialLinks.instagram ? "noreferrer noopener" : undefined}
+                onClick={(event) => {
+                  if (!footerSocialLinks.instagram) {
+                    event.preventDefault();
+                  }
+                }}
+              >
+                <InstagramOutlined />
+              </a>
+              <a
+                href={footerSocialLinks.facebook || "#"}
+                aria-label="Facebook"
+                target={footerSocialLinks.facebook ? "_blank" : undefined}
+                rel={footerSocialLinks.facebook ? "noreferrer noopener" : undefined}
+                onClick={(event) => {
+                  if (!footerSocialLinks.facebook) {
+                    event.preventDefault();
+                  }
+                }}
+              >
+                <FacebookOutlined />
+              </a>
+            </div>
           </div>
-          <div>
-            <h4 className="store-footer-title">Về chúng tôi</h4>
-            <p className="store-footer-text">Giới thiệu</p>
-            <p className="store-footer-text">Hệ thống cửa hàng</p>
-            <p className="store-footer-text">Tuyển dụng</p>
+
+          <div className="store-footer-links">
+            {["HỆ THỐNG CỬA HÀNG", "MUA SẮM", "TIN TỨC", "DỊCH VỤ KHÁCH HÀNG", "VỀ RIOSHOP"].map((item) => (
+              <button key={item} type="button" className="store-footer-link-row">
+                <span>{item}</span>
+                <DownOutlined />
+              </button>
+            ))}
           </div>
-          <div>
-            <h4 className="store-footer-title">Chính sách</h4>
-            <p className="store-footer-text">Đổi trả 60 ngày</p>
-            <p className="store-footer-text">Chính sách vận chuyển</p>
-            <p className="store-footer-text">Bảo mật thông tin</p>
-          </div>
-          <div>
-            <h4 className="store-footer-title">Hỗ trợ khách hàng</h4>
-            <p className="store-footer-text">Hướng dẫn mua hàng</p>
-            <p className="store-footer-text">Tra cứu đơn hàng</p>
-            <p className="store-footer-text">Câu hỏi thường gặp</p>
+
+          <div className="store-footer-bottom">
+            <div>
+              <h5>@ CÔNG TY CỔ PHẦN THỜI TRANG RIOSHOP</h5>
+              <p>
+                Mã số doanh nghiệp: 0801206940. Giấy chứng nhận đăng ký doanh nghiệp do Sở Kế hoạch và Đầu tư TP Hải
+                Dương cấp lần đầu ngày 04/03/2017
+              </p>
+            </div>
+            <div className="store-footer-certs">
+              <span>DMCA PROTECTED</span>
+              <span>ĐÃ THÔNG BÁO BỘ CÔNG THƯƠNG</span>
+            </div>
           </div>
         </div>
       </footer>
     </div>
   );
 }
+
