@@ -1,4 +1,4 @@
-import { AxiosError } from "axios";
+﻿import { AxiosError } from "axios";
 import {
   Button,
   Card,
@@ -24,8 +24,10 @@ const STATUS_LABEL_MAP: Record<OrderStatus, string> = {
   pending: "Chờ xác nhận",
   confirmed: "Đã xác nhận",
   packing: "Đang đóng gói",
+  ready_to_ship: "Chờ lấy hàng",
   shipping: "Đang giao",
   delivered: "Đã giao",
+  completed: "Hoàn thành",
   cancelled: "Đã hủy",
   returned: "Đã hoàn",
 };
@@ -34,17 +36,32 @@ const STATUS_COLOR_MAP: Record<OrderStatus, string> = {
   pending: "gold",
   confirmed: "blue",
   packing: "cyan",
+  ready_to_ship: "geekblue",
   shipping: "processing",
   delivered: "green",
+  completed: "success",
   cancelled: "red",
   returned: "purple",
 };
+const ONLINE_PAYMENT_METHODS = new Set(["momo", "vnpay", "zalopay", "card", "bank_transfer"]);
+
+const getOrderStatusLabel = (order: Pick<OrderRecord, "status" | "paymentStatus" | "paymentMethod">) => {
+  if (
+    order.status === "pending" &&
+    order.paymentStatus === "pending" &&
+    ONLINE_PAYMENT_METHODS.has(order.paymentMethod)
+  ) {
+    return "Chờ thanh toán";
+  }
+
+  return STATUS_LABEL_MAP[order.status] ?? order.status;
+};
 
 const PAYMENT_STATUS_LABEL_MAP: Record<PaymentStatus, string> = {
-  pending: "Chờ thanh toán",
-  paid: "Đã thanh toán",
-  refunded: "Đã hoàn tiền",
-  failed: "Thất bại",
+  pending: "Chá» thanh toÃ¡n",
+  paid: "ÄÃ£ thanh toÃ¡n",
+  refunded: "ÄÃ£ hoÃ n tiá»n",
+  failed: "Tháº¥t báº¡i",
 };
 
 const PAYMENT_STATUS_COLOR_MAP: Record<PaymentStatus, string> = {
@@ -59,14 +76,16 @@ const STATUS_FILTER_OPTIONS: { value: OrderStatus | "all"; label: string }[] = [
   { value: "pending", label: STATUS_LABEL_MAP.pending },
   { value: "confirmed", label: STATUS_LABEL_MAP.confirmed },
   { value: "packing", label: STATUS_LABEL_MAP.packing },
+  { value: "ready_to_ship", label: STATUS_LABEL_MAP.ready_to_ship },
   { value: "shipping", label: STATUS_LABEL_MAP.shipping },
   { value: "delivered", label: STATUS_LABEL_MAP.delivered },
+  { value: "completed", label: STATUS_LABEL_MAP.completed },
   { value: "cancelled", label: STATUS_LABEL_MAP.cancelled },
   { value: "returned", label: STATUS_LABEL_MAP.returned },
 ];
 
 const PAYMENT_STATUS_FILTER_OPTIONS: { value: PaymentStatus | "all"; label: string }[] = [
-  { value: "all", label: "Tất cả trạng thái thanh toán" },
+  { value: "all", label: "Táº¥t cáº£ tráº¡ng thÃ¡i thanh toÃ¡n" },
   { value: "pending", label: PAYMENT_STATUS_LABEL_MAP.pending },
   { value: "paid", label: PAYMENT_STATUS_LABEL_MAP.paid },
   { value: "refunded", label: PAYMENT_STATUS_LABEL_MAP.refunded },
@@ -81,11 +100,13 @@ const PAYMENT_STATUS_UPDATE_OPTIONS: { value: PaymentStatus; label: string }[] =
 ];
 
 const STATUS_TRANSITION_MAP: Record<OrderStatus, OrderStatus[]> = {
-  pending: ["confirmed", "packing", "shipping", "cancelled"],
-  confirmed: ["packing", "shipping", "cancelled"],
-  packing: ["shipping", "cancelled"],
+  pending: ["confirmed", "packing", "ready_to_ship", "shipping", "cancelled"],
+  confirmed: ["packing", "ready_to_ship", "shipping", "cancelled"],
+  packing: ["ready_to_ship", "shipping", "cancelled"],
+  ready_to_ship: ["shipping", "cancelled"],
   shipping: ["delivered", "returned", "cancelled"],
-  delivered: ["returned"],
+  delivered: ["completed", "returned"],
+  completed: [],
   cancelled: [],
   returned: [],
 };
@@ -99,7 +120,7 @@ const getErrorMessage = (error: unknown) => {
   if (error instanceof Error) {
     return error.message;
   }
-  return "Yêu cầu thất bại";
+  return "YÃªu cáº§u tháº¥t báº¡i";
 };
 
 const formatDateTime = (value?: string) => {
@@ -130,7 +151,7 @@ const getStatusUpdateOptions = (currentStatus: OrderStatus): { value: OrderStatu
 
   return uniqueStatuses.map((status) => ({
     value: status,
-    label: status === currentStatus ? `${STATUS_LABEL_MAP[status]} (giữ nguyên)` : STATUS_LABEL_MAP[status],
+    label: status === currentStatus ? `${STATUS_LABEL_MAP[status]} (giá»¯ nguyÃªn)` : STATUS_LABEL_MAP[status],
   }));
 };
 
@@ -179,9 +200,11 @@ export function AdminOrdersPage() {
     );
   }, [orders, searchText]);
 
-  const pendingCount = orders.filter((item) => item.status === "pending").length;
+  const pendingCount = orders.filter((item) =>
+    ["pending", "confirmed", "packing", "ready_to_ship", "shipping"].includes(item.status),
+  ).length;
   const shippingCount = orders.filter((item) => item.status === "shipping").length;
-  const completedCount = orders.filter((item) => item.status === "delivered").length;
+  const completedCount = orders.filter((item) => item.status === "completed").length;
 
   const canChangeOrderStatus = managingOrder
     ? STATUS_TRANSITION_MAP[managingOrder.status].length > 0
@@ -255,7 +278,7 @@ export function AdminOrdersPage() {
     }
 
     if (!hasManageChanges) {
-      messageApi.info("Đơn hàng chưa có thay đổi.");
+      messageApi.info("ÄÆ¡n hÃ ng chÆ°a cÃ³ thay Ä‘á»•i.");
       return;
     }
 
@@ -265,7 +288,7 @@ export function AdminOrdersPage() {
         paymentStatus: managePaymentStatus,
         note: manageNote.trim() || undefined,
       });
-      messageApi.success("Cập nhật đơn hàng thành công.");
+      messageApi.success("Cáº­p nháº­t Ä‘Æ¡n hÃ ng thÃ nh cÃ´ng.");
       closeManageModal();
     } catch (error) {
       messageApi.error(getErrorMessage(error));
@@ -278,8 +301,8 @@ export function AdminOrdersPage() {
     }
 
     try {
-      await cancelOrder(managingOrder.id, manageNote.trim() || "Hủy đơn từ trang quản trị");
-      messageApi.success("Hủy đơn hàng thành công.");
+      await cancelOrder(managingOrder.id, manageNote.trim() || "Há»§y Ä‘Æ¡n tá»« trang quáº£n trá»‹");
+      messageApi.success("Há»§y Ä‘Æ¡n hÃ ng thÃ nh cÃ´ng.");
       closeManageModal();
     } catch (error) {
       messageApi.error(getErrorMessage(error));
@@ -288,13 +311,13 @@ export function AdminOrdersPage() {
 
   const columns: ColumnsType<OrderRecord> = [
     {
-      title: "Mã đơn",
+      title: "MÃ£ Ä‘Æ¡n",
       dataIndex: "orderNumber",
       key: "orderNumber",
       width: 150,
     },
     {
-      title: "Khách hàng",
+      title: "KhÃ¡ch hÃ ng",
       key: "customer",
       width: 220,
       render: (_, record) => (
@@ -305,19 +328,19 @@ export function AdminOrdersPage() {
       ),
     },
     {
-      title: "Sản phẩm",
+      title: "Sáº£n pháº©m",
       key: "items",
       width: 100,
       render: (_, record) => record.items.length,
     },
     {
-      title: "Tổng tiền",
+      title: "Tá»•ng tiá»n",
       key: "total",
       width: 170,
       render: (_, record) => `${formatCurrency.format(record.pricing.total)} ${record.pricing.currency}`,
     },
     {
-      title: "Thanh toán",
+      title: "Thanh toÃ¡n",
       key: "payment",
       width: 170,
       render: (_, record) => (
@@ -327,27 +350,27 @@ export function AdminOrdersPage() {
       ),
     },
     {
-      title: "Trạng thái",
+      title: "Tráº¡ng thÃ¡i",
       key: "status",
       width: 150,
       render: (_, record) => (
-        <Tag color={STATUS_COLOR_MAP[record.status]}>{STATUS_LABEL_MAP[record.status]}</Tag>
+        <Tag color={STATUS_COLOR_MAP[record.status]}>{getOrderStatusLabel(record)}</Tag>
       ),
     },
     {
-      title: "Tạo lúc",
+      title: "Táº¡o lÃºc",
       dataIndex: "createdAt",
       key: "createdAt",
       width: 160,
       render: (value?: string) => formatDateTime(value),
     },
     {
-      title: "Thao tác",
+      title: "Thao tÃ¡c",
       key: "actions",
       width: 120,
       render: (_, record) => (
         <Button size="small" onClick={() => openManageModal(record)} disabled={saving}>
-          Quản lý
+          Quáº£n lÃ½
         </Button>
       ),
     },
@@ -359,17 +382,17 @@ export function AdminOrdersPage() {
 
       <div>
         <Title level={3} className="mb-1! mt-0!">
-          Quản lý đơn hàng
+          Quáº£n lÃ½ Ä‘Æ¡n hÃ ng
         </Title>
         <Paragraph className="mb-0!" type="secondary">
-          Theo dõi đơn hàng theo thời gian thực, mở hộp quản lý để cập nhật trạng thái xử lý và thanh toán gọn hơn.
+          Theo dÃµi Ä‘Æ¡n hÃ ng theo thá»i gian thá»±c, má»Ÿ há»™p quáº£n lÃ½ Ä‘á»ƒ cáº­p nháº­t tráº¡ng thÃ¡i xá»­ lÃ½ vÃ  thanh toÃ¡n gá»n hÆ¡n.
         </Paragraph>
       </div>
 
       <Row gutter={[12, 12]}>
         <Col xs={24} md={8}>
           <Card>
-            <Text type="secondary">Chờ xác nhận (trang hiện tại)</Text>
+            <Text type="secondary">Chá» xÃ¡c nháº­n (trang hiá»‡n táº¡i)</Text>
             <Title level={3} className="mb-0! mt-1!">
               {pendingCount}
             </Title>
@@ -377,7 +400,7 @@ export function AdminOrdersPage() {
         </Col>
         <Col xs={24} md={8}>
           <Card>
-            <Text type="secondary">Đang giao (trang hiện tại)</Text>
+            <Text type="secondary">Äang giao (trang hiá»‡n táº¡i)</Text>
             <Title level={3} className="mb-0! mt-1!">
               {shippingCount}
             </Title>
@@ -385,7 +408,7 @@ export function AdminOrdersPage() {
         </Col>
         <Col xs={24} md={8}>
           <Card>
-            <Text type="secondary">Đã giao (trang hiện tại)</Text>
+            <Text type="secondary">ÄÃ£ giao (trang hiá»‡n táº¡i)</Text>
             <Title level={3} className="mb-0! mt-1! text-emerald-600!">
               {completedCount}
             </Title>
@@ -399,7 +422,7 @@ export function AdminOrdersPage() {
             value={searchText}
             onChange={(event) => setSearchText(event.target.value)}
             allowClear
-            placeholder="Tìm theo mã đơn, tên khách, email, số điện thoại"
+            placeholder="TÃ¬m theo mÃ£ Ä‘Æ¡n, tÃªn khÃ¡ch, email, sá»‘ Ä‘iá»‡n thoáº¡i"
             className="min-w-[280px] max-w-[420px]"
           />
           <Select<OrderStatus | "all">
@@ -427,7 +450,7 @@ export function AdminOrdersPage() {
             pageSize,
             total,
             showSizeChanger: true,
-            showTotal: (value) => `Tổng ${value} đơn hàng`,
+            showTotal: (value) => `Tá»•ng ${value} Ä‘Æ¡n hÃ ng`,
           }}
           onChange={(pagination: TablePaginationConfig) => {
             const nextPage = pagination.current ?? page;
@@ -445,20 +468,20 @@ export function AdminOrdersPage() {
       </Card>
 
       <Modal
-        title={managingOrder ? `Quản lý đơn ${managingOrder.orderNumber}` : "Quản lý đơn hàng"}
+        title={managingOrder ? `Quáº£n lÃ½ Ä‘Æ¡n ${managingOrder.orderNumber}` : "Quáº£n lÃ½ Ä‘Æ¡n hÃ ng"}
         open={Boolean(managingOrder)}
         onCancel={closeManageModal}
         width={960}
         footer={[
           <Button key="close" onClick={closeManageModal} disabled={saving}>
-            Đóng
+            ÄÃ³ng
           </Button>,
           <Popconfirm
             key="cancel"
-            title="Hủy đơn hàng"
-            description="Chỉ nên hủy đơn khi khách yêu cầu hoặc đơn gặp sự cố."
-            okText="Hủy đơn"
-            cancelText="Bỏ qua"
+            title="Há»§y Ä‘Æ¡n hÃ ng"
+            description="Chá»‰ nÃªn há»§y Ä‘Æ¡n khi khÃ¡ch yÃªu cáº§u hoáº·c Ä‘Æ¡n gáº·p sá»± cá»‘."
+            okText="Há»§y Ä‘Æ¡n"
+            cancelText="Bá» qua"
             onConfirm={() => void handleCancelOrder()}
             disabled={!managingOrder || !isCancellableOrder(managingOrder.status) || saving}
           >
@@ -466,7 +489,7 @@ export function AdminOrdersPage() {
               danger
               disabled={!managingOrder || !isCancellableOrder(managingOrder.status) || saving}
             >
-              Hủy đơn
+              Há»§y Ä‘Æ¡n
             </Button>
           </Popconfirm>,
           <Button
@@ -476,20 +499,20 @@ export function AdminOrdersPage() {
             loading={saving}
             disabled={!managingOrder || !hasManageChanges}
           >
-            Lưu cập nhật
+            LÆ°u cáº­p nháº­t
           </Button>,
         ]}
       >
         {managingOrder ? (
           <div className="space-y-4">
-            <Card size="small" title="Điều phối đơn hàng">
+            <Card size="small" title="Äiá»u phá»‘i Ä‘Æ¡n hÃ ng">
               <div className="grid gap-3 md:grid-cols-2">
                 <div className="space-y-3">
                   <div>
-                    <Text type="secondary">Trạng thái hiện tại</Text>
+                    <Text type="secondary">Tráº¡ng thÃ¡i hiá»‡n táº¡i</Text>
                     <div className="mt-1">
                       <Tag color={STATUS_COLOR_MAP[managingOrder.status]}>
-                        {STATUS_LABEL_MAP[managingOrder.status]}
+                        {getOrderStatusLabel(managingOrder)}
                       </Tag>
                     </div>
                   </div>
@@ -500,13 +523,13 @@ export function AdminOrdersPage() {
                     disabled={saving || !canChangeOrderStatus}
                   />
                   {!canChangeOrderStatus ? (
-                    <Text type="secondary">Đơn ở trạng thái cuối, không thể chuyển tiếp.</Text>
+                    <Text type="secondary">ÄÆ¡n á»Ÿ tráº¡ng thÃ¡i cuá»‘i, khÃ´ng thá»ƒ chuyá»ƒn tiáº¿p.</Text>
                   ) : null}
                 </div>
 
                 <div className="space-y-3">
                   <div>
-                    <Text type="secondary">Thanh toán hiện tại</Text>
+                    <Text type="secondary">Thanh toÃ¡n hiá»‡n táº¡i</Text>
                     <div className="mt-1">
                       <Tag color={PAYMENT_STATUS_COLOR_MAP[managingOrder.paymentStatus]}>
                         {PAYMENT_STATUS_LABEL_MAP[managingOrder.paymentStatus]}
@@ -526,7 +549,7 @@ export function AdminOrdersPage() {
                 className="mt-3"
                 value={manageNote}
                 onChange={(event) => setManageNote(event.target.value)}
-                placeholder="Ghi chú quản trị (tùy chọn)"
+                placeholder="Ghi chÃº quáº£n trá»‹ (tÃ¹y chá»n)"
                 autoSize={{ minRows: 2, maxRows: 4 }}
                 maxLength={500}
                 disabled={saving}
@@ -534,16 +557,16 @@ export function AdminOrdersPage() {
             </Card>
 
             <div className="grid gap-3 md:grid-cols-2">
-              <Card size="small" title="Thông tin khách hàng">
-                <div><Text strong>Tên:</Text> {managingOrder.customerName}</div>
+              <Card size="small" title="ThÃ´ng tin khÃ¡ch hÃ ng">
+                <div><Text strong>TÃªn:</Text> {managingOrder.customerName}</div>
                 <div><Text strong>Email:</Text> {managingOrder.customerEmail || "-"}</div>
-                <div><Text strong>Số điện thoại:</Text> {managingOrder.customerPhone || "-"}</div>
+                <div><Text strong>Sá»‘ Ä‘iá»‡n thoáº¡i:</Text> {managingOrder.customerPhone || "-"}</div>
               </Card>
-              <Card size="small" title="Thông tin vận chuyển">
-                <div><Text strong>Phương thức:</Text> {managingOrder.shippingMethod || "-"}</div>
-                <div><Text strong>Đơn vị vận chuyển:</Text> {managingOrder.shippingCarrier || "-"}</div>
+              <Card size="small" title="ThÃ´ng tin váº­n chuyá»ƒn">
+                <div><Text strong>PhÆ°Æ¡ng thá»©c:</Text> {managingOrder.shippingMethod || "-"}</div>
+                <div><Text strong>ÄÆ¡n vá»‹ váº­n chuyá»ƒn:</Text> {managingOrder.shippingCarrier || "-"}</div>
                 <div>
-                  <Text strong>Địa chỉ:</Text>
+                  <Text strong>Äá»‹a chá»‰:</Text>
                   <pre className="mt-1 whitespace-pre-wrap break-words rounded bg-slate-50 p-2 text-xs">
                     {formatAddress(managingOrder.shippingAddress)}
                   </pre>
@@ -551,26 +574,26 @@ export function AdminOrdersPage() {
               </Card>
             </div>
 
-            <Card size="small" title="Sản phẩm trong đơn">
+            <Card size="small" title="Sáº£n pháº©m trong Ä‘Æ¡n">
               <div className="space-y-3">
                 {managingOrder.items.map((line, index) => (
                   <div key={`${line.variantSku}-${index}`} className="rounded border border-slate-200 p-3">
-                    <div><Text strong>{line.productName || "Sản phẩm"}</Text></div>
-                    <div>SKU biến thể: {line.variantSku || "-"}</div>
-                    <div>Phân loại: {line.variantLabel || "-"}</div>
-                    <div>Số lượng: {line.quantity}</div>
-                    <div>Đơn giá: {formatCurrency.format(line.unitPrice)} VND</div>
-                    <div>Thành tiền: {formatCurrency.format(line.totalPrice)} VND</div>
+                    <div><Text strong>{line.productName || "Sáº£n pháº©m"}</Text></div>
+                    <div>SKU biáº¿n thá»ƒ: {line.variantSku || "-"}</div>
+                    <div>PhÃ¢n loáº¡i: {line.variantLabel || "-"}</div>
+                    <div>Sá»‘ lÆ°á»£ng: {line.quantity}</div>
+                    <div>ÄÆ¡n giÃ¡: {formatCurrency.format(line.unitPrice)} VND</div>
+                    <div>ThÃ nh tiá»n: {formatCurrency.format(line.totalPrice)} VND</div>
                   </div>
                 ))}
               </div>
             </Card>
 
-            <Card size="small" title="Tổng hợp thanh toán">
-              <div><Text strong>Tạm tính:</Text> {formatCurrency.format(managingOrder.pricing.subtotal)} VND</div>
-              <div><Text strong>Giảm giá:</Text> {formatCurrency.format(managingOrder.pricing.discount)} VND</div>
-              <div><Text strong>Phí vận chuyển:</Text> {formatCurrency.format(managingOrder.pricing.shippingFee)} VND</div>
-              <div><Text strong>Tổng thanh toán:</Text> {formatCurrency.format(managingOrder.pricing.total)} VND</div>
+            <Card size="small" title="Tá»•ng há»£p thanh toÃ¡n">
+              <div><Text strong>Táº¡m tÃ­nh:</Text> {formatCurrency.format(managingOrder.pricing.subtotal)} VND</div>
+              <div><Text strong>Giáº£m giÃ¡:</Text> {formatCurrency.format(managingOrder.pricing.discount)} VND</div>
+              <div><Text strong>PhÃ­ váº­n chuyá»ƒn:</Text> {formatCurrency.format(managingOrder.pricing.shippingFee)} VND</div>
+              <div><Text strong>Tá»•ng thanh toÃ¡n:</Text> {formatCurrency.format(managingOrder.pricing.total)} VND</div>
             </Card>
           </div>
         ) : null}
@@ -578,3 +601,5 @@ export function AdminOrdersPage() {
     </div>
   );
 }
+
+

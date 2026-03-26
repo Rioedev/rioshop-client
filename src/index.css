@@ -764,7 +764,8 @@ body {
 }
 
 .store-status-pill.is-confirmed,
-.store-status-pill.is-packing {
+.store-status-pill.is-packing,
+.store-status-pill.is-ready_to_ship {
   border-color: #bfdbfe;
   background: #eff6ff;
   color: #1d4ed8;
@@ -776,7 +777,8 @@ body {
   color: #6d28d9;
 }
 
-.store-status-pill.is-delivered {
+.store-status-pill.is-delivered,
+.store-status-pill.is-completed {
   border-color: #bbf7d0;
   background: #f0fdf4;
   color: #15803d;

@@ -20,10 +20,26 @@ const statusLabelMap: Record<string, string> = {
   pending: "Chờ xác nhận",
   confirmed: "Đã xác nhận",
   packing: "Đang đóng gói",
+  ready_to_ship: "Chờ lấy hàng",
   shipping: "Đang giao",
   delivered: "Đã giao",
+  completed: "Hoàn thành",
   cancelled: "Đã hủy",
   returned: "Hoàn trả",
+};
+
+const ONLINE_PAYMENT_METHODS = new Set(["momo", "vnpay", "zalopay", "card", "bank_transfer"]);
+
+const getOrderStatusLabel = (order: Pick<OrderRecord, "status" | "paymentStatus" | "paymentMethod">) => {
+  if (
+    order.status === "pending" &&
+    order.paymentStatus === "pending" &&
+    ONLINE_PAYMENT_METHODS.has(order.paymentMethod)
+  ) {
+    return "Chờ thanh toán";
+  }
+
+  return statusLabelMap[order.status] ?? order.status;
 };
 
 const paymentStatusLabelMap: Record<PaymentStatus, string> = {
@@ -50,8 +66,10 @@ export function StoreOrdersPage() {
   );
 
   const orderMetrics = useMemo(() => {
-    const pendingCount = orders.filter((item) => ["pending", "confirmed", "packing", "shipping"].includes(item.status)).length;
-    const deliveredCount = orders.filter((item) => item.status === "delivered").length;
+    const pendingCount = orders.filter((item) =>
+      ["pending", "confirmed", "packing", "ready_to_ship", "shipping"].includes(item.status),
+    ).length;
+    const completedCount = orders.filter((item) => item.status === "completed").length;
 
     return [
       {
@@ -66,7 +84,7 @@ export function StoreOrdersPage() {
       },
       {
         label: "Hoàn tất",
-        value: deliveredCount,
+        value: completedCount,
         description: "Các đơn đã giao thành công.",
       },
     ];
@@ -189,7 +207,7 @@ export function StoreOrdersPage() {
             const canRetryMomoPayment =
               order.paymentMethod === "momo" &&
               ["pending", "failed"].includes(order.paymentStatus) &&
-              ["pending", "confirmed", "packing", "shipping"].includes(order.status);
+              ["pending", "confirmed", "packing", "ready_to_ship", "shipping"].includes(order.status);
             const highlighted = highlightedOrderId && highlightedOrderId === order.id;
 
             return (
@@ -205,7 +223,7 @@ export function StoreOrdersPage() {
 
                   <div className="text-right">
                     <div className="flex flex-wrap items-center justify-end gap-2">
-                      <StoreStatusPill status={order.status} label={statusLabelMap[order.status] ?? order.status} />
+                      <StoreStatusPill status={order.status} label={getOrderStatusLabel(order)} />
                       <StoreStatusPill
                         status={`payment-${order.paymentStatus}`}
                         label={paymentStatusLabelMap[order.paymentStatus] ?? order.paymentStatus}

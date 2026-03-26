@@ -10,8 +10,10 @@ export type OrderStatus =
   | "pending"
   | "confirmed"
   | "packing"
+  | "ready_to_ship"
   | "shipping"
   | "delivered"
+  | "completed"
   | "cancelled"
   | "returned";
 
