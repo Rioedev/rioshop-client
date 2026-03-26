@@ -33,10 +33,10 @@ export const resolveStoreProductThumbnail = (
     return undefined;
   }
 
-  const variantImage = product.variants?.find((variant) => (variant.images?.length ?? 0) > 0)?.images?.[0];
   const mediaImage =
     product.media?.find((item) => item.type === "image" && item.url)?.url ??
     product.media?.[0]?.url;
+  const variantImage = product.variants?.find((variant) => (variant.images?.length ?? 0) > 0)?.images?.[0];
 
-  return resolveStoreImageUrl(variantImage || mediaImage);
+  return resolveStoreImageUrl(mediaImage || variantImage);
 };

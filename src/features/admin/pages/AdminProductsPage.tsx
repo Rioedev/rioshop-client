@@ -19,7 +19,7 @@
   Upload,
   message,
 } from "antd";
-import { CopyOutlined, DeleteOutlined, PlusOutlined } from "@ant-design/icons";
+import { CopyOutlined, DeleteOutlined, InboxOutlined, PlusOutlined } from "@ant-design/icons";
 import type { ColumnsType, TablePaginationConfig } from "antd/es/table";
 import type { UploadProps } from "antd/es/upload";
 import { useEffect, useMemo, useRef, useState } from "react";
@@ -98,6 +98,7 @@ type ProductFormValues = {
   status: ProductStatus;
   description?: string;
   shortDescription?: string;
+  thumbnailUrl?: string;
   materialText?: string;
   careText?: string;
   seoTitle?: string;
@@ -394,9 +395,9 @@ const buildVariantSkuPreviewMatrix = (
 };
 
 const getPrimaryImage = (product: Product) =>
-  product.variants?.find((variant) => (variant.images?.length ?? 0) > 0)?.images?.[0] ??
   product.media?.find((item) => item.isPrimary)?.url ??
-  product.media?.[0]?.url;
+  product.media?.[0]?.url ??
+  product.variants?.find((variant) => (variant.images?.length ?? 0) > 0)?.images?.[0];
 
 const getStock = (product: Product) =>
   product.inventorySummary?.available ?? product.inventorySummary?.total ?? 0;
@@ -410,6 +411,8 @@ export function AdminProductsPage() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [searchText, setSearchText] = useState("");
+  const [thumbnailUploading, setThumbnailUploading] = useState(false);
+  const [uploadedThumbnailUrl, setUploadedThumbnailUrl] = useState("");
   const watchedName = Form.useWatch("name", form);
   const watchedCategoryId = Form.useWatch("categoryId", form);
   const watchedSku = Form.useWatch("sku", form);
@@ -607,6 +610,22 @@ export function AdminProductsPage() {
     return productService.uploadProductImage(file);
   };
 
+  const uploadThumbnail: UploadProps["customRequest"] = async ({ file, onSuccess, onError }) => {
+    try {
+      setThumbnailUploading(true);
+      const url = await productService.uploadProductImage(file as File);
+      setUploadedThumbnailUrl(url);
+      form.setFieldValue("thumbnailUrl", url);
+      onSuccess?.("ok");
+      messageApi.success("Đã tải ảnh đại diện");
+    } catch (error) {
+      onError?.(error as Error);
+      messageApi.error(getErrorMessage(error));
+    } finally {
+      setThumbnailUploading(false);
+    }
+  };
+
   const handleCategoryChange = async (value: string) => {
     const nextCategoryId = value === "all" ? undefined : value;
     setCategoryId(nextCategoryId);
@@ -644,6 +663,7 @@ export function AdminProductsPage() {
     setEditingProduct(null);
     resetPendingFiles();
     productSkuManuallyEditedRef.current = false;
+    setUploadedThumbnailUrl("");
     form.resetFields();
     form.setFieldsValue({
       status: "active",
@@ -659,6 +679,8 @@ export function AdminProductsPage() {
     setEditingProduct(product);
     resetPendingFiles();
     productSkuManuallyEditedRef.current = true;
+    const primaryImage = getPrimaryImage(product) ?? "";
+    setUploadedThumbnailUrl(primaryImage);
     form.setFieldsValue({
       sku: product.sku,
       name: product.name,
@@ -669,6 +691,7 @@ export function AdminProductsPage() {
       status: product.status,
       description: product.description,
       shortDescription: product.shortDescription,
+      thumbnailUrl: primaryImage,
       gender: product.gender,
       ageGroup: product.ageGroup,
       materialText: (product.material ?? []).join(", "),
@@ -774,6 +797,18 @@ export function AdminProductsPage() {
         variants,
       };
 
+      const nextThumbnail = values.thumbnailUrl?.trim();
+      if (nextThumbnail) {
+        payload.media = [
+          {
+            url: nextThumbnail,
+            type: "image",
+            isPrimary: true,
+            position: 0,
+          },
+        ];
+      }
+
       if (editingProduct) await updateProduct(editingProduct._id, payload);
       else await createProduct(payload);
 
@@ -782,6 +817,7 @@ export function AdminProductsPage() {
       setEditingProduct(null);
       productSkuManuallyEditedRef.current = false;
       resetPendingFiles();
+      setUploadedThumbnailUrl("");
       form.resetFields();
     } catch (error) {
       if (error instanceof Error && "errorFields" in error) return;
@@ -892,14 +928,16 @@ export function AdminProductsPage() {
         />
       </Card>
 
-      <Modal
-        title={null}
-        open={isModalOpen}
-        onCancel={() => {
-          productSkuManuallyEditedRef.current = false;
-          resetPendingFiles();
-          setIsModalOpen(false);
-        }}
+        <Modal
+          title={null}
+          open={isModalOpen}
+          onCancel={() => {
+            productSkuManuallyEditedRef.current = false;
+            resetPendingFiles();
+            setUploadedThumbnailUrl("");
+            form.resetFields();
+            setIsModalOpen(false);
+          }}
         onOk={() => void handleSave()}
         okText={editingProduct ? "Cập nhật" : "Tạo mới"}
         cancelText="Hủy"
@@ -923,6 +961,51 @@ export function AdminProductsPage() {
                 <Text strong className="text-base">Trạng thái</Text>
                 <Form.Item label="Hiển thị" name="status" rules={REQUIRED_RULE} className="mb-3! mt-3!">
                   <Select options={PRODUCT_STATUS_OPTIONS} />
+                </Form.Item>
+              </div>
+
+              <div className="rounded-2xl border border-slate-200 bg-white p-4">
+                <Text strong className="text-base">Ảnh đại diện</Text>
+                <Form.Item className="mb-0! mt-3!">
+                  <div className="grid gap-3">
+                    <Upload.Dragger
+                      accept="image/*"
+                      maxCount={1}
+                      showUploadList={false}
+                      customRequest={uploadThumbnail}
+                      beforeUpload={beforeUpload}
+                      className="rounded-xl!"
+                    >
+                      <p className="ant-upload-drag-icon">
+                        <InboxOutlined />
+                      </p>
+                      <p className="ant-upload-text">
+                        Kéo thả ảnh vào đây hoặc bấm để tải lên
+                      </p>
+                      <p className="ant-upload-hint">
+                        Ảnh này sẽ dùng làm thumbnail hiển thị ngoài Store
+                      </p>
+                    </Upload.Dragger>
+                    <Form.Item name="thumbnailUrl" hidden>
+                      <Input />
+                    </Form.Item>
+                    {thumbnailUploading ? (
+                      <Text type="secondary">Đang tải ảnh đại diện...</Text>
+                    ) : null}
+                    {uploadedThumbnailUrl ? (
+                      <Image
+                        src={uploadedThumbnailUrl}
+                        width={240}
+                        height={160}
+                        className="rounded-xl object-cover"
+                        preview={false}
+                      />
+                    ) : (
+                      <div className="flex h-40 items-center justify-center rounded-xl border border-dashed border-slate-200 text-xs text-slate-400">
+                        Chưa có ảnh đại diện
+                      </div>
+                    )}
+                  </div>
                 </Form.Item>
               </div>
 

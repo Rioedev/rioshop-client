@@ -131,10 +131,13 @@ export type ProductSort = Record<string, 1 | -1>;
 export type ProductQueryParams = {
   page?: number;
   limit?: number;
+  q?: string;
   category?: string;
   gender?: ProductGender;
   minPrice?: number;
   maxPrice?: number;
+  color?: string;
+  size?: string;
   sort?: ProductSort;
   status?: ProductStatusFilter;
 };

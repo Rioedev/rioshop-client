@@ -1,5 +1,5 @@
 ﻿import { HeartOutlined, ShoppingCartOutlined } from "@ant-design/icons";
-import { Button, Input, Select, message } from "antd";
+import { Button, Input, Select, Slider, message } from "antd";
 import { useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { StoreProductGridCard } from "../components/StoreProductGridCard";
@@ -39,6 +39,31 @@ const sortMap: Record<string, Record<string, 1 | -1>> = {
 const WISHLIST_FALLBACK_IMAGE =
   "https://dummyimage.com/400x400/e2e8f0/0f172a&text=RIO";
 
+type ProductColorOption = {
+  label: string;
+  value: string;
+  hex?: string;
+};
+
+const parseCsvParam = (value: string | null) =>
+  (value ?? "")
+    .split(",")
+    .map((item) => item.trim())
+    .filter(Boolean);
+
+const parseNumberParam = (value: string | null) => {
+  if (!value?.trim()) {
+    return Number.NaN;
+  }
+  const parsedValue = Number(value);
+  return Number.isFinite(parsedValue) ? parsedValue : Number.NaN;
+};
+
+const normalizeColorHex = (value?: string) => {
+  const hex = (value ?? "").trim();
+  return /^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/.test(hex) ? hex : "";
+};
+
 export function StoreProductsPage() {
   const [searchParams, setSearchParams] = useSearchParams();
   const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
@@ -60,13 +85,25 @@ export function StoreProductsPage() {
   const categorySlug = searchParams.get("category") ?? "";
   const sort = searchParams.get("sort") ?? "featured";
   const page = Math.max(1, Number(searchParams.get("page") ?? 1));
+  const minPriceParam = parseNumberParam(searchParams.get("minPrice"));
+  const maxPriceParam = parseNumberParam(searchParams.get("maxPrice"));
+  const colorParam = searchParams.get("color") ?? "";
+  const sizeParam = searchParams.get("size") ?? "";
+  const selectedColorValues = useMemo(() => parseCsvParam(colorParam), [colorParam]);
+  const selectedSizeValues = useMemo(() => parseCsvParam(sizeParam), [sizeParam]);
   const limit = 12;
 
   const [keywordInput, setKeywordInput] = useState(q);
+  const [priceRangeInput, setPriceRangeInput] = useState<[number, number]>([0, 5000000]);
+  const [colorFilterInput, setColorFilterInput] = useState<string[]>(selectedColorValues);
+  const [sizeFilterInput, setSizeFilterInput] = useState<string[]>(selectedSizeValues);
+  const [filterFacetProducts, setFilterFacetProducts] = useState<Product[]>([]);
 
   useEffect(() => {
     setKeywordInput(q);
-  }, [q]);
+    setColorFilterInput(selectedColorValues);
+    setSizeFilterInput(selectedSizeValues);
+  }, [q, selectedColorValues, selectedSizeValues]);
 
   const categoryOptions = useMemo(
     () => [{ label: "Tất cả danh mục", value: "" }, ...categories.map((item) => ({ label: item.name, value: item.slug }))],
@@ -77,6 +114,121 @@ export function StoreProductsPage() {
     () => categories.find((item) => item.slug === categorySlug),
     [categories, categorySlug],
   );
+
+  const colorOptions = useMemo(() => {
+    const optionMap = new Map<string, ProductColorOption>();
+    filterFacetProducts.forEach((product) => {
+      (product.variants ?? []).forEach((variant) => {
+        if (variant.isActive === false) {
+          return;
+        }
+        const hex = normalizeColorHex(variant.color?.hex);
+        const label = (variant.color?.name ?? "").trim() || hex;
+        if (!label) {
+          return;
+        }
+        const value = label.toLowerCase();
+        if (!optionMap.has(value)) {
+          optionMap.set(value, {
+            label,
+            value,
+            hex: hex || undefined,
+          });
+        }
+      });
+    });
+
+    colorFilterInput.forEach((value) => {
+      const key = value.toLowerCase();
+      if (!optionMap.has(key)) {
+        optionMap.set(key, {
+          label: value,
+          value: key,
+        });
+      }
+    });
+
+    return Array.from(optionMap.values()).sort((a, b) => a.label.localeCompare(b.label, "vi"));
+  }, [colorFilterInput, filterFacetProducts]);
+
+  const sizeOptions = useMemo(() => {
+    const sizeSet = new Set<string>();
+    filterFacetProducts.forEach((product) => {
+      (product.variants ?? []).forEach((variant) => {
+        if (variant.isActive === false) {
+          return;
+        }
+        const sizeLabel = (variant.sizeLabel ?? variant.size ?? "").trim();
+        if (sizeLabel) {
+          sizeSet.add(sizeLabel.toUpperCase());
+        }
+      });
+    });
+    sizeFilterInput.forEach((value) => {
+      if (value.trim()) {
+        sizeSet.add(value.trim().toUpperCase());
+      }
+    });
+    return Array.from(sizeSet)
+      .sort((a, b) => a.localeCompare(b, "vi", { numeric: true }))
+      .map((item) => ({ label: item, value: item }));
+  }, [filterFacetProducts, sizeFilterInput]);
+
+  const priceBounds = useMemo(() => {
+    const allPrices: number[] = [];
+
+    filterFacetProducts.forEach((product) => {
+      const basePrice = Number(product.pricing?.salePrice ?? 0);
+      if (Number.isFinite(basePrice) && basePrice >= 0) {
+        allPrices.push(basePrice);
+      }
+
+      (product.variants ?? []).forEach((variant) => {
+        if (variant.isActive === false) {
+          return;
+        }
+        const variantPrice = basePrice + Number(variant.additionalPrice || 0);
+        if (Number.isFinite(variantPrice) && variantPrice >= 0) {
+          allPrices.push(variantPrice);
+        }
+      });
+    });
+
+    if (allPrices.length === 0) {
+      return {
+        min: 0,
+        max: 5_000_000,
+        step: 50_000,
+      };
+    }
+
+    const rawMin = Math.min(...allPrices);
+    const rawMax = Math.max(...allPrices);
+    const min = Math.max(0, Math.floor(rawMin / 10_000) * 10_000);
+    const max = Math.max(min + 10_000, Math.ceil(rawMax / 10_000) * 10_000);
+    const span = max - min;
+    const step = span <= 200_000 ? 5_000 : span <= 1_000_000 ? 10_000 : span <= 5_000_000 ? 50_000 : 100_000;
+
+    return { min, max, step };
+  }, [filterFacetProducts]);
+
+  useEffect(() => {
+    const rawMin = Number.isFinite(minPriceParam) ? minPriceParam : priceBounds.min;
+    const rawMax = Number.isFinite(maxPriceParam) ? maxPriceParam : priceBounds.max;
+
+    let nextMin = Math.min(rawMin, rawMax);
+    let nextMax = Math.max(rawMin, rawMax);
+
+    nextMin = Math.max(priceBounds.min, Math.min(nextMin, priceBounds.max));
+    nextMax = Math.max(priceBounds.min, Math.min(nextMax, priceBounds.max));
+
+    if (nextMin > nextMax) {
+      nextMin = priceBounds.min;
+      nextMax = priceBounds.max;
+    }
+
+    setPriceRangeInput([nextMin, nextMax]);
+  }, [maxPriceParam, minPriceParam, priceBounds.max, priceBounds.min]);
 
   useEffect(() => {
     let active = true;
@@ -104,25 +256,72 @@ export function StoreProductsPage() {
   useEffect(() => {
     let active = true;
 
+    const loadFacetProducts = async () => {
+      try {
+        const firstPage = await productService.getProducts({
+          page: 1,
+          limit: 100,
+          status: "active",
+          sort: sortMap.featured,
+        });
+
+        const pagesToLoad = Math.min(firstPage.totalPages, 6);
+        const facetProducts = [...firstPage.docs];
+
+        if (pagesToLoad > 1) {
+          const nextPageRequests: Promise<Awaited<ReturnType<typeof productService.getProducts>>>[] = [];
+          for (let pageIndex = 2; pageIndex <= pagesToLoad; pageIndex += 1) {
+            nextPageRequests.push(
+              productService.getProducts({
+                page: pageIndex,
+                limit: 100,
+                status: "active",
+                sort: sortMap.featured,
+              }),
+            );
+          }
+
+          const nextPageResults = await Promise.allSettled(nextPageRequests);
+          nextPageResults.forEach((result) => {
+            if (result.status === "fulfilled") {
+              facetProducts.push(...result.value.docs);
+            }
+          });
+        }
+
+        if (active) {
+          setFilterFacetProducts(facetProducts);
+        }
+      } catch {
+        if (active) {
+          setFilterFacetProducts([]);
+        }
+      }
+    };
+
+    void loadFacetProducts();
+
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  useEffect(() => {
+    let active = true;
+
     const loadProducts = async () => {
       setLoading(true);
       try {
-        if (q) {
-          const result = await productService.searchProducts(q, page, limit, "active");
-          if (!active) {
-            return;
-          }
-          setProducts(result.docs);
-          setTotalDocs(result.totalDocs);
-          setTotalPages(result.totalPages);
-          return;
-        }
-
         const result = await productService.getProducts({
           page,
           limit,
           status: "active",
+          q: q || undefined,
           category: selectedCategory?._id,
+          minPrice: Number.isFinite(minPriceParam) ? minPriceParam : undefined,
+          maxPrice: Number.isFinite(maxPriceParam) ? maxPriceParam : undefined,
+          color: selectedColorValues.length > 0 ? selectedColorValues.join(",") : undefined,
+          size: selectedSizeValues.length > 0 ? selectedSizeValues.join(",") : undefined,
           sort: sortMap[sort] ?? sortMap.featured,
         });
 
@@ -153,7 +352,16 @@ export function StoreProductsPage() {
     return () => {
       active = false;
     };
-  }, [page, q, selectedCategory?._id, sort]);
+  }, [
+    maxPriceParam,
+    minPriceParam,
+    page,
+    q,
+    selectedCategory?._id,
+    selectedColorValues,
+    selectedSizeValues,
+    sort,
+  ]);
 
   const onParamChange = (changes: Record<string, string | null>) => {
     const next = new URLSearchParams(searchParams);
@@ -173,7 +381,15 @@ export function StoreProductsPage() {
     setSearchParams(next);
   };
 
-  const onSearchSubmit = () => {
+  const onApplyFilters = () => {
+    const normalizedMinPrice = Math.max(priceBounds.min, Math.min(priceRangeInput[0], priceBounds.max));
+    const normalizedMaxPrice = Math.max(priceBounds.min, Math.min(priceRangeInput[1], priceBounds.max));
+
+    if (normalizedMinPrice > normalizedMaxPrice) {
+      message.warning("Giá tối thiểu không được lớn hơn giá tối đa.");
+      return;
+    }
+
     const keyword = keywordInput.trim();
     if (keyword) {
       void analyticsTracker.track({
@@ -181,12 +397,20 @@ export function StoreProductsPage() {
         userId,
         properties: {
           query: keyword,
-          source: "products_page",
+          source: "products_page_filters",
           path: "/products",
         },
       });
     }
-    onParamChange({ q: keyword || null, page: "1" });
+
+    onParamChange({
+      q: keyword || null,
+      minPrice: normalizedMinPrice > priceBounds.min ? String(Math.floor(normalizedMinPrice)) : null,
+      maxPrice: normalizedMaxPrice < priceBounds.max ? String(Math.floor(normalizedMaxPrice)) : null,
+      color: colorFilterInput.length > 0 ? colorFilterInput.join(",") : null,
+      size: sizeFilterInput.length > 0 ? sizeFilterInput.join(",") : null,
+      page: "1",
+    });
   };
 
   const onAddToCart = async (item: Product) => {
@@ -308,21 +532,22 @@ export function StoreProductsPage() {
         <StoreSectionHeader
           kicker="Bộ lọc nhanh"
           title="Tìm nhanh sản phẩm"
-          description="Lọc theo danh mục, từ khóa và kiểu sắp xếp để tìm món đồ phù hợp nhanh hơn."
+          description="Lọc theo danh mục, từ khóa, giá, màu sắc, size và kiểu sắp xếp để tìm món đồ phù hợp nhanh hơn."
         />
 
-        <div className="flex flex-wrap items-end gap-3">
-          <div className="min-w-55 flex-1">
+        <div className="grid gap-3 lg:grid-cols-12">
+          <div className="lg:col-span-6">
             <p className="m-0 mb-1 text-xs font-bold uppercase tracking-[0.14em] text-slate-500">Tìm kiếm</p>
             <Input
               value={keywordInput}
               onChange={(event) => setKeywordInput(event.target.value)}
-              onPressEnter={onSearchSubmit}
+              onPressEnter={onApplyFilters}
               allowClear
               placeholder="Nhập tên sản phẩm, thương hiệu..."
             />
           </div>
-          <div className="min-w-55">
+
+          <div className="lg:col-span-3">
             <p className="m-0 mb-1 text-xs font-bold uppercase tracking-[0.14em] text-slate-500">Danh mục</p>
             <Select
               value={categorySlug}
@@ -331,7 +556,8 @@ export function StoreProductsPage() {
               className="w-full"
             />
           </div>
-          <div className="min-w-55">
+
+          <div className="lg:col-span-3">
             <p className="m-0 mb-1 text-xs font-bold uppercase tracking-[0.14em] text-slate-500">Sắp xếp</p>
             <Select
               value={sort}
@@ -340,18 +566,81 @@ export function StoreProductsPage() {
               className="w-full"
             />
           </div>
-          <Button type="primary" className={storeButtonClassNames.primary} onClick={onSearchSubmit}>
-            Áp dụng
-          </Button>
-          <Button
-            className={storeButtonClassNames.secondary}
-            onClick={() => {
-              setKeywordInput("");
-              setSearchParams(new URLSearchParams());
-            }}
-          >
-            Đặt lại
-          </Button>
+
+          <div className="lg:col-span-6">
+            <div className="mb-1 flex items-center justify-between gap-2">
+              <p className="m-0 text-xs font-bold uppercase tracking-[0.14em] text-slate-500">Khoảng giá</p>
+              <p className="m-0 text-xs font-semibold text-slate-700">
+                {formatStoreCurrency(priceRangeInput[0])} - {formatStoreCurrency(priceRangeInput[1])}
+              </p>
+            </div>
+            <Slider
+              range
+              min={priceBounds.min}
+              max={priceBounds.max}
+              step={priceBounds.step}
+              value={priceRangeInput}
+              onChange={(value) => {
+                if (!Array.isArray(value) || value.length !== 2) {
+                  return;
+                }
+                const nextMin = Math.max(priceBounds.min, Math.min(Number(value[0]), priceBounds.max));
+                const nextMax = Math.max(priceBounds.min, Math.min(Number(value[1]), priceBounds.max));
+                setPriceRangeInput([Math.min(nextMin, nextMax), Math.max(nextMin, nextMax)]);
+              }}
+              tooltip={{
+                formatter: (value) => formatStoreCurrency(Number(value ?? 0)),
+              }}
+            />
+          </div>
+
+          <div className="lg:col-span-3">
+            <p className="m-0 mb-1 text-xs font-bold uppercase tracking-[0.14em] text-slate-500">Màu sắc</p>
+            <Select
+              mode="multiple"
+              allowClear
+              value={colorFilterInput}
+              options={colorOptions}
+              onChange={(value) => setColorFilterInput(value)}
+              optionFilterProp="label"
+              maxTagCount="responsive"
+              className="w-full"
+              placeholder="Chọn màu"
+            />
+          </div>
+
+          <div className="lg:col-span-3">
+            <p className="m-0 mb-1 text-xs font-bold uppercase tracking-[0.14em] text-slate-500">Size</p>
+            <Select
+              mode="multiple"
+              allowClear
+              value={sizeFilterInput}
+              options={sizeOptions}
+              onChange={(value) => setSizeFilterInput(value)}
+              optionFilterProp="label"
+              maxTagCount="responsive"
+              className="w-full"
+              placeholder="Chọn size"
+            />
+          </div>
+
+          <div className="lg:col-span-12 flex flex-wrap justify-end gap-3">
+            <Button type="primary" className={storeButtonClassNames.primary} onClick={onApplyFilters}>
+              Áp dụng
+            </Button>
+            <Button
+              className={storeButtonClassNames.secondary}
+              onClick={() => {
+                setKeywordInput("");
+                setPriceRangeInput([priceBounds.min, priceBounds.max]);
+                setColorFilterInput([]);
+                setSizeFilterInput([]);
+                setSearchParams(new URLSearchParams());
+              }}
+            >
+              Đặt lại
+            </Button>
+          </div>
         </div>
       </StorePanelFrame>
 

@@ -81,6 +81,7 @@ type HomeProduct = {
   rating: number;
   sold: string;
   image: string;
+  colors?: Array<{ name: string; hex: string }>;
 };
 
 type FlashDeal = {
@@ -368,6 +369,30 @@ const formatSoldText = (value: number | undefined, labels: ResolvedHomeContent["
   return `${value} ${labels.soldPercentPrefix}`;
 };
 
+const normalizeColorHex = (value?: string) => {
+  const hex = (value ?? "").trim();
+  return /^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/.test(hex) ? hex : "#cbd5e1";
+};
+
+const getProductColorSwatches = (product: ProductRuntime) => {
+  const variants = (product.variants ?? []).filter((variant) => variant.isActive !== false);
+  const seen = new Set<string>();
+  const results: Array<{ name: string; hex: string }> = [];
+
+  variants.forEach((variant) => {
+    const rawHex = normalizeColorHex(variant.color?.hex);
+    const name = (variant.color?.name ?? "").trim() || rawHex;
+    const key = `${name.toLowerCase()}-${rawHex.toLowerCase()}`;
+    if (seen.has(key)) {
+      return;
+    }
+    seen.add(key);
+    results.push({ name, hex: rawHex });
+  });
+
+  return results.slice(0, 4);
+};
+
 const formatTimeLeft = (endsAt: string) => {
   const diff = new Date(endsAt).getTime() - Date.now();
 
@@ -507,6 +532,7 @@ const mapHomeProduct = (
       : 4.8,
   sold: formatSoldText(product.totalSold, labels),
   image: getProductImage(product, index),
+  colors: getProductColorSwatches(product),
 });
 
 const VIETNAMESE_DIACRITIC_REGEX = /[\u00C0-\u024F\u1E00-\u1EFF]/;
@@ -1064,6 +1090,19 @@ export function StoreHomePage() {
         <div className="store-home-v3-product-body">
           <p className="store-home-v3-product-meta">{product.category}</p>
           <h3>{product.name}</h3>
+          {product.colors && product.colors.length > 0 ? (
+            <div className="store-home-v3-product-colors">
+              {product.colors.map((color) => (
+                <span
+                  key={`${product.id}-${color.name}-${color.hex}`}
+                  className="store-home-v3-product-color"
+                  style={{ backgroundColor: color.hex }}
+                  title={color.name}
+                  aria-label={color.name}
+                />
+              ))}
+            </div>
+          ) : null}
           <div className="store-home-v3-price-row">
             <strong>{formatCurrency(product.price)}</strong>
             {hasDiscount ? <span>{formatCurrency(product.originalPrice ?? product.price)}</span> : null}

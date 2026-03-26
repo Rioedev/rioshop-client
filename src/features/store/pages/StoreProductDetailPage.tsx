@@ -62,33 +62,6 @@ const getVariantColorName = (variant: NonNullable<Product["variants"]>[number]) 
 const getVariantSizeLabel = (variant: NonNullable<Product["variants"]>[number]) =>
   variant.sizeLabel?.trim() || variant.size?.trim() || "";
 
-const techCards = [
-  {
-    title: "CoolSoft",
-    subtitle: "Mềm, mát, không bị xước",
-    text: "Sợi vải mềm và bề mặt mịn giúp mặc êm, thoáng, không gây cảm giác khó chịu khi vận động.",
-    image: "https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?auto=format&fit=crop&w=900&q=80",
-  },
-  {
-    title: "CoolDry",
-    subtitle: "Thoát hơi ẩm nhanh",
-    text: "Công nghệ đàn hồi và hút ẩm tốt giúp trang phục khô nhanh, phù hợp cho cả ngày dài.",
-    image: "https://images.unsplash.com/photo-1467043198406-dc953a3defa0?auto=format&fit=crop&w=900&q=80",
-  },
-  {
-    title: "CoolRib",
-    subtitle: "Giữ form ổn định",
-    text: "Cấu trúc dệt rib giúp vải giữ độ bung, giảm giãn bai và bền đẹp sau nhiều lần giặt.",
-    image: "https://images.unsplash.com/photo-1602810318383-e386cc2a3ccf?auto=format&fit=crop&w=900&q=80",
-  },
-  {
-    title: "CoolFlex",
-    subtitle: "Co giãn 4 chiều",
-    text: "Tỷ lệ spandex tối ưu giúp cử động thoải mái hơn khi tập luyện và di chuyển liên tục.",
-    image: "https://images.unsplash.com/photo-1512436991641-6745cdb1723f?auto=format&fit=crop&w=900&q=80",
-  },
-];
-
 const toProductCardImage = (item: ProductRuntime, fallback = "RIO") =>
   resolveStoreProductThumbnail(item) ??
   `https://dummyimage.com/800x1000/e2e8f0/0f172a&text=${encodeURIComponent(fallback)}`;
@@ -490,11 +463,6 @@ export function StoreProductDetailPage() {
   }, [selectedSize, sizeOptions]);
 
   const imageList = useMemo(() => {
-    const mediaImages = (product?.media ?? [])
-      .filter((item) => item.type === "image")
-      .map((item) => resolveImageUrl(item.url))
-      .filter((item): item is string => Boolean(item));
-
     const selectedColorKey = normalizeColorValue(selectedColor);
     const selectedSizeKey = selectedSize.trim().toLowerCase();
     const variantsInColor = productVariants.filter(
@@ -527,8 +495,17 @@ export function StoreProductDetailPage() {
           ? colorVariantImages
           : allVariantImages;
 
-    return Array.from(new Set([...prioritizedVariantImages, ...mediaImages]));
-  }, [product?.media, productVariants, selectedColor, selectedSize]);
+    return Array.from(new Set(prioritizedVariantImages));
+  }, [productVariants, selectedColor, selectedSize]);
+
+  const mediaFallbackImages = useMemo(
+    () =>
+      (product?.media ?? [])
+        .filter((item) => item.type === "image")
+        .map((item) => resolveImageUrl(item.url))
+        .filter((item): item is string => Boolean(item)),
+    [product?.media],
+  );
 
   const selectedVariant = useMemo(() => {
     if (productVariants.length === 0) {
@@ -565,8 +542,8 @@ export function StoreProductDetailPage() {
   );
 
   useEffect(() => {
-    setSelectedImage(imageList[0]);
-  }, [imageList]);
+    setSelectedImage(imageList[0] ?? mediaFallbackImages[0]);
+  }, [imageList, mediaFallbackImages]);
 
   useEffect(() => {
     setQuantity((current) => clampQuantityByStock(current, selectedVariant?.stock, 1));
@@ -624,7 +601,7 @@ export function StoreProductDetailPage() {
     );
   }
 
-  const displayImage = selectedImage ?? imageList[0];
+  const displayImage = selectedImage ?? imageList[0] ?? mediaFallbackImages[0];
   const selectedColorLabel = selectedColor || colorOptions[0]?.name || "Mặc định";
   const selectedSizeLabel = selectedSize || sizeOptions[0] || "Free";
   const selectedVariantLabel = selectedVariant
@@ -1042,24 +1019,6 @@ export function StoreProductDetailPage() {
       <section className="pdpv2-block">
         <h3 className="pdpv2-section-title">Sản phẩm cùng danh mục</h3>
         {renderProductCards(sameCategoryProducts.length > 0 ? sameCategoryProducts : relatedProducts.slice(0, 4))}
-      </section>
-
-      <section className="pdpv2-block">
-        <h3 className="pdpv2-section-title">Công nghệ vải nổi bật</h3>
-        <div className="pdpv2-tech-grid">
-          {techCards.map((item) => (
-            <article key={item.title} className="pdpv2-tech-card">
-              <div className="pdpv2-tech-image">
-                <img src={item.image} alt={item.title} className="h-full w-full object-cover" />
-              </div>
-              <div className="pdpv2-tech-content">
-                <h4>{item.title}</h4>
-                <p className="pdpv2-tech-subtitle">{item.subtitle}</p>
-                <p>{item.text}</p>
-              </div>
-            </article>
-          ))}
-        </div>
       </section>
 
       <section className="pdpv2-review-wrap">
