@@ -26,6 +26,28 @@ type StoreProductImageSource = {
   variants?: Array<{ images?: string[] }>;
 };
 
+type StoreProductColorSource = {
+  variants?: Array<{
+    isActive?: boolean;
+    color?: {
+      name?: string;
+      hex?: string;
+    };
+  }>;
+};
+
+export type StoreProductColorChip = {
+  name: string;
+  hex: string;
+};
+
+const DEFAULT_STORE_COLOR_HEX = "#cbd5e1";
+
+const normalizeStoreColorHex = (value?: string) => {
+  const hex = (value ?? "").trim();
+  return /^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/.test(hex) ? hex : DEFAULT_STORE_COLOR_HEX;
+};
+
 export const resolveStoreProductThumbnail = (
   product?: StoreProductImageSource | null,
 ): string | undefined => {
@@ -39,4 +61,31 @@ export const resolveStoreProductThumbnail = (
   const variantImage = product.variants?.find((variant) => (variant.images?.length ?? 0) > 0)?.images?.[0];
 
   return resolveStoreImageUrl(mediaImage || variantImage);
+};
+
+export const resolveStoreProductColors = (
+  product?: StoreProductColorSource | null,
+): StoreProductColorChip[] => {
+  if (!product) {
+    return [];
+  }
+
+  const colorMap = new Map<string, StoreProductColorChip>();
+
+  (product.variants ?? [])
+    .filter((variant) => variant.isActive !== false)
+    .forEach((variant) => {
+      const hex = normalizeStoreColorHex(variant.color?.hex);
+      const name = (variant.color?.name ?? "").trim() || hex;
+      const key = `${name.toLowerCase()}::${hex.toLowerCase()}`;
+
+      if (!colorMap.has(key)) {
+        colorMap.set(key, {
+          name,
+          hex,
+        });
+      }
+    });
+
+  return Array.from(colorMap.values());
 };

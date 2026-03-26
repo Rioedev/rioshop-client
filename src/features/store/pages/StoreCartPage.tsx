@@ -10,7 +10,11 @@ import {
   StoreSectionHeader,
   storeButtonClassNames,
 } from "../components/StorePageChrome";
-import { formatStoreCurrency, resolveStoreProductThumbnail } from "../utils/storeFormatting";
+import {
+  formatStoreCurrency,
+  resolveStoreProductColors,
+  resolveStoreProductThumbnail,
+} from "../utils/storeFormatting";
 import {
   blockNonNumericAndOverflowKey,
   blockOverflowPaste,
@@ -379,19 +383,35 @@ export function StoreCartPage() {
               <div className="cart-recommend-grid">
                 {recommendations.map((item) => {
                   const image = resolveStoreProductThumbnail(item);
+                  const colorChips = resolveStoreProductColors(item);
+                  const visibleColorChips = colorChips.slice(0, 5);
+                  const extraColorCount = Math.max(0, colorChips.length - visibleColorChips.length);
 
                   return (
                     <article key={item._id} className="cart-rec-card">
                       <div className="cart-rec-image">
                         {image ? (
-                          <img src={image} alt={item.name} className="h-full w-full object-cover" />
+                          <img src={image} alt={item.name} className="h-full w-full object-contain" />
                         ) : (
                           <div className="product-main-fallback">RIO</div>
                         )}
                       </div>
-                      <div>
-                        <p className="m-0 text-sm font-semibold text-slate-900">{item.name}</p>
-                        <p className="m-0 mt-1 text-sm font-bold text-slate-700">{formatStoreCurrency(item.pricing.salePrice)}</p>
+                      <div className="cart-rec-content">
+                        <p className="cart-rec-title">{item.name}</p>
+                        {visibleColorChips.length > 0 ? (
+                          <div className="cart-rec-color-row" aria-label="Màu sắc sản phẩm">
+                            {visibleColorChips.map((color) => (
+                              <span
+                                key={`${item._id}-${color.name}-${color.hex}`}
+                                className="cart-rec-color-dot"
+                                style={{ background: color.hex }}
+                                title={color.name}
+                              />
+                            ))}
+                            {extraColorCount > 0 ? <span className="cart-rec-color-more">+{extraColorCount}</span> : null}
+                          </div>
+                        ) : null}
+                        <p className="cart-rec-price">{formatStoreCurrency(item.pricing.salePrice)}</p>
                       </div>
                       <Button
                         size="small"
