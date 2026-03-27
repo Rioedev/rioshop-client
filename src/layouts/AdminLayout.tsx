@@ -34,7 +34,11 @@ const baseAdminMenuItems: ItemType[] = [
   { key: "/admin/inventories", icon: <InboxOutlined />, label: "Tồn kho" },
   { key: "/admin/orders", icon: <ShoppingCartOutlined />, label: "Đơn hàng" },
   { key: "/admin/reviews", icon: <StarOutlined />, label: "Đánh giá" },
-  { key: "/admin/flash-sales", icon: <ThunderboltOutlined />, label: "Flash Sales" },
+  {
+    key: "/admin/flash-sales",
+    icon: <ThunderboltOutlined />,
+    label: "Flash Sales",
+  },
   { key: "/admin/coupons", icon: <GiftOutlined />, label: "Mã giảm giá" },
   { key: "/admin/users", icon: <TeamOutlined />, label: "Khách hàng" },
   {
@@ -73,13 +77,19 @@ export function AdminLayout() {
   const accountType = useAuthStore((state) => state.accountType);
   const logout = useAuthStore((state) => state.logout);
   const unreadCount = useNotificationStore((state) => state.unreadCount);
-  const refreshUnreadCount = useNotificationStore((state) => state.refreshUnreadCount);
-  const applyRealtimeNotification = useNotificationStore((state) => state.applyRealtimeNotification);
+  const refreshUnreadCount = useNotificationStore(
+    (state) => state.refreshUnreadCount,
+  );
+  const applyRealtimeNotification = useNotificationStore(
+    (state) => state.applyRealtimeNotification,
+  );
   const resetNotifications = useNotificationStore((state) => state.reset);
-  const [isNotificationsModalOpen, setIsNotificationsModalOpen] = useState(false);
+  const [isNotificationsModalOpen, setIsNotificationsModalOpen] =
+    useState(false);
   const [isSiderCollapsed, setIsSiderCollapsed] = useState(false);
 
-  const canManageAdminAccounts = user?.role === "superadmin" || user?.role === "manager";
+  const canManageAdminAccounts =
+    user?.role === "superadmin" || user?.role === "manager";
   const adminMenuItems: ItemType[] = canManageAdminAccounts
     ? [
         ...baseAdminMenuItems,
@@ -92,8 +102,9 @@ export function AdminLayout() {
     : baseAdminMenuItems;
 
   const activeKey =
-    adminMenuItems.find((item) => location.pathname.startsWith(String(item?.key)))?.key ??
-    "/admin/dashboard";
+    adminMenuItems.find((item) =>
+      location.pathname.startsWith(String(item?.key)),
+    )?.key ?? "/admin/dashboard";
 
   const activePageTitle = useMemo(
     () => pageTitleMap[String(activeKey)] ?? "Bảng điều khiển",
@@ -115,7 +126,18 @@ export function AdminLayout() {
     return () => {
       unsubscribe();
     };
-  }, [accountType, applyRealtimeNotification, refreshUnreadCount, resetNotifications, user?.id]);
+  }, [
+    accountType,
+    applyRealtimeNotification,
+    refreshUnreadCount,
+    resetNotifications,
+    user?.id,
+  ]);
+
+  // Scroll to top when route changes
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, [location.pathname]);
 
   return (
     <Layout className="h-screen overflow-hidden bg-slate-100">
@@ -160,7 +182,9 @@ export function AdminLayout() {
         <Header className="h-auto! shrink-0 border-b border-slate-200 bg-white! px-6! py-3! leading-normal! shadow-sm">
           <div className="flex min-h-13 items-center justify-between gap-4">
             <div className="leading-tight">
-              <Text className="text-xs! uppercase! tracking-[0.12em]! text-slate-500!">Trang đang xem</Text>
+              <Text className="text-xs! uppercase! tracking-[0.12em]! text-slate-500!">
+                Trang đang xem
+              </Text>
               <Title level={4} className="m-0! text-slate-900! leading-tight!">
                 {activePageTitle}
               </Title>
@@ -181,8 +205,13 @@ export function AdminLayout() {
               </Button>
 
               <div className="min-w-47.5 rounded-full border border-slate-200 bg-slate-50 px-3 py-1.5 text-right leading-tight">
-                <Text className="block text-[11px]! uppercase! tracking-[0.08em]! text-slate-500! leading-tight!">Tài khoản</Text>
-                <Text strong className="block text-sm! text-slate-800! leading-tight!">
+                <Text className="block text-[11px]! uppercase! tracking-[0.08em]! text-slate-500! leading-tight!">
+                  Tài khoản
+                </Text>
+                <Text
+                  strong
+                  className="block text-sm! text-slate-800! leading-tight!"
+                >
                   {user?.fullName ?? "Khách"}
                 </Text>
               </div>

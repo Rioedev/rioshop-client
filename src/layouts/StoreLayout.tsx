@@ -23,8 +23,15 @@ import { resolveStoreImageUrl } from "../features/store/utils/storeFormatting";
 import { analyticsTracker } from "../services/analyticsTracker";
 import { brandConfigService } from "../services/brandConfigService";
 import { categoryService, type Category } from "../services/categoryService";
-import { cartService, toCartCouponMeta, toCartStoreItems } from "../services/cartService";
-import { toWishlistStoreItems, wishlistService } from "../services/wishlistService";
+import {
+  cartService,
+  toCartCouponMeta,
+  toCartStoreItems,
+} from "../services/cartService";
+import {
+  toWishlistStoreItems,
+  wishlistService,
+} from "../services/wishlistService";
 import { subscribeUserNotifications } from "../services/socketClient";
 import { useAuthStore } from "../stores/authStore";
 import { useCartStore } from "../stores/cartStore";
@@ -38,7 +45,12 @@ const defaultMenuItems = [
   { label: "Đồ thể thao", category: "do-the-thao" },
 ];
 
-const policyItems = ["Miễn phí đổi trả 60 ngày", "Miễn phí ship từ 499K", "Kiểm tra hàng trước khi nhận", "Hotline 1900 8888"];
+const policyItems = [
+  "Miễn phí đổi trả 60 ngày",
+  "Miễn phí ship từ 499K",
+  "Kiểm tra hàng trước khi nhận",
+  "Hotline 1900 8888",
+];
 
 const utilityLinks = [
   { label: "Hệ thống cửa hàng", href: "/products" },
@@ -77,9 +89,13 @@ type MegaCollectionCard = {
 };
 
 const stripDiacritics = (value = "") =>
-  value.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+  value
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase();
 
-const toCategoryHref = (slug?: string) => (slug ? `/products?category=${encodeURIComponent(slug)}` : "/products");
+const toCategoryHref = (slug?: string) =>
+  slug ? `/products?category=${encodeURIComponent(slug)}` : "/products";
 
 const flattenCategoryTree = (nodes: Category[]): Category[] =>
   nodes.reduce<Category[]>((acc, node) => {
@@ -107,13 +123,23 @@ const toMegaItem = (node: Category): MegaItem => ({
 
 const buildMegaColumns = (categoryTree: Category[]): MegaColumn[] => {
   const rootNodes = categoryTree.filter((node) => Boolean(node.slug));
-  const allNodes = flattenCategoryTree(categoryTree).filter((node) => Boolean(node.slug));
+  const allNodes = flattenCategoryTree(categoryTree).filter((node) =>
+    Boolean(node.slug),
+  );
   const usedNodeIds = new Set<string>();
 
-  const groupConfigs: Array<{ key: MegaColumn["key"]; title: string; keywords: string[] }> = [
+  const groupConfigs: Array<{
+    key: MegaColumn["key"];
+    title: string;
+    keywords: string[];
+  }> = [
     { key: "men", title: "NAM", keywords: ["nam", "men"] },
     { key: "women", title: "NỮ", keywords: ["nu", "women", "female"] },
-    { key: "kids", title: "TRẺ EM", keywords: ["tre em", "kid", "kids", "baby", "be"] },
+    {
+      key: "kids",
+      title: "TRẺ EM",
+      keywords: ["tre em", "kid", "kids", "baby", "be"],
+    },
   ];
 
   const columns = groupConfigs.map((group) => {
@@ -130,7 +156,7 @@ const buildMegaColumns = (categoryTree: Category[]): MegaColumn[] => {
 
     const sourceNodes = groupRoot
       ? (groupRoot.children ?? []).length > 0
-        ? groupRoot.children ?? []
+        ? (groupRoot.children ?? [])
         : [groupRoot]
       : allNodes.filter((node) => {
           const normalized = stripDiacritics(node.name);
@@ -173,7 +199,9 @@ const fallbackCollectionImages = [
   "https://dummyimage.com/960x420/fee2e2/991b1b&text=BST+Flash",
 ];
 
-const buildMegaCollectionCards = (categoryTree: Category[]): MegaCollectionCard[] => {
+const buildMegaCollectionCards = (
+  categoryTree: Category[],
+): MegaCollectionCard[] => {
   const imageNodes = flattenCategoryTree(categoryTree)
     .filter((node) => Boolean(node.slug))
     .map((node) => ({
@@ -188,7 +216,9 @@ const buildMegaCollectionCards = (categoryTree: Category[]): MegaCollectionCard[
       key: node._id,
       title: `BST ${node.name}`,
       href: toCategoryHref(node.slug),
-      image: node.image || fallbackCollectionImages[index % fallbackCollectionImages.length],
+      image:
+        node.image ||
+        fallbackCollectionImages[index % fallbackCollectionImages.length],
     }));
 
     while (cards.length < 3) {
@@ -197,7 +227,8 @@ const buildMegaCollectionCards = (categoryTree: Category[]): MegaCollectionCard[
         key: `fallback-${index}`,
         title: `BST nổi bật ${index + 1}`,
         href: "/products",
-        image: fallbackCollectionImages[index % fallbackCollectionImages.length],
+        image:
+          fallbackCollectionImages[index % fallbackCollectionImages.length],
       });
     }
 
@@ -224,9 +255,15 @@ export function StoreLayout() {
   const setCartItems = useCartStore((state) => state.setItems);
   const wishlistItems = useWishlistStore((state) => state.items);
   const setWishlistItems = useWishlistStore((state) => state.setItems);
-  const unreadNotificationCount = useNotificationStore((state) => state.unreadCount);
-  const refreshUnreadCount = useNotificationStore((state) => state.refreshUnreadCount);
-  const applyRealtimeNotification = useNotificationStore((state) => state.applyRealtimeNotification);
+  const unreadNotificationCount = useNotificationStore(
+    (state) => state.unreadCount,
+  );
+  const refreshUnreadCount = useNotificationStore(
+    (state) => state.refreshUnreadCount,
+  );
+  const applyRealtimeNotification = useNotificationStore(
+    (state) => state.applyRealtimeNotification,
+  );
   const resetNotifications = useNotificationStore((state) => state.reset);
   const cartCount = cartItems.reduce((total, item) => total + item.quantity, 0);
 
@@ -240,7 +277,9 @@ export function StoreLayout() {
     facebook?: string;
     instagram?: string;
   }>({});
-  const [activeMegaItemKeys, setActiveMegaItemKeys] = useState<Partial<Record<MegaColumn["key"], string>>>({});
+  const [activeMegaItemKeys, setActiveMegaItemKeys] = useState<
+    Partial<Record<MegaColumn["key"], string>>
+  >({});
   const accountMenuRef = useRef<HTMLDivElement | null>(null);
   const megaMenuRef = useRef<HTMLDivElement | null>(null);
   const megaMenuCloseTimerRef = useRef<number | null>(null);
@@ -259,11 +298,17 @@ export function StoreLayout() {
 
   useEffect(() => {
     const onDocumentClick = (event: MouseEvent) => {
-      if (accountMenuRef.current && !accountMenuRef.current.contains(event.target as Node)) {
+      if (
+        accountMenuRef.current &&
+        !accountMenuRef.current.contains(event.target as Node)
+      ) {
         setIsAccountMenuOpen(false);
       }
 
-      if (megaMenuRef.current && !megaMenuRef.current.contains(event.target as Node)) {
+      if (
+        megaMenuRef.current &&
+        !megaMenuRef.current.contains(event.target as Node)
+      ) {
         setIsMegaMenuOpen(false);
       }
     };
@@ -368,7 +413,10 @@ export function StoreLayout() {
       }
 
       if (wishlistResult.status === "fulfilled") {
-        setWishlistItems(toWishlistStoreItems(wishlistResult.value), user?.id ?? null);
+        setWishlistItems(
+          toWishlistStoreItems(wishlistResult.value),
+          user?.id ?? null,
+        );
       }
     };
 
@@ -377,7 +425,13 @@ export function StoreLayout() {
     return () => {
       active = false;
     };
-  }, [isAuthenticated, resetNotifications, setCartItems, setWishlistItems, user?.id]);
+  }, [
+    isAuthenticated,
+    resetNotifications,
+    setCartItems,
+    setWishlistItems,
+    user?.id,
+  ]);
 
   useEffect(() => {
     const principalId = user?.id?.toString().trim();
@@ -393,7 +447,17 @@ export function StoreLayout() {
     return () => {
       unsubscribe();
     };
-  }, [applyRealtimeNotification, isAuthenticated, refreshUnreadCount, user?.id]);
+  }, [
+    applyRealtimeNotification,
+    isAuthenticated,
+    refreshUnreadCount,
+    user?.id,
+  ]);
+
+  // Scroll to top when route changes
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, [location.pathname]);
 
   const onSearch = () => {
     const keyword = searchKeyword.trim();
@@ -408,11 +472,19 @@ export function StoreLayout() {
         },
       });
     }
-    navigate(keyword ? `/products?q=${encodeURIComponent(keyword)}` : "/products");
+    navigate(
+      keyword ? `/products?q=${encodeURIComponent(keyword)}` : "/products",
+    );
   };
 
-  const megaColumns = useMemo(() => buildMegaColumns(categoryTree), [categoryTree]);
-  const megaCollectionCards = useMemo(() => buildMegaCollectionCards(categoryTree), [categoryTree]);
+  const megaColumns = useMemo(
+    () => buildMegaColumns(categoryTree),
+    [categoryTree],
+  );
+  const megaCollectionCards = useMemo(
+    () => buildMegaCollectionCards(categoryTree),
+    [categoryTree],
+  );
 
   useEffect(() => {
     setActiveMegaItemKeys((prev) => {
@@ -424,7 +496,8 @@ export function StoreLayout() {
           return;
         }
 
-        const stillExists = previousKey && column.items.some((item) => item.key === previousKey);
+        const stillExists =
+          previousKey && column.items.some((item) => item.key === previousKey);
         if (!stillExists) {
           delete next[column.key];
         }
@@ -459,7 +532,10 @@ export function StoreLayout() {
     }, 120);
   };
 
-  const toggleMegaChildren = (columnKey: MegaColumn["key"], itemKey: string) => {
+  const toggleMegaChildren = (
+    columnKey: MegaColumn["key"],
+    itemKey: string,
+  ) => {
     setActiveMegaItemKeys((prev) => {
       const next = { ...prev };
       if (prev[columnKey] === itemKey) {
@@ -492,7 +568,9 @@ export function StoreLayout() {
 
   return (
     <div className="storefront-shell min-h-screen">
-      <div className="store-promo-bar">FLASH SALE 10H - 14H | Giảm đến 50% + Freeship toàn quốc</div>
+      <div className="store-promo-bar">
+        FLASH SALE 10H - 14H | Giảm đến 50% + Freeship toàn quốc
+      </div>
 
       <div className="store-utility-strip">
         <div className="mx-auto flex w-full max-w-405 items-center justify-between gap-3 px-3 py-2 sm:px-4 xl:px-6">
@@ -534,30 +612,53 @@ export function StoreLayout() {
                 className="store-icon-link border-none bg-transparent p-0"
                 onClick={() => setIsNotificationModalOpen(true)}
               >
-                <span className="store-top-icon" title="Thông báo" aria-label="Thông báo">
+                <span
+                  className="store-top-icon"
+                  title="Thông báo"
+                  aria-label="Thông báo"
+                >
                   <BellOutlined />
                   {unreadNotificationCount > 0 ? (
-                    <span className="store-cart-count">{unreadNotificationCount}</span>
+                    <span className="store-cart-count">
+                      {unreadNotificationCount}
+                    </span>
                   ) : null}
                 </span>
               </button>
 
               <Link to="/wishlist" className="store-icon-link">
-                <span className="store-top-icon" title="Yêu thích" aria-label="Yêu thích">
+                <span
+                  className="store-top-icon"
+                  title="Yêu thích"
+                  aria-label="Yêu thích"
+                >
                   <HeartOutlined />
-                  {wishlistItems.length > 0 ? <span className="store-cart-count">{wishlistItems.length}</span> : null}
+                  {wishlistItems.length > 0 ? (
+                    <span className="store-cart-count">
+                      {wishlistItems.length}
+                    </span>
+                  ) : null}
                 </span>
               </Link>
 
               <Link to="/cart" className="store-icon-link">
-                <span className="store-top-icon" title="Giỏ hàng" aria-label="Giỏ hàng">
+                <span
+                  className="store-top-icon"
+                  title="Giỏ hàng"
+                  aria-label="Giỏ hàng"
+                >
                   <ShoppingCartOutlined />
-                  {cartCount > 0 ? <span className="store-cart-count">{cartCount}</span> : null}
+                  {cartCount > 0 ? (
+                    <span className="store-cart-count">{cartCount}</span>
+                  ) : null}
                 </span>
               </Link>
 
               {isAuthenticated ? (
-                <div className={`store-account-menu ${isAccountMenuOpen ? "is-open" : ""}`} ref={accountMenuRef}>
+                <div
+                  className={`store-account-menu ${isAccountMenuOpen ? "is-open" : ""}`}
+                  ref={accountMenuRef}
+                >
                   <button
                     type="button"
                     className="store-account-trigger"
@@ -567,16 +668,26 @@ export function StoreLayout() {
                   >
                     <span className="store-avatar-wrap">
                       {avatarUrl ? (
-                        <img src={avatarUrl} alt={fullName} className="store-avatar-image" />
+                        <img
+                          src={avatarUrl}
+                          alt={fullName}
+                          className="store-avatar-image"
+                        />
                       ) : (
-                        <span className="store-avatar-fallback">{initials || "U"}</span>
+                        <span className="store-avatar-fallback">
+                          {initials || "U"}
+                        </span>
                       )}
                     </span>
                   </button>
                   <div className="store-user-dropdown">
                     <div className="store-user-dropdown-head">
                       <p className="store-user-dropdown-name">{fullName}</p>
-                      <p className="store-user-dropdown-role">{accountType === "admin" ? "Quản trị viên" : "Khách hàng"}</p>
+                      <p className="store-user-dropdown-role">
+                        {accountType === "admin"
+                          ? "Quản trị viên"
+                          : "Khách hàng"}
+                      </p>
                     </div>
                     <Link
                       to="/account"
@@ -629,7 +740,10 @@ export function StoreLayout() {
                   </div>
                 </div>
               ) : (
-                <div className={`store-user-menu ${isAccountMenuOpen ? "is-open" : ""}`} ref={accountMenuRef}>
+                <div
+                  className={`store-user-menu ${isAccountMenuOpen ? "is-open" : ""}`}
+                  ref={accountMenuRef}
+                >
                   <button
                     type="button"
                     className="store-top-icon"
@@ -640,10 +754,18 @@ export function StoreLayout() {
                     <UserOutlined />
                   </button>
                   <div className="store-user-dropdown">
-                    <Link to="/login" className="store-user-dropdown-item" onClick={() => setIsAccountMenuOpen(false)}>
+                    <Link
+                      to="/login"
+                      className="store-user-dropdown-item"
+                      onClick={() => setIsAccountMenuOpen(false)}
+                    >
                       Đăng nhập
                     </Link>
-                    <Link to="/register" className="store-user-dropdown-item" onClick={() => setIsAccountMenuOpen(false)}>
+                    <Link
+                      to="/register"
+                      className="store-user-dropdown-item"
+                      onClick={() => setIsAccountMenuOpen(false)}
+                    >
                       Đăng ký
                     </Link>
                   </div>
@@ -708,19 +830,29 @@ export function StoreLayout() {
                                   >
                                     <span className="store-mega-thumb">
                                       {item.image ? (
-                                        <img src={item.image} alt={item.label} className="h-full w-full object-cover" />
+                                        <img
+                                          src={item.image}
+                                          alt={item.label}
+                                          className="h-full w-full object-cover"
+                                        />
                                       ) : (
-                                        <span>{item.label.slice(0, 1).toUpperCase()}</span>
+                                        <span>
+                                          {item.label.slice(0, 1).toUpperCase()}
+                                        </span>
                                       )}
                                     </span>
-                                    <span className="store-mega-item-label">{item.label}</span>
+                                    <span className="store-mega-item-label">
+                                      {item.label}
+                                    </span>
                                   </Link>
                                   {item.children.length > 0 ? (
                                     <button
                                       type="button"
                                       className="store-mega-toggle"
                                       aria-expanded={isOpen}
-                                      onClick={() => toggleMegaChildren(column.key, item.key)}
+                                      onClick={() =>
+                                        toggleMegaChildren(column.key, item.key)
+                                      }
                                     >
                                       <DownOutlined className="store-mega-chevron" />
                                     </button>
@@ -758,7 +890,11 @@ export function StoreLayout() {
                           onClick={() => setIsMegaMenuOpen(false)}
                         >
                           <div className="store-mega-collection-media">
-                            <img src={card.image} alt={card.title} className="h-full w-full object-cover" />
+                            <img
+                              src={card.image}
+                              alt={card.title}
+                              className="h-full w-full object-cover"
+                            />
                           </div>
                           <p>{card.title}</p>
                         </Link>
@@ -767,7 +903,10 @@ export function StoreLayout() {
                   </section>
                 </div>
                 <div className="store-mega-foot">
-                  <button type="button" onClick={() => setIsMegaMenuOpen(false)}>
+                  <button
+                    type="button"
+                    onClick={() => setIsMegaMenuOpen(false)}
+                  >
                     Đóng
                   </button>
                 </div>
@@ -775,7 +914,11 @@ export function StoreLayout() {
             </div>
 
             {menuItems.slice(0, 6).map((item) => (
-              <Link key={item.category} to={`/products?category=${encodeURIComponent(item.category)}`} className="store-nav-pill">
+              <Link
+                key={item.category}
+                to={`/products?category=${encodeURIComponent(item.category)}`}
+                className="store-nav-pill"
+              >
                 {item.label}
               </Link>
             ))}
@@ -783,7 +926,10 @@ export function StoreLayout() {
         </div>
       </header>
 
-      <StoreNotificationsModal open={isNotificationModalOpen} onClose={() => setIsNotificationModalOpen(false)} />
+      <StoreNotificationsModal
+        open={isNotificationModalOpen}
+        onClose={() => setIsNotificationModalOpen(false)}
+      />
 
       <div className="store-policy-strip">
         <div className="mx-auto w-full max-w-405 px-3 sm:px-4 xl:px-6">
@@ -798,7 +944,9 @@ export function StoreLayout() {
         </div>
       </div>
 
-      <main className={`store-main-content mx-auto w-full max-w-405 px-3 sm:px-4 xl:px-6 ${isHomePage ? "pt-0 pb-6 md:pb-8" : "py-6 md:py-8"}`}>
+      <main
+        className={`store-main-content mx-auto w-full max-w-405 px-3 sm:px-4 xl:px-6 ${isHomePage ? "pt-0 pb-6 md:pb-8" : "py-6 md:py-8"}`}
+      >
         <Outlet />
       </main>
 
@@ -808,10 +956,14 @@ export function StoreLayout() {
             <div className="store-footer-intro">
               <h4>RIOSHOP XIN CHÀO 💖</h4>
               <p>
-                Chúng tôi luôn quý trọng và tiếp thu mọi ý kiến đóng góp từ khách hàng, nhằm không ngừng cải thiện
-                và nâng tầm trải nghiệm dịch vụ cùng chất lượng sản phẩm.
+                Chúng tôi luôn quý trọng và tiếp thu mọi ý kiến đóng góp từ
+                khách hàng, nhằm không ngừng cải thiện và nâng tầm trải nghiệm
+                dịch vụ cùng chất lượng sản phẩm.
               </p>
-              <form className="store-footer-subscribe" onSubmit={(event) => event.preventDefault()}>
+              <form
+                className="store-footer-subscribe"
+                onSubmit={(event) => event.preventDefault()}
+              >
                 <input placeholder="Nhập địa chỉ email của bạn" />
                 <button type="submit">Gửi</button>
               </form>
@@ -838,21 +990,35 @@ export function StoreLayout() {
                 <EnvironmentOutlined />
                 <div>
                   <p>Địa chỉ</p>
-                  <strong>Đường An Định - Phường Việt Hòa - TP Hải Phòng</strong>
+                  <strong>
+                    Đường An Định - Phường Việt Hòa - TP Hải Phòng
+                  </strong>
                 </div>
               </div>
             </div>
 
             <div className="store-footer-social">
-              <a href="#" aria-label="Zalo">Z</a>
-              <a href="#" aria-label="Messenger"><MessageOutlined /></a>
-              <a href="#" aria-label="TikTok"><TikTokOutlined /></a>
-              <a href="#" aria-label="YouTube"><YoutubeOutlined /></a>
+              <a href="#" aria-label="Zalo">
+                Z
+              </a>
+              <a href="#" aria-label="Messenger">
+                <MessageOutlined />
+              </a>
+              <a href="#" aria-label="TikTok">
+                <TikTokOutlined />
+              </a>
+              <a href="#" aria-label="YouTube">
+                <YoutubeOutlined />
+              </a>
               <a
                 href={footerSocialLinks.instagram || "#"}
                 aria-label="Instagram"
                 target={footerSocialLinks.instagram ? "_blank" : undefined}
-                rel={footerSocialLinks.instagram ? "noreferrer noopener" : undefined}
+                rel={
+                  footerSocialLinks.instagram
+                    ? "noreferrer noopener"
+                    : undefined
+                }
                 onClick={(event) => {
                   if (!footerSocialLinks.instagram) {
                     event.preventDefault();
@@ -865,7 +1031,9 @@ export function StoreLayout() {
                 href={footerSocialLinks.facebook || "#"}
                 aria-label="Facebook"
                 target={footerSocialLinks.facebook ? "_blank" : undefined}
-                rel={footerSocialLinks.facebook ? "noreferrer noopener" : undefined}
+                rel={
+                  footerSocialLinks.facebook ? "noreferrer noopener" : undefined
+                }
                 onClick={(event) => {
                   if (!footerSocialLinks.facebook) {
                     event.preventDefault();
@@ -878,8 +1046,18 @@ export function StoreLayout() {
           </div>
 
           <div className="store-footer-links">
-            {["HỆ THỐNG CỬA HÀNG", "MUA SẮM", "TIN TỨC", "DỊCH VỤ KHÁCH HÀNG", "VỀ RIOSHOP"].map((item) => (
-              <button key={item} type="button" className="store-footer-link-row">
+            {[
+              "HỆ THỐNG CỬA HÀNG",
+              "MUA SẮM",
+              "TIN TỨC",
+              "DỊCH VỤ KHÁCH HÀNG",
+              "VỀ RIOSHOP",
+            ].map((item) => (
+              <button
+                key={item}
+                type="button"
+                className="store-footer-link-row"
+              >
                 <span>{item}</span>
                 <DownOutlined />
               </button>
@@ -890,8 +1068,9 @@ export function StoreLayout() {
             <div>
               <h5>@ CÔNG TY CỔ PHẦN THỜI TRANG RIOSHOP</h5>
               <p>
-                Mã số doanh nghiệp: 0801206940. Giấy chứng nhận đăng ký doanh nghiệp do Sở Kế hoạch và Đầu tư TP Hải
-                Dương cấp lần đầu ngày 04/03/2017
+                Mã số doanh nghiệp: 0801206940. Giấy chứng nhận đăng ký doanh
+                nghiệp do Sở Kế hoạch và Đầu tư TP Hải Dương cấp lần đầu ngày
+                04/03/2017
               </p>
             </div>
             <div className="store-footer-certs">
@@ -904,4 +1083,3 @@ export function StoreLayout() {
     </div>
   );
 }
-
