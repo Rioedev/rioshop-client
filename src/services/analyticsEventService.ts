@@ -1,4 +1,4 @@
-import { apiClient } from "./apiClient";
+﻿import { apiClient } from "./apiClient";
 
 type ApiResponse<T> = {
   success: boolean;
@@ -117,6 +117,50 @@ export type PaginatedAnalyticsEventData = {
   hasNextPage: boolean;
 };
 
+export type AnalyticsRevenueByDatePoint = {
+  date: string;
+  label: string;
+  revenue: number;
+  orders: number;
+};
+
+export type AnalyticsOrdersByDatePoint = {
+  date: string;
+  label: string;
+  total: number;
+  pending: number;
+  completed: number;
+  cancelled: number;
+};
+
+export type AnalyticsStatusBreakdown = {
+  status: string;
+  count: number;
+};
+
+export type AnalyticsPaymentMethodBreakdown = {
+  method: string;
+  count: number;
+  revenue: number;
+};
+
+export type AnalyticsTopProductRevenue = {
+  productId: string;
+  name?: string;
+  slug?: string;
+  revenue: number;
+  quantity: number;
+  orders: number;
+};
+
+export type AnalyticsTopCategoryRevenue = {
+  categoryId: string;
+  name: string;
+  revenue: number;
+  quantity: number;
+  orders: number;
+};
+
 export type AnalyticsDashboardData = {
   range: {
     startDate?: string;
@@ -126,19 +170,39 @@ export type AnalyticsDashboardData = {
     events: number;
     orders: number;
     revenue: number;
+    grossRevenue?: number;
+    netRevenue?: number;
+  };
+  summary?: {
+    averageOrderValue: number;
+    cancellationRate: number;
+    returnRate: number;
+    pendingOver24hOrders: number;
+    newCustomers: number;
+    returningCustomers: number;
   };
   eventsByType: Record<string, number>;
   ordersByStatus: Record<string, number>;
+  statusBreakdown?: AnalyticsStatusBreakdown[];
+  paymentMethods?: AnalyticsPaymentMethodBreakdown[];
+  revenueByDate?: AnalyticsRevenueByDatePoint[];
+  ordersByDate?: AnalyticsOrdersByDatePoint[];
   topProducts: Array<{
     _id: string;
     views: number;
     name?: string;
     slug?: string;
   }>;
+  topProductsByRevenue?: AnalyticsTopProductRevenue[];
+  topCategoriesByRevenue?: AnalyticsTopCategoryRevenue[];
   conversion: {
     purchases: number;
     pageViews: number;
+    productViews?: number;
+    addToCarts?: number;
+    addToCartRate?: number;
     purchaseToViewRate: number;
+    cartToPurchaseRate?: number;
   };
 };
 
