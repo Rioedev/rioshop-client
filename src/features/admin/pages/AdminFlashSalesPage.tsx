@@ -19,9 +19,10 @@ import {
   message,
 } from "antd";
 import type { ColumnsType, TablePaginationConfig } from "antd/es/table";
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { CreateFlashSalePayload, FlashSale } from "../../../services/flashSaleService";
 import { productService, type Product, type ProductVariant } from "../../../services/productService";
+import { subscribeAdminRealtime } from "../../../services/socketClient";
 import { useFlashSaleStore } from "../../../stores/flashSaleStore";
 import { useAuthStore } from "../../../stores/authStore";
 
@@ -195,12 +196,55 @@ export function AdminFlashSalesPage() {
   const createFlashSale = useFlashSaleStore((state) => state.createFlashSale);
   const updateFlashSale = useFlashSaleStore((state) => state.updateFlashSale);
   const deleteFlashSale = useFlashSaleStore((state) => state.deleteFlashSale);
+  const realtimeRefreshTimerRef = useRef<number | null>(null);
+
+  const refreshCurrentFlashSalePage = useCallback(() => {
+    void loadFlashSales({
+      page,
+      pageSize,
+      currentOnly,
+      isActiveFilter,
+    }).catch((error) => {
+      messageApi.error(getErrorMessage(error));
+    });
+  }, [currentOnly, isActiveFilter, loadFlashSales, messageApi, page, pageSize]);
 
   useEffect(() => {
     void loadFlashSales({ page: 1, pageSize: 10 }).catch((error) => {
       messageApi.error(getErrorMessage(error));
     });
   }, [loadFlashSales, messageApi]);
+
+  const scheduleRealtimeRefresh = useCallback(() => {
+    if (realtimeRefreshTimerRef.current) {
+      window.clearTimeout(realtimeRefreshTimerRef.current);
+    }
+
+    realtimeRefreshTimerRef.current = window.setTimeout(() => {
+      refreshCurrentFlashSalePage();
+    }, 600);
+  }, [refreshCurrentFlashSalePage]);
+
+  useEffect(
+    () => () => {
+      if (realtimeRefreshTimerRef.current) {
+        window.clearTimeout(realtimeRefreshTimerRef.current);
+      }
+    },
+    [],
+  );
+
+  useEffect(() => {
+    const unsubscribe = subscribeAdminRealtime({
+      onFlashSaleUpdated: () => {
+        scheduleRealtimeRefresh();
+      },
+    });
+
+    return () => {
+      unsubscribe();
+    };
+  }, [scheduleRealtimeRefresh]);
 
   useEffect(() => {
     let active = true;

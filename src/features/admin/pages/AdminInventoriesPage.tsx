@@ -18,8 +18,9 @@ import {
   message,
 } from "antd";
 import type { ColumnsType, TablePaginationConfig } from "antd/es/table";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import type { InventoryRecord, UpdateInventoryPayload } from "../../../services/inventoryService";
+import { subscribeAdminRealtime } from "../../../services/socketClient";
 import { useInventoryStore } from "../../../stores/inventoryStore";
 
 const { Paragraph, Text, Title } = Typography;
@@ -94,12 +95,76 @@ export function AdminInventoriesPage() {
   const setCurrentVariantSku = useInventoryStore((state) => state.setCurrentVariantSku);
   const setThreshold = useInventoryStore((state) => state.setThreshold);
   const updateInventory = useInventoryStore((state) => state.updateInventory);
+  const realtimeRefreshTimerRef = useRef<number | null>(null);
+
+  const refreshCurrentInventoryView = useCallback(() => {
+    void loadLowStockItems({
+      page: lowStockPage,
+      pageSize: lowStockPageSize,
+      threshold,
+    }).catch((error) => {
+      messageApi.error(getErrorMessage(error));
+    });
+
+    const normalizedSku = currentVariantSku.trim();
+    if (!normalizedSku) {
+      return;
+    }
+
+    void loadInventoryByVariantSku(normalizedSku, {
+      page: inventoryPage,
+      pageSize: inventoryPageSize,
+    }).catch((error) => {
+      messageApi.error(getErrorMessage(error));
+    });
+  }, [
+    currentVariantSku,
+    inventoryPage,
+    inventoryPageSize,
+    loadInventoryByVariantSku,
+    loadLowStockItems,
+    lowStockPage,
+    lowStockPageSize,
+    messageApi,
+    threshold,
+  ]);
 
   useEffect(() => {
     void loadLowStockItems({ page: 1, pageSize: 10 }).catch((error) => {
       messageApi.error(getErrorMessage(error));
     });
   }, [loadLowStockItems, messageApi]);
+
+  const scheduleRealtimeRefresh = useCallback(() => {
+    if (realtimeRefreshTimerRef.current) {
+      window.clearTimeout(realtimeRefreshTimerRef.current);
+    }
+
+    realtimeRefreshTimerRef.current = window.setTimeout(() => {
+      refreshCurrentInventoryView();
+    }, 600);
+  }, [refreshCurrentInventoryView]);
+
+  useEffect(
+    () => () => {
+      if (realtimeRefreshTimerRef.current) {
+        window.clearTimeout(realtimeRefreshTimerRef.current);
+      }
+    },
+    [],
+  );
+
+  useEffect(() => {
+    const unsubscribe = subscribeAdminRealtime({
+      onInventoryUpdated: () => {
+        scheduleRealtimeRefresh();
+      },
+    });
+
+    return () => {
+      unsubscribe();
+    };
+  }, [scheduleRealtimeRefresh]);
 
   const handleApplyThreshold = async () => {
     try {

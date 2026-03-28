@@ -7,7 +7,7 @@
 } from "@ant-design/icons";
 import { AxiosError } from "axios";
 import { Button, Card, Col, Row, Spin, Typography, message } from "antd";
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   analyticsEventService,
@@ -16,6 +16,7 @@ import {
 import { inventoryService, type InventoryRecord } from "../../../services/inventoryService";
 import { orderService, type OrderRecord } from "../../../services/orderService";
 import { productService } from "../../../services/productService";
+import { subscribeAdminRealtime } from "../../../services/socketClient";
 import { DashboardDonutCard, DashboardLineChartCard, DashboardOrdersColumnCard, DashboardRankBarCard } from "../components/DashboardCharts";
 import { KpiCard } from "../components/KpiCard";
 import { LowStockList } from "../components/LowStockList";
@@ -301,120 +302,157 @@ export function AdminDashboardPage() {
     [lowStockProducts],
   );
 
-  useEffect(() => {
-    let active = true;
+  const requestSequenceRef = useRef(0);
+  const realtimeRefreshTimerRef = useRef<number | null>(null);
 
-    const loadDashboard = async () => {
-      setLoading(true);
-      try {
-        const now = new Date();
-        const periodDays = RANGE_PRESETS[rangePreset];
-        const currentPeriodStart = new Date(now.getTime() - periodDays * DAY_MS);
-        const previousPeriodStart = new Date(now.getTime() - periodDays * 2 * DAY_MS);
-        const previousPeriodEnd = new Date(currentPeriodStart.getTime() - 1);
+  const loadDashboard = useCallback(async () => {
+    const requestId = requestSequenceRef.current + 1;
+    requestSequenceRef.current = requestId;
 
-        const todayStart = new Date(now);
-        todayStart.setHours(0, 0, 0, 0);
+    setLoading(true);
+    try {
+      const now = new Date();
+      const periodDays = RANGE_PRESETS[rangePreset];
+      const currentPeriodStart = new Date(now.getTime() - periodDays * DAY_MS);
+      const previousPeriodStart = new Date(now.getTime() - periodDays * 2 * DAY_MS);
+      const previousPeriodEnd = new Date(currentPeriodStart.getTime() - 1);
 
-        const sixMonthsStart = new Date(now.getFullYear(), now.getMonth() - 5, 1, 0, 0, 0, 0);
+      const todayStart = new Date(now);
+      todayStart.setHours(0, 0, 0, 0);
 
-        const [
-          currentMetrics,
-          previousMetrics,
-          todayMetrics,
-          sixMonthMetrics,
-          recentOrdersPage,
-          lowStockPage,
-          activeProductsPage,
-        ] = await Promise.all([
-          analyticsEventService.getAnalyticsDashboard({
-            startDate: currentPeriodStart.toISOString(),
-            endDate: now.toISOString(),
-          }),
-          analyticsEventService.getAnalyticsDashboard({
-            startDate: previousPeriodStart.toISOString(),
-            endDate: previousPeriodEnd.toISOString(),
-          }),
-          analyticsEventService.getAnalyticsDashboard({
-            startDate: todayStart.toISOString(),
-            endDate: now.toISOString(),
-          }),
-          analyticsEventService.getAnalyticsDashboard({
-            startDate: sixMonthsStart.toISOString(),
-            endDate: now.toISOString(),
-          }),
-          orderService.getOrders({
-            page: 1,
-            limit: 8,
-            status: "all",
-            paymentStatus: "all",
-          }),
-          inventoryService.getLowStockItems({
-            page: 1,
-            limit: 8,
-            threshold: 10,
-          }),
-          productService.getProducts({
-            page: 1,
-            limit: 1,
-            status: "active",
-          }),
-        ]);
+      const sixMonthsStart = new Date(now.getFullYear(), now.getMonth() - 5, 1, 0, 0, 0, 0);
 
-        if (!active) {
-          return;
-        }
+      const [
+        currentMetrics,
+        previousMetrics,
+        todayMetrics,
+        sixMonthMetrics,
+        recentOrdersPage,
+        lowStockPage,
+        activeProductsPage,
+      ] = await Promise.all([
+        analyticsEventService.getAnalyticsDashboard({
+          startDate: currentPeriodStart.toISOString(),
+          endDate: now.toISOString(),
+        }),
+        analyticsEventService.getAnalyticsDashboard({
+          startDate: previousPeriodStart.toISOString(),
+          endDate: previousPeriodEnd.toISOString(),
+        }),
+        analyticsEventService.getAnalyticsDashboard({
+          startDate: todayStart.toISOString(),
+          endDate: now.toISOString(),
+        }),
+        analyticsEventService.getAnalyticsDashboard({
+          startDate: sixMonthsStart.toISOString(),
+          endDate: now.toISOString(),
+        }),
+        orderService.getOrders({
+          page: 1,
+          limit: 8,
+          status: "all",
+          paymentStatus: "all",
+        }),
+        inventoryService.getLowStockItems({
+          page: 1,
+          limit: 8,
+          threshold: 10,
+        }),
+        productService.getProducts({
+          page: 1,
+          limit: 1,
+          status: "active",
+        }),
+      ]);
 
-        const kpis = buildDashboardKpis({
-          currentMetrics,
-          previousMetrics,
-        });
-
-        const monthlySeries = buildMonthlyRevenueSeries(sixMonthMetrics, 6, now);
-        const normalizedLowStock = lowStockPage.docs.map(normalizeLowStockItem);
-        const normalizedOrders = recentOrdersPage.docs.map(normalizeOrderItem);
-
-        const lowStockCount = lowStockPage.totalDocs;
-        const activeProducts = activeProductsPage.totalDocs;
-        const stockStability =
-          activeProducts > 0
-            ? (((activeProducts - lowStockCount) / activeProducts) * 100).toFixed(1)
-            : "0.0";
-
-        setAdminKpis([
-          ...kpis,
-          {
-            title: "San pham dang ban",
-            value: formatNumber.format(activeProducts),
-            change: `${stockStability}% on dinh ton kho`,
-            positive: Number(stockStability) >= 70,
-          },
-        ]);
-        setDashboardMetrics(currentMetrics);
-        setMonthlyRevenue(monthlySeries);
-        setRecentOrders(normalizedOrders);
-        setLowStockProducts(normalizedLowStock);
-        setTodayOrderCount(todayMetrics.totals.orders);
-        setPendingOrderCount(getPendingOrderCount(currentMetrics));
-        setEstimatedRevenueValue(todayMetrics.totals.netRevenue ?? todayMetrics.totals.revenue);
-        setAnalyticsEventsCount(currentMetrics.totals.events);
-      } catch (error) {
-        if (active) {
-          messageApi.error(getErrorMessage(error));
-        }
-      } finally {
-        if (active) {
-          setLoading(false);
-        }
+      if (requestId !== requestSequenceRef.current) {
+        return;
       }
-    };
 
+      const kpis = buildDashboardKpis({
+        currentMetrics,
+        previousMetrics,
+      });
+
+      const monthlySeries = buildMonthlyRevenueSeries(sixMonthMetrics, 6, now);
+      const normalizedLowStock = lowStockPage.docs.map(normalizeLowStockItem);
+      const normalizedOrders = recentOrdersPage.docs.map(normalizeOrderItem);
+
+      const lowStockCount = lowStockPage.totalDocs;
+      const activeProducts = activeProductsPage.totalDocs;
+      const stockStability =
+        activeProducts > 0
+          ? (((activeProducts - lowStockCount) / activeProducts) * 100).toFixed(1)
+          : "0.0";
+
+      setAdminKpis([
+        ...kpis,
+        {
+          title: "San pham dang ban",
+          value: formatNumber.format(activeProducts),
+          change: `${stockStability}% on dinh ton kho`,
+          positive: Number(stockStability) >= 70,
+        },
+      ]);
+      setDashboardMetrics(currentMetrics);
+      setMonthlyRevenue(monthlySeries);
+      setRecentOrders(normalizedOrders);
+      setLowStockProducts(normalizedLowStock);
+      setTodayOrderCount(todayMetrics.totals.orders);
+      setPendingOrderCount(getPendingOrderCount(currentMetrics));
+      setEstimatedRevenueValue(todayMetrics.totals.netRevenue ?? todayMetrics.totals.revenue);
+      setAnalyticsEventsCount(currentMetrics.totals.events);
+    } catch (error) {
+      if (requestId === requestSequenceRef.current) {
+        messageApi.error(getErrorMessage(error));
+      }
+    } finally {
+      if (requestId === requestSequenceRef.current) {
+        setLoading(false);
+      }
+    }
+  }, [messageApi, rangePreset]);
+
+  useEffect(() => {
     void loadDashboard();
+  }, [loadDashboard]);
+
+  const scheduleRealtimeRefresh = useCallback(() => {
+    if (realtimeRefreshTimerRef.current) {
+      window.clearTimeout(realtimeRefreshTimerRef.current);
+    }
+
+    realtimeRefreshTimerRef.current = window.setTimeout(() => {
+      void loadDashboard();
+    }, 700);
+  }, [loadDashboard]);
+
+  useEffect(
+    () => () => {
+      if (realtimeRefreshTimerRef.current) {
+        window.clearTimeout(realtimeRefreshTimerRef.current);
+      }
+    },
+    [],
+  );
+
+  useEffect(() => {
+    const unsubscribe = subscribeAdminRealtime({
+      onOrderUpdated: () => {
+        scheduleRealtimeRefresh();
+      },
+      onInventoryUpdated: () => {
+        scheduleRealtimeRefresh();
+      },
+      onFlashSaleUpdated: () => {
+        scheduleRealtimeRefresh();
+      },
+    });
 
     return () => {
-      active = false;
+      unsubscribe();
     };
-  }, [messageApi, rangePreset]);
+  }, [scheduleRealtimeRefresh]);
 
   const quickActions = [
     { label: "Đơn hàng", icon: <ShoppingCartOutlined />, href: "/admin/orders" },

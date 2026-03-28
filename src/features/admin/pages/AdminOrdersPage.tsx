@@ -14,8 +14,9 @@ import {
   message,
 } from "antd";
 import type { ColumnsType, TablePaginationConfig } from "antd/es/table";
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { OrderRecord, OrderStatus, PaymentStatus } from "../../../services/orderService";
+import { subscribeAdminRealtime } from "../../../services/socketClient";
 import { useOrderStore } from "../../../stores/orderStore";
 
 const { Paragraph, Title, Text } = Typography;
@@ -176,6 +177,18 @@ export function AdminOrdersPage() {
   const setPaymentStatusFilter = useOrderStore((state) => state.setPaymentStatusFilter);
   const updateOrderStatus = useOrderStore((state) => state.updateOrderStatus);
   const cancelOrder = useOrderStore((state) => state.cancelOrder);
+  const realtimeRefreshTimerRef = useRef<number | null>(null);
+
+  const refreshCurrentOrderPage = useCallback(() => {
+    void loadOrders({
+      page,
+      pageSize,
+      statusFilter,
+      paymentStatusFilter,
+    }).catch((error) => {
+      messageApi.error(getErrorMessage(error));
+    });
+  }, [loadOrders, messageApi, page, pageSize, paymentStatusFilter, statusFilter]);
 
   useEffect(() => {
     void loadOrders({
@@ -187,6 +200,37 @@ export function AdminOrdersPage() {
       messageApi.error(getErrorMessage(error));
     });
   }, [loadOrders, messageApi]);
+
+  const scheduleRealtimeRefresh = useCallback(() => {
+    if (realtimeRefreshTimerRef.current) {
+      window.clearTimeout(realtimeRefreshTimerRef.current);
+    }
+
+    realtimeRefreshTimerRef.current = window.setTimeout(() => {
+      refreshCurrentOrderPage();
+    }, 600);
+  }, [refreshCurrentOrderPage]);
+
+  useEffect(
+    () => () => {
+      if (realtimeRefreshTimerRef.current) {
+        window.clearTimeout(realtimeRefreshTimerRef.current);
+      }
+    },
+    [],
+  );
+
+  useEffect(() => {
+    const unsubscribe = subscribeAdminRealtime({
+      onOrderUpdated: () => {
+        scheduleRealtimeRefresh();
+      },
+    });
+
+    return () => {
+      unsubscribe();
+    };
+  }, [scheduleRealtimeRefresh]);
 
   const filteredOrders = useMemo(() => {
     const keyword = searchText.trim().toLowerCase();

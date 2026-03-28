@@ -15,7 +15,45 @@ export type RealtimeNotificationPayload = {
   createdAt?: string;
 };
 
+export type RealtimeOrderPayload = {
+  action: string;
+  source?: string;
+  orderId: string;
+  orderNumber?: string;
+  status?: string;
+  paymentStatus?: string;
+  updatedAt?: string;
+};
+
+export type RealtimeInventoryPayload = {
+  action: string;
+  source?: string;
+  productId: string;
+  variantSku?: string;
+  onHand?: number;
+  reserved?: number;
+  available?: number;
+  incoming?: number;
+  orderId?: string;
+  updatedAt?: string;
+};
+
+export type RealtimeFlashSalePayload = {
+  action: string;
+  source?: string;
+  flashSaleId: string;
+  isActive?: boolean;
+  updatedAt?: string;
+};
+
+type AdminRealtimeHandlers = {
+  onOrderUpdated?: (payload: RealtimeOrderPayload) => void;
+  onInventoryUpdated?: (payload: RealtimeInventoryPayload) => void;
+  onFlashSaleUpdated?: (payload: RealtimeFlashSalePayload) => void;
+};
+
 const SOCKET_BASE_URL = (import.meta.env.VITE_SOCKET_URL ?? API_BASE_URL).replace(/\/$/, "");
+const ACTIVE_CHANNEL_EVENTS = ["notification", "order-updated", "inventory-updated", "flash-sale-updated"] as const;
 
 let socketClient: Socket | null = null;
 
@@ -32,6 +70,44 @@ const getSocketClient = () => {
 
   return socketClient;
 };
+
+const shouldDisconnectSocket = (socket: Socket) =>
+  !ACTIVE_CHANNEL_EVENTS.some((eventName) => socket.listeners(eventName).length > 0);
+
+const normalizeOrderPayload = (payload: Partial<RealtimeOrderPayload>): RealtimeOrderPayload => ({
+  action: payload.action?.toString().trim() || "updated",
+  source: payload.source?.toString().trim(),
+  orderId: payload.orderId?.toString().trim() || "",
+  orderNumber: payload.orderNumber?.toString().trim(),
+  status: payload.status?.toString().trim(),
+  paymentStatus: payload.paymentStatus?.toString().trim(),
+  updatedAt: payload.updatedAt?.toString(),
+});
+
+const normalizeInventoryPayload = (
+  payload: Partial<RealtimeInventoryPayload>,
+): RealtimeInventoryPayload => ({
+  action: payload.action?.toString().trim() || "updated",
+  source: payload.source?.toString().trim(),
+  productId: payload.productId?.toString().trim() || "",
+  variantSku: payload.variantSku?.toString().trim(),
+  onHand: Number.isFinite(Number(payload.onHand)) ? Number(payload.onHand) : undefined,
+  reserved: Number.isFinite(Number(payload.reserved)) ? Number(payload.reserved) : undefined,
+  available: Number.isFinite(Number(payload.available)) ? Number(payload.available) : undefined,
+  incoming: Number.isFinite(Number(payload.incoming)) ? Number(payload.incoming) : undefined,
+  orderId: payload.orderId?.toString().trim(),
+  updatedAt: payload.updatedAt?.toString(),
+});
+
+const normalizeFlashSalePayload = (
+  payload: Partial<RealtimeFlashSalePayload>,
+): RealtimeFlashSalePayload => ({
+  action: payload.action?.toString().trim() || "updated",
+  source: payload.source?.toString().trim(),
+  flashSaleId: payload.flashSaleId?.toString().trim() || "",
+  isActive: payload.isActive === undefined ? undefined : Boolean(payload.isActive),
+  updatedAt: payload.updatedAt?.toString(),
+});
 
 export const subscribeUserNotifications = (
   userId: string,
@@ -83,8 +159,50 @@ export const subscribeUserNotifications = (
     socket.off("connect", joinUserRoom);
     socket.off("notification", handleNotification);
 
-    const hasNotificationListeners = socket.listeners("notification").length > 0;
-    if (!hasNotificationListeners) {
+    if (shouldDisconnectSocket(socket)) {
+      socket.disconnect();
+    }
+  };
+};
+
+export const subscribeAdminRealtime = (handlers: AdminRealtimeHandlers) => {
+  const socket = getSocketClient();
+
+  const joinAdminRoom = () => {
+    socket.emit("join-admin");
+  };
+
+  const handleOrderUpdated = (payload: Partial<RealtimeOrderPayload>) => {
+    handlers.onOrderUpdated?.(normalizeOrderPayload(payload || {}));
+  };
+
+  const handleInventoryUpdated = (payload: Partial<RealtimeInventoryPayload>) => {
+    handlers.onInventoryUpdated?.(normalizeInventoryPayload(payload || {}));
+  };
+
+  const handleFlashSaleUpdated = (payload: Partial<RealtimeFlashSalePayload>) => {
+    handlers.onFlashSaleUpdated?.(normalizeFlashSalePayload(payload || {}));
+  };
+
+  socket.on("connect", joinAdminRoom);
+  socket.on("order-updated", handleOrderUpdated);
+  socket.on("inventory-updated", handleInventoryUpdated);
+  socket.on("flash-sale-updated", handleFlashSaleUpdated);
+
+  if (socket.connected) {
+    joinAdminRoom();
+  } else {
+    socket.connect();
+  }
+
+  return () => {
+    socket.emit("leave-admin");
+    socket.off("connect", joinAdminRoom);
+    socket.off("order-updated", handleOrderUpdated);
+    socket.off("inventory-updated", handleInventoryUpdated);
+    socket.off("flash-sale-updated", handleFlashSaleUpdated);
+
+    if (shouldDisconnectSocket(socket)) {
       socket.disconnect();
     }
   };
