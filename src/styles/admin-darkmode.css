@@ -1,0 +1,309 @@
+﻿.admin-shell--dark {
+  background: #0b1220 !important;
+}
+
+.admin-shell--dark .admin-sider.ant-layout-sider {
+  background: #020617 !important;
+  border-right: 1px solid #1e293b;
+}
+
+.admin-shell--dark .admin-header {
+  background: #0f172a !important;
+  border-bottom-color: #1e293b !important;
+  box-shadow: none !important;
+}
+
+.admin-shell--dark .admin-header .ant-typography {
+  color: #e2e8f0 !important;
+}
+
+.admin-shell--dark .admin-header .ant-typography.text-slate-500\! {
+  color: #94a3b8 !important;
+}
+
+.admin-shell--dark .admin-top-icon-btn {
+  border-color: #334155 !important;
+  background: #111827 !important;
+  color: #cbd5e1 !important;
+}
+
+.admin-shell--dark .admin-top-icon-btn:hover {
+  border-color: #475569 !important;
+  background: #1f2937 !important;
+}
+
+.admin-shell--dark .admin-profile-trigger {
+  color: #e2e8f0 !important;
+}
+
+.admin-shell--dark .admin-content {
+  background: #0b1220 !important;
+}
+
+.admin-shell--dark .admin-main-surface {
+  border-color: #334155 !important;
+  background: #111827 !important;
+  color: #e2e8f0 !important;
+}
+
+.admin-shell--dark .admin-main-surface .ant-typography,
+.admin-shell--dark .admin-main-surface p,
+.admin-shell--dark .admin-main-surface span,
+.admin-shell--dark .admin-main-surface label,
+.admin-shell--dark .admin-main-surface h1,
+.admin-shell--dark .admin-main-surface h2,
+.admin-shell--dark .admin-main-surface h3,
+.admin-shell--dark .admin-main-surface h4,
+.admin-shell--dark .admin-main-surface h5 {
+  color: inherit;
+}
+
+.admin-shell--dark .admin-main-surface .ant-card {
+  border-color: #334155 !important;
+  background: #0f172a !important;
+  box-shadow: none !important;
+}
+
+.admin-shell--dark .admin-main-surface .ant-table-wrapper .ant-table {
+  background: #0f172a !important;
+  color: #e2e8f0 !important;
+}
+
+.admin-shell--dark .admin-main-surface .ant-table-wrapper .ant-table-thead > tr > th {
+  background: #1e293b !important;
+  color: #e2e8f0 !important;
+  border-bottom-color: #334155 !important;
+}
+
+.admin-shell--dark .admin-main-surface .ant-table-wrapper .ant-table-tbody > tr > td {
+  background: #0f172a !important;
+  color: #e2e8f0 !important;
+  border-bottom-color: #334155 !important;
+}
+
+.admin-shell--dark .admin-main-surface .ant-table-wrapper .ant-table-tbody > tr:hover > td {
+  background: #111827 !important;
+}
+
+.admin-shell--dark .admin-main-surface .ant-input,
+.admin-shell--dark .admin-main-surface .ant-input-affix-wrapper,
+.admin-shell--dark .admin-main-surface .ant-input-number,
+.admin-shell--dark .admin-main-surface .ant-select-selector,
+.admin-shell--dark .admin-main-surface .ant-picker {
+  border-color: #334155 !important;
+  background: #111827 !important;
+  color: #e2e8f0 !important;
+}
+
+.admin-shell--dark .admin-main-surface .ant-select-selection-item,
+.admin-shell--dark .admin-main-surface .ant-select-selection-placeholder,
+.admin-shell--dark .admin-main-surface .ant-input::placeholder,
+.admin-shell--dark .admin-main-surface .ant-picker-input > input::placeholder {
+  color: #94a3b8 !important;
+}
+
+.admin-shell--dark .admin-main-surface .ant-btn-default {
+  border-color: #334155 !important;
+  background: #111827 !important;
+  color: #e2e8f0 !important;
+}
+
+.admin-shell--dark .admin-main-surface .ant-btn-default:hover {
+  border-color: #475569 !important;
+  color: #f8fafc !important;
+}
+
+.admin-shell--dark .admin-header.bg-white\! {
+  background: #0f172a !important;
+}
+
+.admin-shell--dark .admin-header .text-slate-900\!,
+.admin-shell--dark .admin-header .text-slate-900 {
+  color: #f8fafc !important;
+}
+
+.admin-shell--dark .admin-main-surface .ant-card,
+.admin-shell--dark .admin-main-surface .ant-card .ant-card-head,
+.admin-shell--dark .admin-main-surface .ant-card .ant-card-body,
+.admin-shell--dark .admin-main-surface .ant-card .ant-card-meta-title,
+.admin-shell--dark .admin-main-surface .ant-card .ant-card-meta-description {
+  color: #e2e8f0 !important;
+}
+
+.admin-shell--dark .admin-main-surface .ant-typography.ant-typography-secondary,
+.admin-shell--dark .admin-main-surface .ant-form-item-explain,
+.admin-shell--dark .admin-main-surface .ant-form-item-extra,
+.admin-shell--dark .admin-main-surface .ant-empty-description {
+  color: #94a3b8 !important;
+}
+
+.admin-shell--dark .admin-main-surface .ant-statistic-title,
+.admin-shell--dark .admin-main-surface .ant-statistic-content,
+.admin-shell--dark .admin-main-surface .ant-statistic-content-value,
+.admin-shell--dark .admin-main-surface .ant-statistic-content-prefix,
+.admin-shell--dark .admin-main-surface .ant-statistic-content-suffix,
+.admin-shell--dark .admin-main-surface .ant-descriptions-item-label,
+.admin-shell--dark .admin-main-surface .ant-descriptions-item-content {
+  color: #e2e8f0 !important;
+}
+
+.admin-shell--dark .admin-main-surface .text-slate-900,
+.admin-shell--dark .admin-main-surface .text-slate-900\! {
+  color: #f8fafc !important;
+}
+
+.admin-shell--dark .admin-main-surface .text-slate-800,
+.admin-shell--dark .admin-main-surface .text-slate-800\! {
+  color: #e2e8f0 !important;
+}
+
+.admin-shell--dark .admin-main-surface .text-slate-700,
+.admin-shell--dark .admin-main-surface .text-slate-700\! {
+  color: #cbd5e1 !important;
+}
+
+.admin-shell--dark .admin-main-surface .text-slate-600,
+.admin-shell--dark .admin-main-surface .text-slate-600\! {
+  color: #94a3b8 !important;
+}
+
+.admin-shell--dark .admin-main-surface .text-slate-500,
+.admin-shell--dark .admin-main-surface .text-slate-500\!,
+.admin-shell--dark .admin-main-surface .text-slate-400,
+.admin-shell--dark .admin-main-surface .text-slate-400\! {
+  color: #94a3b8 !important;
+}
+
+.admin-shell--dark .admin-main-surface .bg-white,
+.admin-shell--dark .admin-main-surface .bg-white\! {
+  background: #0f172a !important;
+}
+
+.admin-shell--dark .admin-main-surface .bg-slate-50,
+.admin-shell--dark .admin-main-surface .bg-slate-50\! {
+  background: #111827 !important;
+}
+
+.admin-shell--dark .admin-main-surface .bg-slate-100,
+.admin-shell--dark .admin-main-surface .bg-slate-100\! {
+  background: #1e293b !important;
+}
+
+.admin-shell--dark .admin-main-surface .bg-blue-50,
+.admin-shell--dark .admin-main-surface .bg-blue-50\! {
+  background: #1e293b !important;
+}
+
+.admin-shell--dark .admin-main-surface .bg-blue-100,
+.admin-shell--dark .admin-main-surface .bg-blue-100\! {
+  background: #1e3a8a !important;
+}
+
+.admin-shell--dark .admin-main-surface .text-blue-700,
+.admin-shell--dark .admin-main-surface .text-blue-700\! {
+  color: #93c5fd !important;
+}
+
+.admin-shell--dark .admin-main-surface .text-blue-900,
+.admin-shell--dark .admin-main-surface .text-blue-900\! {
+  color: #dbeafe !important;
+}
+
+.admin-shell--dark .admin-main-surface .border-slate-200,
+.admin-shell--dark .admin-main-surface .border-slate-200\! {
+  border-color: #334155 !important;
+}
+
+.admin-shell--dark .admin-main-surface .border-slate-300,
+.admin-shell--dark .admin-main-surface .border-slate-300\! {
+  border-color: #475569 !important;
+}
+
+.admin-shell--dark .admin-main-surface .hover\:bg-slate-50:hover,
+.admin-shell--dark .admin-main-surface .hover\:bg-slate-100:hover {
+  background: #1f2937 !important;
+}
+
+.admin-shell--dark .admin-main-surface .hover\:border-slate-300:hover,
+.admin-shell--dark .admin-main-surface .hover\:border-slate-300\!:hover {
+  border-color: #64748b !important;
+}
+
+.admin-shell--dark .admin-main-surface svg line[stroke="#e2e8f0"] {
+  stroke: #334155;
+}
+
+body.admin-dark-mode .ant-modal .ant-modal-content,
+body.admin-dark-mode .ant-dropdown .ant-dropdown-menu,
+body.admin-dark-mode .ant-select-dropdown,
+body.admin-dark-mode .ant-picker-dropdown .ant-picker-panel-container,
+body.admin-dark-mode .ant-popover .ant-popover-inner {
+  background: #0f172a !important;
+  border: 1px solid #334155 !important;
+  color: #e2e8f0 !important;
+}
+
+body.admin-dark-mode .ant-modal .ant-modal-header {
+  background: #0f172a !important;
+  border-bottom: 1px solid #334155 !important;
+}
+
+body.admin-dark-mode .ant-modal .ant-modal-title,
+body.admin-dark-mode .ant-modal .ant-modal-close,
+body.admin-dark-mode .ant-modal .ant-modal-close-x,
+body.admin-dark-mode .ant-modal .ant-typography,
+body.admin-dark-mode .ant-dropdown .ant-dropdown-menu-item,
+body.admin-dark-mode .ant-dropdown .ant-dropdown-menu-submenu-title,
+body.admin-dark-mode .ant-select-item,
+body.admin-dark-mode .ant-popover .ant-popover-message-title,
+body.admin-dark-mode .ant-popover .ant-popover-message-description {
+  color: #e2e8f0 !important;
+}
+
+body.admin-dark-mode .ant-select-item-option-active:not(.ant-select-item-option-disabled),
+body.admin-dark-mode .ant-dropdown .ant-dropdown-menu-item:hover,
+body.admin-dark-mode .ant-dropdown .ant-dropdown-menu-submenu-title:hover {
+  background: #1e293b !important;
+}
+
+body.admin-dark-mode .ant-select-item-option-selected:not(.ant-select-item-option-disabled) {
+  background: #1d4ed8 !important;
+  color: #eff6ff !important;
+}
+
+body.admin-dark-mode .ant-picker-dropdown .ant-picker-cell-in-view {
+  color: #cbd5e1 !important;
+}
+
+body.admin-dark-mode .ant-picker-dropdown .ant-picker-cell-in-view.ant-picker-cell-selected .ant-picker-cell-inner,
+body.admin-dark-mode .ant-picker-dropdown .ant-picker-cell-in-view.ant-picker-cell-range-start .ant-picker-cell-inner,
+body.admin-dark-mode .ant-picker-dropdown .ant-picker-cell-in-view.ant-picker-cell-range-end .ant-picker-cell-inner {
+  background: #2563eb !important;
+}
+
+body.admin-dark-mode .ant-modal .text-slate-900,
+body.admin-dark-mode .ant-modal .text-slate-900\! {
+  color: #f8fafc !important;
+}
+
+body.admin-dark-mode .ant-modal .text-slate-700,
+body.admin-dark-mode .ant-modal .text-slate-700\!,
+body.admin-dark-mode .ant-modal .text-slate-600,
+body.admin-dark-mode .ant-modal .text-slate-600\!,
+body.admin-dark-mode .ant-modal .text-slate-500,
+body.admin-dark-mode .ant-modal .text-slate-500\! {
+  color: #94a3b8 !important;
+}
+
+body.admin-dark-mode .ant-modal .bg-white,
+body.admin-dark-mode .ant-modal .bg-slate-50,
+body.admin-dark-mode .ant-modal .bg-slate-100 {
+  background: #111827 !important;
+}
+
+body.admin-dark-mode .ant-modal .border-slate-200,
+body.admin-dark-mode .ant-modal .border-slate-300 {
+  border-color: #334155 !important;
+}
+
+

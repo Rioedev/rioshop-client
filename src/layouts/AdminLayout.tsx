@@ -12,6 +12,7 @@
   MoonOutlined,
   ReadOutlined,
   SettingOutlined,
+  SunOutlined,
   ShoppingCartOutlined,
   StarOutlined,
   TagsOutlined,
@@ -31,6 +32,7 @@ import { useNotificationStore } from "../stores/notificationStore";
 
 const { Header, Content, Sider } = Layout;
 const { Text, Title } = Typography;
+const ADMIN_THEME_STORAGE_KEY = "rioshop_admin_theme";
 
 const baseAdminMenuItems: ItemType[] = [
   { key: "/admin/dashboard", icon: <HomeOutlined />, label: "Tổng quan" },
@@ -94,6 +96,10 @@ export function AdminLayout() {
     useState(false);
   const [isSiderCollapsed, setIsSiderCollapsed] = useState(false);
   const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false);
+  const [isDarkMode, setIsDarkMode] = useState<boolean>(() => {
+    if (typeof window === "undefined") return false;
+    return localStorage.getItem(ADMIN_THEME_STORAGE_KEY) === "dark";
+  });
 
   const canManageAdminAccounts =
     user?.role === "superadmin" || user?.role === "manager";
@@ -130,6 +136,19 @@ export function AdminLayout() {
   };
 
   useEffect(() => {
+    if (typeof window === "undefined") return;
+    localStorage.setItem(ADMIN_THEME_STORAGE_KEY, isDarkMode ? "dark" : "light");
+  }, [isDarkMode]);
+
+  useEffect(() => {
+    if (typeof document === "undefined") return;
+    document.body.classList.toggle("admin-dark-mode", isDarkMode);
+    return () => {
+      document.body.classList.remove("admin-dark-mode");
+    };
+  }, [isDarkMode]);
+
+  useEffect(() => {
     const principalId = user?.id?.toString().trim();
     if (accountType !== "admin" || !principalId) {
       resetNotifications();
@@ -158,12 +177,15 @@ export function AdminLayout() {
   }, [location.pathname]);
 
   return (
-    <Layout className="h-screen overflow-hidden bg-slate-100">
+    <Layout
+      className={`admin-shell h-screen overflow-hidden bg-slate-100 ${isDarkMode ? "admin-shell--dark" : ""}`}
+      data-admin-theme={isDarkMode ? "dark" : "light"}
+    >
       <Sider
         breakpoint="lg"
         width={248}
         collapsedWidth={76}
-        className="sticky! left-0 top-0 h-screen! overflow-y-auto bg-slate-950!"
+        className="admin-sider sticky! left-0 top-0 h-screen! overflow-y-auto bg-slate-950!"
         onCollapse={(collapsed) => setIsSiderCollapsed(collapsed)}
       >
         <div
@@ -196,15 +218,21 @@ export function AdminLayout() {
         />
       </Sider>
 
-      <Layout className="h-screen overflow-hidden">
-        <Header className="h-auto! shrink-0 border-b border-slate-200 bg-white! px-6! py-3! leading-normal! shadow-sm">
+      <Layout className={`h-screen overflow-hidden ${isDarkMode ? "bg-slate-950" : ""}`}>
+        <Header
+          className={`admin-header h-auto! shrink-0 border-b px-6! py-3! leading-normal! ${
+            isDarkMode
+              ? "border-slate-700 bg-slate-900! shadow-none"
+              : "border-slate-200 bg-white! shadow-sm"
+          }`}
+        >
           {contextHolder}
           <div className="flex min-h-13 items-center justify-between gap-4">
             <div className="leading-tight">
-              <Text className="text-xs! uppercase! tracking-[0.12em]! text-slate-500!">
+              <Text className={`text-xs! uppercase! tracking-[0.12em]! ${isDarkMode ? "text-slate-400!" : "text-slate-500!"}`}>
                 Trang đang xem
               </Text>
-              <Title level={4} className="m-0! text-slate-900! leading-tight!">
+              <Title level={4} className={`m-0! leading-tight! ${isDarkMode ? "text-slate-100!" : "text-slate-900!"}`}>
                 {activePageTitle}
               </Title>
             </div>
@@ -212,18 +240,24 @@ export function AdminLayout() {
             <div className="flex items-center gap-2">
               <Button
                 type="text"
-                className="h-10! w-10! rounded-full! border border-slate-200! bg-slate-50! p-0! text-slate-500! hover:border-slate-300! hover:bg-white!"
-                onClick={() =>
-                  messageApi.info("Chế độ giao diện đang được phát triển thêm.")
-                }
+                className={`admin-top-icon-btn h-10! w-10! rounded-full! border p-0! ${
+                  isDarkMode
+                    ? "border-slate-700! bg-slate-800! text-slate-200! hover:border-slate-600! hover:bg-slate-700!"
+                    : "border-slate-200! bg-slate-50! text-slate-500! hover:border-slate-300! hover:bg-white!"
+                }`}
+                onClick={() => setIsDarkMode((prev) => !prev)}
                 aria-label="Chuyển giao diện"
               >
-                <MoonOutlined className="text-base" />
+                {isDarkMode ? <SunOutlined className="text-base" /> : <MoonOutlined className="text-base" />}
               </Button>
 
               <Button
                 type="text"
-                className="h-10! w-10! rounded-full! border border-slate-200! bg-slate-50! p-0! text-slate-600! hover:border-slate-300! hover:bg-white!"
+                className={`admin-top-icon-btn h-10! w-10! rounded-full! border p-0! ${
+                  isDarkMode
+                    ? "border-slate-700! bg-slate-800! text-slate-200! hover:border-slate-600! hover:bg-slate-700!"
+                    : "border-slate-200! bg-slate-50! text-slate-600! hover:border-slate-300! hover:bg-white!"
+                }`}
                 onClick={() => setIsNotificationsModalOpen(true)}
                 aria-label="Thông báo"
               >
@@ -238,18 +272,18 @@ export function AdminLayout() {
                 onOpenChange={setIsProfileMenuOpen}
                 placement="bottomRight"
                 dropdownRender={() => (
-                  <div className="w-72 rounded-2xl border border-slate-200 bg-white p-4 shadow-xl">
-                    <div className="mb-3 border-b border-slate-100 pb-3">
-                      <p className="m-0 text-xl font-bold leading-tight text-slate-700">
+                  <div className={`admin-profile-dropdown w-72 rounded-2xl border p-4 shadow-xl ${isDarkMode ? "border-slate-700 bg-slate-900 text-slate-100" : "border-slate-200 bg-white text-slate-700"}`}>
+                    <div className={`mb-3 border-b pb-3 ${isDarkMode ? "border-slate-700" : "border-slate-100"}`}>
+                      <p className={`m-0 text-xl font-bold leading-tight ${isDarkMode ? "text-slate-100" : "text-slate-700"}`}>
                         {userFullName}
                       </p>
-                      <p className="m-0 mt-1 text-sm text-slate-500">{userEmail}</p>
+                      <p className={`m-0 mt-1 text-sm ${isDarkMode ? "text-slate-400" : "text-slate-500"}`}>{userEmail}</p>
                     </div>
 
                     <div className="space-y-1">
                       <Button
                         type="text"
-                        className="w-full justify-start! rounded-lg! px-2! text-slate-700!"
+                        className={`w-full justify-start! rounded-lg! px-2! ${isDarkMode ? "text-slate-100! hover:bg-slate-800!" : "text-slate-700!"}`}
                         icon={<UserOutlined />}
                         onClick={() => {
                           setIsProfileMenuOpen(false);
@@ -260,7 +294,7 @@ export function AdminLayout() {
                       </Button>
                       <Button
                         type="text"
-                        className="w-full justify-start! rounded-lg! px-2! text-slate-700!"
+                        className={`w-full justify-start! rounded-lg! px-2! ${isDarkMode ? "text-slate-100! hover:bg-slate-800!" : "text-slate-700!"}`}
                         icon={<SettingOutlined />}
                         onClick={() => {
                           setIsProfileMenuOpen(false);
@@ -271,7 +305,7 @@ export function AdminLayout() {
                       </Button>
                       <Button
                         type="text"
-                        className="w-full justify-start! rounded-lg! px-2! text-slate-700!"
+                        className={`w-full justify-start! rounded-lg! px-2! ${isDarkMode ? "text-slate-100! hover:bg-slate-800!" : "text-slate-700!"}`}
                         icon={<InfoCircleOutlined />}
                         onClick={() => {
                           setIsProfileMenuOpen(false);
@@ -282,7 +316,7 @@ export function AdminLayout() {
                       </Button>
                     </div>
 
-                    <div className="my-3 border-t border-slate-200" />
+                    <div className={`my-3 border-t ${isDarkMode ? "border-slate-700" : "border-slate-200"}`} />
 
                     <Button
                       type="text"
@@ -298,23 +332,27 @@ export function AdminLayout() {
               >
                 <button
                   type="button"
-                  className="inline-flex items-center gap-2 rounded-full border border-transparent bg-transparent px-1 py-1 text-left transition hover:border-slate-200 hover:bg-slate-50"
+                  className={`admin-profile-trigger inline-flex items-center gap-2 rounded-full border border-transparent bg-transparent px-1 py-1 text-left transition ${isDarkMode ? "hover:border-slate-700 hover:bg-slate-800" : "hover:border-slate-200 hover:bg-slate-50"}`}
                 >
                   <Avatar src={avatarUrl} size={38}>
                     {userFullName.charAt(0).toUpperCase()}
                   </Avatar>
-                  <span className="hidden text-sm font-semibold text-slate-800 sm:inline">
+                  <span className={`hidden text-sm font-semibold sm:inline ${isDarkMode ? "text-slate-100" : "text-slate-800"}`}>
                     {userFullName}
                   </span>
-                  <DownOutlined className="text-xs text-slate-500" />
+                  <DownOutlined className={`text-xs ${isDarkMode ? "text-slate-300" : "text-slate-500"}`} />
                 </button>
               </Dropdown>
             </div>
           </div>
         </Header>
 
-        <Content className="overflow-y-auto bg-slate-100 p-6">
-          <div className="min-h-full rounded-2xl border border-slate-200 bg-white p-5 md:p-6">
+        <Content className={`admin-content overflow-y-auto p-6 ${isDarkMode ? "bg-slate-950" : "bg-slate-100"}`}>
+          <div
+            className={`admin-main-surface min-h-full rounded-2xl border p-5 md:p-6 ${
+              isDarkMode ? "border-slate-700 bg-slate-900" : "border-slate-200 bg-white"
+            }`}
+          >
             <Outlet />
           </div>
         </Content>
