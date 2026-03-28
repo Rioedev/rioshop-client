@@ -25,7 +25,7 @@ export function StoreMomoSandboxPage() {
   const [agreed, setAgreed] = useState(false);
 
   const orderId = searchParams.get("orderId") || "";
-  const requestId = searchParams.get("requestId") || `${Date.now()}`;
+  const requestId = searchParams.get("requestId") || `REQ_${orderId || "SANDBOX"}`;
   const amount = Number(searchParams.get("amount") || 0);
   const returnUrl =
     searchParams.get("returnUrl") || `${window.location.origin}/payment/momo-return`;
@@ -49,7 +49,7 @@ export function StoreMomoSandboxPage() {
     const messageText = isSuccess
       ? "MoMo test payment success"
       : "MoMo test payment cancelled";
-    const transId = isSuccess ? `MOCK_${Date.now()}` : "";
+    const transId = isSuccess ? `MOCK_${requestId}` : "";
 
     const redirectUrl = buildReturnUrl(returnUrl, {
       orderId,

@@ -1,4 +1,4 @@
-import { AxiosError } from "axios";
+﻿import { AxiosError } from "axios";
 import {
   Alert,
   Button,
@@ -272,17 +272,7 @@ export function AdminBrandConfigPage() {
     form.setFieldsValue(getDefaultFormValues(brandKey));
   }, [form]);
 
-  const handleLoadConfig = useCallback(async (rawBrandKey?: string) => {
-    const brandKey = (rawBrandKey ?? form.getFieldValue("brandKey") ?? "").trim();
-
-    if (!brandKey) {
-      messageApi.warning("Vui lòng nhập mã thương hiệu (brandKey).");
-      return;
-    }
-
-    setActiveBrandKey(brandKey);
-    form.setFieldValue("brandKey", brandKey);
-
+  const loadConfigData = useCallback(async (brandKey: string) => {
     try {
       await loadBrandConfig(brandKey);
       const latest = useBrandConfigStore.getState();
@@ -299,10 +289,23 @@ export function AdminBrandConfigPage() {
     }
   }, [applyDefaultForm, form, loadBrandConfig, messageApi]);
 
+  const handleLoadConfig = useCallback(async (rawBrandKey?: string) => {
+    const brandKey = (rawBrandKey ?? form.getFieldValue("brandKey") ?? "").trim();
+
+    if (!brandKey) {
+      messageApi.warning("Vui lòng nhập mã thương hiệu (brandKey).");
+      return;
+    }
+
+    setActiveBrandKey(brandKey);
+    form.setFieldValue("brandKey", brandKey);
+    await loadConfigData(brandKey);
+  }, [form, loadConfigData, messageApi]);
+
   useEffect(() => {
-    applyDefaultForm(DEFAULT_BRAND_KEY);
-    void handleLoadConfig(DEFAULT_BRAND_KEY);
-  }, [applyDefaultForm, handleLoadConfig]);
+    form.setFieldValue("brandKey", DEFAULT_BRAND_KEY);
+    void loadConfigData(DEFAULT_BRAND_KEY);
+  }, [form, loadConfigData]);
 
   const handleSave = async () => {
     try {

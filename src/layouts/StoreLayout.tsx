@@ -486,25 +486,22 @@ export function StoreLayout() {
     [categoryTree],
   );
 
-  useEffect(() => {
-    setActiveMegaItemKeys((prev) => {
-      const next = { ...prev };
-      megaColumns.forEach((column) => {
-        const previousKey = prev[column.key];
-        if (!previousKey) {
-          delete next[column.key];
-          return;
-        }
+  const normalizedActiveMegaItemKeys = useMemo(() => {
+    const next = { ...activeMegaItemKeys };
+    megaColumns.forEach((column) => {
+      const previousKey = activeMegaItemKeys[column.key];
+      if (!previousKey) {
+        delete next[column.key];
+        return;
+      }
 
-        const stillExists =
-          previousKey && column.items.some((item) => item.key === previousKey);
-        if (!stillExists) {
-          delete next[column.key];
-        }
-      });
-      return next;
+      const stillExists = column.items.some((item) => item.key === previousKey);
+      if (!stillExists) {
+        delete next[column.key];
+      }
     });
-  }, [megaColumns]);
+    return next;
+  }, [activeMegaItemKeys, megaColumns]);
 
   useEffect(
     () => () => {
@@ -546,10 +543,6 @@ export function StoreLayout() {
       return next;
     });
   };
-
-  useEffect(() => {
-    setIsMegaMenuOpen(false);
-  }, [location.pathname]);
 
   useEffect(() => {
     analyticsTracker.captureUtmFromSearch(location.search);
@@ -810,7 +803,7 @@ export function StoreLayout() {
               <div className="store-mega-panel">
                 <div className="store-mega-grid">
                   {megaColumns.map((column) => {
-                    const activeItemKey = activeMegaItemKeys[column.key];
+                    const activeItemKey = normalizedActiveMegaItemKeys[column.key];
                     return (
                       <section key={column.key} className="store-mega-col">
                         <h4 className="store-mega-heading">{column.title} ↗</h4>

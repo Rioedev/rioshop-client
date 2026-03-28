@@ -1,3 +1,4 @@
+/* eslint-disable react-refresh/only-export-components */
 import type { ReactNode } from "react";
 
 const joinClassNames = (...parts: Array<string | false | null | undefined>) => parts.filter(Boolean).join(" ");

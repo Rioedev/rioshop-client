@@ -2,20 +2,25 @@
   AppstoreOutlined,
   BellOutlined,
   BgColorsOutlined,
+  DownOutlined,
   GiftOutlined,
   HomeOutlined,
+  InfoCircleOutlined,
   InboxOutlined,
-  ReadOutlined,
   LineChartOutlined,
   LogoutOutlined,
+  MoonOutlined,
+  ReadOutlined,
+  SettingOutlined,
   ShoppingCartOutlined,
   StarOutlined,
   TagsOutlined,
   TeamOutlined,
   ThunderboltOutlined,
+  UserOutlined,
   UserSwitchOutlined,
 } from "@ant-design/icons";
-import { Badge, Button, Layout, Menu, Typography } from "antd";
+import { Avatar, Badge, Button, Dropdown, Layout, Menu, Typography, message } from "antd";
 import type { ItemType } from "antd/es/menu/interface";
 import { useEffect, useMemo, useState } from "react";
 import { Outlet, useLocation, useNavigate } from "react-router-dom";
@@ -73,6 +78,7 @@ const pageTitleMap: Record<string, string> = {
 export function AdminLayout() {
   const location = useLocation();
   const navigate = useNavigate();
+  const [messageApi, contextHolder] = message.useMessage();
   const user = useAuthStore((state) => state.user);
   const accountType = useAuthStore((state) => state.accountType);
   const logout = useAuthStore((state) => state.logout);
@@ -87,6 +93,7 @@ export function AdminLayout() {
   const [isNotificationsModalOpen, setIsNotificationsModalOpen] =
     useState(false);
   const [isSiderCollapsed, setIsSiderCollapsed] = useState(false);
+  const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false);
 
   const canManageAdminAccounts =
     user?.role === "superadmin" || user?.role === "manager";
@@ -110,6 +117,17 @@ export function AdminLayout() {
     () => pageTitleMap[String(activeKey)] ?? "Bảng điều khiển",
     [activeKey],
   );
+
+  const userFullName = user?.fullName ?? "Admin";
+  const userEmail = user?.email ?? "admin@rioshop.com";
+  const avatarUrl = `https://ui-avatars.com/api/?name=${encodeURIComponent(
+    userFullName,
+  )}&background=e2e8f0&color=0f172a&bold=true`;
+
+  const handleLogout = async () => {
+    await logout();
+    navigate("/admin/login", { replace: true });
+  };
 
   useEffect(() => {
     const principalId = user?.id?.toString().trim();
@@ -180,6 +198,7 @@ export function AdminLayout() {
 
       <Layout className="h-screen overflow-hidden">
         <Header className="h-auto! shrink-0 border-b border-slate-200 bg-white! px-6! py-3! leading-normal! shadow-sm">
+          {contextHolder}
           <div className="flex min-h-13 items-center justify-between gap-4">
             <div className="leading-tight">
               <Text className="text-xs! uppercase! tracking-[0.12em]! text-slate-500!">
@@ -193,39 +212,103 @@ export function AdminLayout() {
             <div className="flex items-center gap-2">
               <Button
                 type="text"
-                className="rounded-full! border border-slate-200! bg-slate-50! px-3!"
-                onClick={() => setIsNotificationsModalOpen(true)}
+                className="h-10! w-10! rounded-full! border border-slate-200! bg-slate-50! p-0! text-slate-500! hover:border-slate-300! hover:bg-white!"
+                onClick={() =>
+                  messageApi.info("Chế độ giao diện đang được phát triển thêm.")
+                }
+                aria-label="Chuyển giao diện"
               >
-                <span className="inline-flex items-center gap-2">
-                  <Badge count={unreadCount} overflowCount={99} size="small">
-                    <BellOutlined className="text-base" />
-                  </Badge>
-                  <span className="hidden md:inline">Thông báo</span>
-                </span>
+                <MoonOutlined className="text-base" />
               </Button>
-
-              <div className="min-w-47.5 rounded-full border border-slate-200 bg-slate-50 px-3 py-1.5 text-right leading-tight">
-                <Text className="block text-[11px]! uppercase! tracking-[0.08em]! text-slate-500! leading-tight!">
-                  Tài khoản
-                </Text>
-                <Text
-                  strong
-                  className="block text-sm! text-slate-800! leading-tight!"
-                >
-                  {user?.fullName ?? "Khách"}
-                </Text>
-              </div>
 
               <Button
-                icon={<LogoutOutlined />}
-                className="rounded-full!"
-                onClick={async () => {
-                  await logout();
-                  navigate("/admin/login", { replace: true });
-                }}
+                type="text"
+                className="h-10! w-10! rounded-full! border border-slate-200! bg-slate-50! p-0! text-slate-600! hover:border-slate-300! hover:bg-white!"
+                onClick={() => setIsNotificationsModalOpen(true)}
+                aria-label="Thông báo"
               >
-                Đăng xuất
+                <Badge count={unreadCount} overflowCount={99} size="small">
+                  <BellOutlined className="text-base" />
+                </Badge>
               </Button>
+
+              <Dropdown
+                trigger={["click"]}
+                open={isProfileMenuOpen}
+                onOpenChange={setIsProfileMenuOpen}
+                placement="bottomRight"
+                dropdownRender={() => (
+                  <div className="w-72 rounded-2xl border border-slate-200 bg-white p-4 shadow-xl">
+                    <div className="mb-3 border-b border-slate-100 pb-3">
+                      <p className="m-0 text-xl font-bold leading-tight text-slate-700">
+                        {userFullName}
+                      </p>
+                      <p className="m-0 mt-1 text-sm text-slate-500">{userEmail}</p>
+                    </div>
+
+                    <div className="space-y-1">
+                      <Button
+                        type="text"
+                        className="w-full justify-start! rounded-lg! px-2! text-slate-700!"
+                        icon={<UserOutlined />}
+                        onClick={() => {
+                          setIsProfileMenuOpen(false);
+                          messageApi.info("Trang chỉnh hồ sơ sẽ được bổ sung sớm.");
+                        }}
+                      >
+                        Edit profile
+                      </Button>
+                      <Button
+                        type="text"
+                        className="w-full justify-start! rounded-lg! px-2! text-slate-700!"
+                        icon={<SettingOutlined />}
+                        onClick={() => {
+                          setIsProfileMenuOpen(false);
+                          navigate("/admin/brand-config");
+                        }}
+                      >
+                        Account settings
+                      </Button>
+                      <Button
+                        type="text"
+                        className="w-full justify-start! rounded-lg! px-2! text-slate-700!"
+                        icon={<InfoCircleOutlined />}
+                        onClick={() => {
+                          setIsProfileMenuOpen(false);
+                          messageApi.info("Mục hỗ trợ sẽ được cập nhật trong bản tới.");
+                        }}
+                      >
+                        Support
+                      </Button>
+                    </div>
+
+                    <div className="my-3 border-t border-slate-200" />
+
+                    <Button
+                      type="text"
+                      danger
+                      className="w-full justify-start! rounded-lg! px-2!"
+                      icon={<LogoutOutlined />}
+                      onClick={() => void handleLogout()}
+                    >
+                      Sign out
+                    </Button>
+                  </div>
+                )}
+              >
+                <button
+                  type="button"
+                  className="inline-flex items-center gap-2 rounded-full border border-transparent bg-transparent px-1 py-1 text-left transition hover:border-slate-200 hover:bg-slate-50"
+                >
+                  <Avatar src={avatarUrl} size={38}>
+                    {userFullName.charAt(0).toUpperCase()}
+                  </Avatar>
+                  <span className="hidden text-sm font-semibold text-slate-800 sm:inline">
+                    {userFullName}
+                  </span>
+                  <DownOutlined className="text-xs text-slate-500" />
+                </button>
+              </Dropdown>
             </div>
           </div>
         </Header>

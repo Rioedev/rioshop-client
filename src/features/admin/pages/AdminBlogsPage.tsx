@@ -18,7 +18,7 @@ import {
 import { InboxOutlined, PlusOutlined } from "@ant-design/icons";
 import type { ColumnsType, TablePaginationConfig } from "antd/es/table";
 import type { UploadProps } from "antd/es/upload";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { RichTextEditor } from "../../../components/editor/RichTextEditor";
 import { blogService, type BlogPayload, type BlogPost } from "../../../services/blogService";
 import { ensureImageFile, getImageValidationError } from "../../../services/mediaUploadService";
@@ -114,7 +114,7 @@ export function AdminBlogsPage() {
     return () => window.clearTimeout(timer);
   }, [searchText]);
 
-  const loadBlogs = async (params?: {
+  const loadBlogs = useCallback(async (params?: {
     nextPage?: number;
     nextPageSize?: number;
     nextKeyword?: string;
@@ -142,7 +142,7 @@ export function AdminBlogsPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [debouncedSearchText, messageApi, page, pageSize, statusFilter]);
 
   useEffect(() => {
     void loadBlogs({
@@ -151,7 +151,7 @@ export function AdminBlogsPage() {
       nextKeyword: debouncedSearchText,
       nextFilter: statusFilter,
     });
-  }, [debouncedSearchText, statusFilter]);
+  }, [debouncedSearchText, loadBlogs, pageSize, statusFilter]);
 
   const resetFormState = () => {
     form.resetFields();

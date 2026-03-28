@@ -71,10 +71,6 @@ const formatDateTime = (value?: string) => {
 
 export function AdminAnalyticsEventsPage() {
   const [messageApi, contextHolder] = message.useMessage();
-  const [eventFilterUi, setEventFilterUi] = useState<AnalyticsEventType | "">("");
-  const [startDateUi, setStartDateUi] = useState("");
-  const [endDateUi, setEndDateUi] = useState("");
-  const [searchText, setSearchText] = useState("");
 
   const events = useAnalyticsEventStore((state) => state.events);
   const loading = useAnalyticsEventStore((state) => state.loading);
@@ -90,6 +86,16 @@ export function AdminAnalyticsEventsPage() {
   const loadDashboard = useAnalyticsEventStore((state) => state.loadDashboard);
   const setEventFilter = useAnalyticsEventStore((state) => state.setEventFilter);
   const setDateRange = useAnalyticsEventStore((state) => state.setDateRange);
+  const [eventFilterUi, setEventFilterUi] = useState<AnalyticsEventType | "">(
+    () => useAnalyticsEventStore.getState().eventFilter ?? "",
+  );
+  const [startDateUi, setStartDateUi] = useState(
+    () => useAnalyticsEventStore.getState().startDate ?? "",
+  );
+  const [endDateUi, setEndDateUi] = useState(
+    () => useAnalyticsEventStore.getState().endDate ?? "",
+  );
+  const [searchText, setSearchText] = useState("");
 
   useEffect(() => {
     void Promise.all([
@@ -99,12 +105,6 @@ export function AdminAnalyticsEventsPage() {
       messageApi.error(getErrorMessage(error));
     });
   }, [loadDashboard, loadEvents, messageApi]);
-
-  useEffect(() => {
-    setEventFilterUi(eventFilter ?? "");
-    setStartDateUi(startDate ?? "");
-    setEndDateUi(endDate ?? "");
-  }, [eventFilter, startDate, endDate]);
 
   const filteredEvents = useMemo(() => {
     const keyword = searchText.trim().toLowerCase();

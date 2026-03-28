@@ -1,4 +1,4 @@
-import { AxiosError } from "axios";
+﻿import { AxiosError } from "axios";
 import {
   Button,
   Card,
@@ -231,10 +231,10 @@ export function AdminCouponsPage() {
   }, [keyword]);
 
   const activeCount = useMemo(() => coupons.filter((coupon) => coupon.isActive).length, [coupons]);
-  const expiredCount = useMemo(() => {
-    const now = Date.now();
-    return coupons.filter((coupon) => new Date(coupon.expiresAt).getTime() < now).length;
-  }, [coupons]);
+  const expiredCount = useMemo(
+    () => coupons.filter((coupon) => getCouponStatus(coupon).label === "Đã hết hạn").length,
+    [coupons],
+  );
 
   const handleApplyFilters = async ({
     nextKeyword = keywordInput,

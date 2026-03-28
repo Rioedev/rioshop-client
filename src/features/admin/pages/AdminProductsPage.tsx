@@ -22,7 +22,7 @@
 import { CopyOutlined, DeleteOutlined, InboxOutlined, PlusOutlined } from "@ant-design/icons";
 import type { ColumnsType, TablePaginationConfig } from "antd/es/table";
 import type { UploadProps } from "antd/es/upload";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   productService,
   type Product,
@@ -474,24 +474,27 @@ export function AdminProductsPage() {
     [categoryOptions],
   );
 
-  const getSuggestedProductSku = (name = watchedName, currentCategoryId = watchedCategoryId) =>
-    buildProductSku({
-      name,
-      categoryName: currentCategoryId ? categoryLookup[currentCategoryId]?.name : "",
-    });
+  const getSuggestedProductSku = useCallback(
+    (name = watchedName, currentCategoryId = watchedCategoryId) =>
+      buildProductSku({
+        name,
+        categoryName: currentCategoryId ? categoryLookup[currentCategoryId]?.name : "",
+      }),
+    [categoryLookup, watchedCategoryId, watchedName],
+  );
 
   const variantSkuPreviewMatrix = useMemo(() => {
     const productSkuForPreview = normalizeSkuInput(watchedSku || "") || getSuggestedProductSku();
     return buildVariantSkuPreviewMatrix(watchedVariantGroups ?? [], productSkuForPreview);
-  }, [categoryLookup, watchedCategoryId, watchedName, watchedSku, watchedVariantGroups]);
+  }, [getSuggestedProductSku, watchedSku, watchedVariantGroups]);
 
-  const syncProductSku = () => {
+  const syncProductSku = useCallback(() => {
     const nextSku = getSuggestedProductSku();
     if (nextSku !== (form.getFieldValue("sku") as string | undefined)) {
       form.setFieldValue("sku", nextSku);
     }
     return nextSku;
-  };
+  }, [form, getSuggestedProductSku]);
 
   const regenerateProductSku = () => {
     productSkuManuallyEditedRef.current = false;
@@ -560,10 +563,9 @@ export function AdminProductsPage() {
     }
 
     syncProductSku();
-  }, [categoryLookup, form, isModalOpen, watchedCategoryId, watchedName]);
+  }, [isModalOpen, syncProductSku]);
 
   const registerPendingFile = (file: File) => {
-    // eslint-disable-next-line react-hooks/purity
     const pendingFileId = `pending-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
     pendingUploadFilesRef.current[pendingFileId] = file;
     return pendingFileId;

@@ -263,14 +263,16 @@ export function DashboardDonutCard(props: {
 
   const total = safeData.reduce((sum, item) => sum + item.value, 0);
 
-  let accumulated = 0;
-  const gradient = safeData
-    .map((item) => {
-      const start = accumulated;
-      const next = accumulated + (item.value / total) * 100;
-      accumulated = next;
-      return `${item.color} ${start}% ${next}%`;
-    })
+  const stops = safeData.reduce<Array<{ color: string; start: number; end: number }>>((acc, item) => {
+    const last = acc[acc.length - 1];
+    const start = last ? last.end : 0;
+    const end = start + (item.value / total) * 100;
+    acc.push({ color: item.color, start, end });
+    return acc;
+  }, []);
+
+  const gradient = stops
+    .map((stop) => `${stop.color} ${stop.start}% ${stop.end}%`)
     .join(", ");
 
   return (
