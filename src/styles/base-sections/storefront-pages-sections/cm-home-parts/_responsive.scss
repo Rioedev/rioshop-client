@@ -1,0 +1,46 @@
+﻿@media (max-width: 1024px) {
+  .cm-hero {
+    grid-template-columns: 1fr;
+  }
+
+  .cm-hero-image {
+    min-height: 290px;
+  }
+
+  .cm-quick-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .cm-product-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .cm-community-inner,
+  .cm-footer-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 640px) {
+  .cm-gender-spotlight {
+    grid-template-columns: 1fr;
+  }
+
+  .cm-banner-content h2 {
+    font-size: 34px;
+  }
+
+  .cm-quick-grid,
+  .cm-product-grid,
+  .cm-community-inner,
+  .cm-footer-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .cm-product-media {
+    height: 240px;
+  }
+}
+
+
+

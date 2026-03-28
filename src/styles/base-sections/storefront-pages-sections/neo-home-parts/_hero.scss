@@ -1,0 +1,122 @@
+﻿.neo-home {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.neo-hero {
+  position: relative;
+  overflow: hidden;
+  border-radius: 26px;
+  min-height: 520px;
+  border: 1px solid rgba(148, 163, 184, 0.25);
+  background:
+    radial-gradient(circle at 10% 10%, rgba(14, 165, 233, 0.24), transparent 42%),
+    radial-gradient(circle at 80% 80%, rgba(59, 130, 246, 0.24), transparent 35%),
+    linear-gradient(140deg, #0b1324 0%, #111b31 45%, #1e293b 100%);
+}
+
+.neo-hero-layer {
+  position: absolute;
+  inset: 0;
+  opacity: 0.26;
+  background:
+    linear-gradient(120deg, transparent 24%, rgba(148, 163, 184, 0.2) 26%, transparent 30%),
+    linear-gradient(120deg, transparent 54%, rgba(148, 163, 184, 0.12) 56%, transparent 60%);
+}
+
+.neo-hero-content {
+  position: relative;
+  z-index: 2;
+  padding: 52px 34px;
+  animation: neo-rise 600ms ease-out;
+}
+
+.neo-kicker {
+  margin: 0;
+  color: #cbd5e1;
+  font-size: 12px;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  font-weight: 700;
+}
+
+.neo-btn-dark {
+  height: 44px !important;
+  border-radius: 999px !important;
+  padding: 0 26px !important;
+  border: 0 !important;
+  background: #0f172a !important;
+  box-shadow: none !important;
+  font-weight: 700;
+}
+
+.neo-btn-light {
+  height: 44px !important;
+  border-radius: 999px !important;
+  padding: 0 26px !important;
+  border: 1px solid rgba(226, 232, 240, 0.4) !important;
+  color: #f1f5f9 !important;
+  background: rgba(15, 23, 42, 0.28) !important;
+}
+
+.neo-tag-row {
+  margin-top: 18px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.neo-tag {
+  border-radius: 999px;
+  border: 1px solid rgba(203, 213, 225, 0.3);
+  background: rgba(15, 23, 42, 0.32);
+  color: #e2e8f0;
+  padding: 6px 12px;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.neo-hero-cards {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.neo-feature-card {
+  border-radius: 18px;
+  overflow: hidden;
+  border: 1px solid #dbe3ef;
+  background: #fff;
+  display: grid;
+  grid-template-columns: 140px minmax(0, 1fr);
+  transition: transform 220ms ease, box-shadow 220ms ease;
+}
+
+.neo-feature-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 14px 24px rgba(15, 23, 42, 0.12);
+}
+
+.neo-feature-image {
+  height: 140px;
+}
+
+.neo-feature-text {
+  padding: 16px;
+}
+
+.neo-feature-text h3 {
+  margin: 0;
+  font-size: 20px;
+  font-weight: 800;
+  color: #0f172a;
+}
+
+.neo-feature-text p {
+  margin: 6px 0 0;
+  color: #64748b;
+  font-size: 14px;
+}
+
+

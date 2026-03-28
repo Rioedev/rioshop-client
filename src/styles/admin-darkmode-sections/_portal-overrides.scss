@@ -1,0 +1,75 @@
+﻿body.admin-dark-mode .ant-modal .ant-modal-content,
+body.admin-dark-mode .ant-dropdown .ant-dropdown-menu,
+body.admin-dark-mode .ant-select-dropdown,
+body.admin-dark-mode .ant-picker-dropdown .ant-picker-panel-container,
+body.admin-dark-mode .ant-popover .ant-popover-inner {
+  background: #0f172a !important;
+  border: 1px solid #334155 !important;
+  color: #e2e8f0 !important;
+}
+
+body.admin-dark-mode .ant-modal .ant-modal-header {
+  background: #0f172a !important;
+  border-bottom: 1px solid #334155 !important;
+}
+
+body.admin-dark-mode .ant-modal .ant-modal-title,
+body.admin-dark-mode .ant-modal .ant-modal-close,
+body.admin-dark-mode .ant-modal .ant-modal-close-x,
+body.admin-dark-mode .ant-modal .ant-typography,
+body.admin-dark-mode .ant-dropdown .ant-dropdown-menu-item,
+body.admin-dark-mode .ant-dropdown .ant-dropdown-menu-submenu-title,
+body.admin-dark-mode .ant-select-item,
+body.admin-dark-mode .ant-popover .ant-popover-message-title,
+body.admin-dark-mode .ant-popover .ant-popover-message-description {
+  color: #e2e8f0 !important;
+}
+
+body.admin-dark-mode .ant-select-item-option-active:not(.ant-select-item-option-disabled),
+body.admin-dark-mode .ant-dropdown .ant-dropdown-menu-item:hover,
+body.admin-dark-mode .ant-dropdown .ant-dropdown-menu-submenu-title:hover {
+  background: #1e293b !important;
+}
+
+body.admin-dark-mode .ant-select-item-option-selected:not(.ant-select-item-option-disabled) {
+  background: #1d4ed8 !important;
+  color: #eff6ff !important;
+}
+
+body.admin-dark-mode .ant-picker-dropdown .ant-picker-cell-in-view {
+  color: #cbd5e1 !important;
+}
+
+body.admin-dark-mode .ant-picker-dropdown .ant-picker-cell-in-view.ant-picker-cell-selected .ant-picker-cell-inner,
+body.admin-dark-mode .ant-picker-dropdown .ant-picker-cell-in-view.ant-picker-cell-range-start .ant-picker-cell-inner,
+body.admin-dark-mode .ant-picker-dropdown .ant-picker-cell-in-view.ant-picker-cell-range-end .ant-picker-cell-inner {
+  background: #2563eb !important;
+}
+
+body.admin-dark-mode .ant-modal .text-slate-900,
+body.admin-dark-mode .ant-modal .text-slate-900\! {
+  color: #f8fafc !important;
+}
+
+body.admin-dark-mode .ant-modal .text-slate-700,
+body.admin-dark-mode .ant-modal .text-slate-700\!,
+body.admin-dark-mode .ant-modal .text-slate-600,
+body.admin-dark-mode .ant-modal .text-slate-600\!,
+body.admin-dark-mode .ant-modal .text-slate-500,
+body.admin-dark-mode .ant-modal .text-slate-500\! {
+  color: #94a3b8 !important;
+}
+
+body.admin-dark-mode .ant-modal .bg-white,
+body.admin-dark-mode .ant-modal .bg-slate-50,
+body.admin-dark-mode .ant-modal .bg-slate-100 {
+  background: #111827 !important;
+}
+
+body.admin-dark-mode .ant-modal .border-slate-200,
+body.admin-dark-mode .ant-modal .border-slate-300 {
+  border-color: #334155 !important;
+}
+
+
+

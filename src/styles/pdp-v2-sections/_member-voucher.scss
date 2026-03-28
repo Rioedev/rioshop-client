@@ -1,0 +1,101 @@
+﻿.pdpv2-member-banner {
+  border-radius: 16px;
+  border: 1px solid #c7d2fe;
+  background: linear-gradient(135deg, #dbeafe, #eff6ff);
+  padding: 16px;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.pdpv2-member-banner h4 {
+  margin: 6px 0 0;
+  font-size: 24px;
+  font-weight: 900;
+  color: #0f172a;
+}
+
+.pdpv2-mini-kicker {
+  margin: 0;
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  font-weight: 700;
+  color: #334155;
+}
+
+.pdpv2-voucher-block {
+  border-radius: 16px;
+  border: 1px solid #bfdbfe;
+  background: linear-gradient(135deg, #eff6ff, #ffffff);
+  padding: 16px;
+}
+
+.pdpv2-voucher-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.pdpv2-voucher-head h4 {
+  margin: 6px 0 0;
+  font-size: 24px;
+  font-weight: 900;
+  color: #0f172a;
+}
+
+.pdpv2-voucher-grid {
+  margin-top: 14px;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.pdpv2-voucher-card {
+  border-radius: 12px;
+  border: 1px dashed #93c5fd;
+  background: #ffffff;
+  padding: 12px;
+  display: grid;
+  gap: 6px;
+}
+
+.pdpv2-voucher-value {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 800;
+  color: #1d4ed8;
+}
+
+.pdpv2-voucher-card h5 {
+  margin: 0;
+  font-size: 16px;
+  letter-spacing: 0.05em;
+  font-weight: 900;
+  color: #0f172a;
+}
+
+.pdpv2-voucher-card p {
+  margin: 0;
+  font-size: 12px;
+  color: #475569;
+  line-height: 1.5;
+}
+
+.pdpv2-voucher-card span {
+  font-size: 12px;
+  font-weight: 600;
+  color: #334155;
+}
+
+.pdpv2-voucher-empty {
+  margin: 12px 0 0;
+  font-size: 13px;
+  color: #64748b;
+}
+
+

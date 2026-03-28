@@ -1,0 +1,206 @@
+﻿.store-home-v3-showcase-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1.06fr) minmax(360px, 0.94fr);
+  gap: 20px;
+}
+
+.store-home-v3-showcase-feature {
+  display: grid;
+  grid-template-columns: minmax(260px, 0.88fr) minmax(0, 1.12fr);
+  gap: 18px;
+  align-items: stretch;
+  border: 1px solid var(--store-home-v3-border);
+  border-radius: 30px;
+  background:
+    radial-gradient(circle at 0% 0%, rgba(14, 165, 233, 0.1), transparent 34%),
+    linear-gradient(145deg, #ffffff, #f8fafc);
+  box-shadow: var(--store-home-v3-shadow);
+  overflow: hidden;
+  text-decoration: none;
+  color: inherit;
+  transition: transform 240ms ease, box-shadow 240ms ease, border-color 240ms ease;
+}
+
+.store-home-v3-showcase-feature:hover {
+  transform: translateY(-4px);
+  border-color: #bfdbfe;
+  box-shadow: 0 30px 60px rgba(15, 23, 42, 0.12);
+}
+
+.store-home-v3-showcase-copy {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding: 30px 0 30px 28px;
+}
+
+.store-home-v3-showcase-badge {
+  display: inline-flex;
+  align-self: flex-start;
+  border-radius: 999px;
+  background: #e0f2fe;
+  color: #075985;
+  padding: 8px 12px;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.store-home-v3-showcase-copy h3 {
+  margin: 14px 0 0;
+  font-size: clamp(32px, 3.2vw, 48px);
+  line-height: 0.96;
+  font-weight: 900;
+  color: #0f172a;
+  letter-spacing: -0.03em;
+}
+
+.store-home-v3-showcase-copy p {
+  margin: 16px 0 0;
+  max-width: 460px;
+  font-size: 15px;
+  line-height: 1.75;
+  color: #64748b;
+}
+
+.store-home-v3-showcase-price {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  margin-top: 20px;
+}
+
+.store-home-v3-showcase-price strong {
+  font-size: 30px;
+  font-weight: 900;
+  color: #0f172a;
+}
+
+.store-home-v3-showcase-price span {
+  color: #94a3b8;
+  font-size: 14px;
+  text-decoration: line-through;
+}
+
+.store-home-v3-showcase-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 16px;
+  margin-top: 18px;
+  font-size: 13px;
+  color: #64748b;
+}
+
+.store-home-v3-showcase-media {
+  min-height: 430px;
+  background: #e2e8f0;
+  overflow: hidden;
+}
+
+.store-home-v3-showcase-media img {
+  transition: transform 700ms ease;
+}
+
+.store-home-v3-showcase-feature:hover .store-home-v3-showcase-media img {
+  transform: scale(1.05);
+}
+
+.store-home-v3-showcase-side {
+  display: grid;
+  gap: 16px;
+  align-content: start;
+  align-items: start;
+  grid-auto-rows: max-content;
+}
+
+.store-home-v3-showcase-item {
+  display: grid;
+  grid-template-columns: 152px minmax(0, 1fr);
+  gap: 16px;
+  border: 1px solid var(--store-home-v3-border);
+  border-radius: 24px;
+  background: #ffffff;
+  box-shadow: var(--store-home-v3-shadow);
+  padding: 14px;
+  text-decoration: none;
+  color: inherit;
+  transition: transform 220ms ease, box-shadow 220ms ease, border-color 220ms ease;
+  align-self: start;
+}
+
+.store-home-v3-showcase-item:hover {
+  transform: translateY(-3px);
+  border-color: #bfdbfe;
+  box-shadow: 0 26px 44px rgba(15, 23, 42, 0.12);
+}
+
+.store-home-v3-showcase-item-media {
+  height: 152px;
+  border-radius: 18px;
+  overflow: hidden;
+  background: #f8fafc;
+}
+
+.store-home-v3-showcase-item-media img {
+  transition: transform 560ms ease;
+}
+
+.store-home-v3-showcase-item:hover .store-home-v3-showcase-item-media img {
+  transform: scale(1.06);
+}
+
+.store-home-v3-showcase-item-copy {
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+}
+
+.store-home-v3-showcase-item-copy p {
+  margin: 0;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: #94a3b8;
+}
+
+.store-home-v3-showcase-item-copy h3 {
+  margin: 8px 0 0;
+  font-size: 17px;
+  line-height: 1.45;
+  font-weight: 800;
+  color: #0f172a;
+}
+
+.store-home-v3-showcase-item-price {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.store-home-v3-showcase-item-price strong {
+  font-size: 20px;
+  font-weight: 900;
+  color: #0f172a;
+}
+
+.store-home-v3-showcase-item-price span {
+  color: #94a3b8;
+  font-size: 13px;
+  text-decoration: line-through;
+}
+
+.store-home-v3-showcase-item-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 12px;
+  font-size: 12px;
+  color: #64748b;
+}
+
+

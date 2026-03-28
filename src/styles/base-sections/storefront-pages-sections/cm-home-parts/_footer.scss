@@ -1,0 +1,35 @@
+﻿.cm-footer {
+  border-radius: 14px;
+  background: #020617;
+  color: #cbd5e1;
+  padding: 18px;
+}
+
+.cm-footer-top {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px 18px;
+  border-bottom: 1px solid rgba(148, 163, 184, 0.25);
+  padding-bottom: 12px;
+  margin-bottom: 12px;
+  font-size: 13px;
+}
+
+.cm-footer-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.cm-footer-grid h4 {
+  margin: 0 0 8px;
+  color: #fff;
+  font-size: 14px;
+}
+
+.cm-footer-grid p {
+  margin: 0 0 6px;
+  font-size: 12px;
+}
+
+

@@ -1,0 +1,22 @@
+﻿
+:root {
+  font-family: "Manrope", "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+  color: #0f172a;
+  --store-ink: #0f172a;
+  --store-bg: #f4f6fb;
+  --store-surface: #ffffff;
+  --store-muted: #64748b;
+  --store-border: #dce3ee;
+  --store-accent: #0ea5e9;
+}
+
+body {
+  margin: 0;
+  background:
+    radial-gradient(circle at 88% 2%, rgba(14, 165, 233, 0.1), transparent 28%),
+    radial-gradient(circle at 8% 14%, rgba(15, 23, 42, 0.06), transparent 30%),
+    var(--store-bg);
+  color: var(--store-ink);
+}
+
+

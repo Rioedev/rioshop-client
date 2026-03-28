@@ -1,0 +1,124 @@
+﻿.pdpv2-gallery-panel,
+.pdpv2-buy-panel,
+.pdpv2-overview-card,
+.pdpv2-block,
+.pdpv2-review-wrap {
+  border: 0;
+  border-radius: 14px;
+  box-shadow: 0 6px 20px rgba(15, 23, 42, 0.05);
+}
+
+.pdpv2-main-wrap {
+  align-items: start;
+}
+
+.pdpv2-section-title {
+  font-size: 20px;
+  color: var(--yody-blue);
+  letter-spacing: 0.02em;
+}
+
+.pdpv2-thumb-btn {
+  border: 0;
+  box-shadow: 0 1px 0 rgba(15, 23, 42, 0.08);
+}
+
+.pdpv2-thumb-btn.is-active,
+.pdpv2-thumb-btn:hover {
+  border-color: transparent;
+  box-shadow: 0 0 0 2px rgba(15, 23, 42, 0.22);
+}
+
+.pdpv2-policy-item {
+  border: 0;
+  background: #f8fbff;
+}
+
+.pdpv2-spec-card {
+  border: 0;
+}
+
+.pdpv2-spec-list li {
+  border-bottom: 0;
+}
+
+.pdpv2-color-pill {
+  border-color: transparent;
+  background: #f2f5f9;
+}
+
+.pdpv2-color-pill.is-active,
+.pdpv2-color-pill:hover {
+  border-color: transparent;
+  color: var(--yody-blue);
+  background: #eef4ff;
+  box-shadow: inset 0 0 0 1px rgba(15, 79, 168, 0.75);
+}
+
+.pdpv2-buy-panel .option-pill {
+  border-color: transparent;
+  background: #f2f5f9;
+}
+
+.pdpv2-buy-panel .option-pill:hover,
+.pdpv2-buy-panel .option-pill.is-active {
+  border-color: transparent;
+  background: #eef4ff;
+  color: var(--yody-blue);
+  box-shadow: inset 0 0 0 1px rgba(15, 79, 168, 0.75);
+}
+
+.pdpv2-buy-panel .product-note-list {
+  border-top: 0;
+  padding-top: 8px;
+}
+
+.pdpv2-member-banner {
+  border: 0;
+  background: linear-gradient(135deg, #e8f1ff, #f7faff);
+}
+
+@media (min-width: 1181px) {
+  .pdpv2-gallery-panel {
+    --pdpv2-gallery-height: min(74vh, 694px);
+  }
+
+  .pdpv2-main-wrap {
+    grid-template-columns: minmax(0, 0.95fr) minmax(420px, 1.05fr);
+  }
+
+  .pdpv2-gallery-grid {
+    grid-template-columns: 76px minmax(0, 520px);
+    justify-content: center;
+    align-items: stretch;
+  }
+
+  .pdpv2-thumb-column {
+    height: var(--pdpv2-gallery-height);
+    max-height: var(--pdpv2-gallery-height);
+  }
+
+  .pdpv2-main-image-wrap {
+    width: 100%;
+    max-width: 520px;
+    height: var(--pdpv2-gallery-height);
+    margin-inline: auto;
+  }
+}
+
+@media (max-width: 767px) {
+  .store-utility-strip {
+    display: none;
+  }
+
+  .store-nav-pill {
+    margin-right: 12px;
+  }
+
+  .cool-product-media {
+    height: 300px;
+  }
+}
+
+
+

@@ -1,0 +1,79 @@
+﻿.neo-product-shell {
+  border-radius: 18px;
+  border: 1px solid #dbe3ef;
+  background: #fff;
+  padding: 14px;
+}
+
+.neo-section-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+
+.neo-head-link {
+  border: 0;
+  background: transparent;
+  color: #334155;
+  font-size: 12px;
+  text-transform: uppercase;
+  font-weight: 700;
+}
+
+.neo-product-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.neo-product-card {
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  overflow: hidden;
+  background: #fff;
+  transition: transform 220ms ease, box-shadow 220ms ease;
+}
+
+.neo-product-card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 18px 28px rgba(15, 23, 42, 0.12);
+}
+
+.neo-product-media {
+  height: 320px;
+  position: relative;
+  background: #f1f5f9;
+}
+
+.neo-product-tag {
+  position: absolute;
+  left: 10px;
+  top: 10px;
+  border-radius: 999px;
+  padding: 4px 10px;
+  font-size: 11px;
+  font-weight: 700;
+  color: #fff;
+  background: rgba(15, 23, 42, 0.82);
+}
+
+.neo-product-content {
+  padding: 12px;
+}
+
+.neo-product-content h4 {
+  margin: 0;
+  font-size: 14px;
+  color: #0f172a;
+  font-weight: 700;
+}
+
+.neo-product-content p {
+  margin: 6px 0 0;
+  font-size: 15px;
+  font-weight: 800;
+  color: #0f172a;
+}
+
+

@@ -1,0 +1,55 @@
+﻿@media (max-width: 1024px) {
+  .neo-hero {
+    min-height: 460px;
+  }
+
+  .neo-product-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .neo-community {
+    grid-template-columns: 1fr;
+  }
+
+  .neo-lookbook {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 640px) {
+  .neo-hero-content {
+    padding: 32px 18px;
+  }
+
+  .neo-hero-cards {
+    grid-template-columns: 1fr;
+  }
+
+  .neo-feature-card {
+    grid-template-columns: 1fr;
+  }
+
+  .neo-feature-image {
+    height: 220px;
+  }
+
+  .neo-product-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .neo-lookbook-card {
+    height: 280px;
+  }
+
+  .neo-lookbook-overlay h2,
+  .neo-collection-overlay h3 {
+    font-size: 30px;
+  }
+
+  .neo-community-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+
+

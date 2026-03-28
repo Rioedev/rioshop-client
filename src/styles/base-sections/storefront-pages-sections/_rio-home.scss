@@ -1,0 +1,305 @@
+﻿.rio-home {
+  animation: rio-fade-in 420ms ease-out;
+}
+
+.rio-hero {
+  position: relative;
+  overflow: hidden;
+  border-radius: 30px;
+  min-height: 540px;
+  border: 1px solid rgba(148, 163, 184, 0.34);
+  background:
+    radial-gradient(circle at 8% 16%, rgba(56, 189, 248, 0.34), transparent 38%),
+    radial-gradient(circle at 92% 20%, rgba(59, 130, 246, 0.18), transparent 32%),
+    linear-gradient(125deg, #020617 0%, #0f172a 42%, #1e293b 100%);
+}
+
+.rio-hero::after {
+  content: "";
+  position: absolute;
+  right: -90px;
+  bottom: -90px;
+  width: 420px;
+  height: 420px;
+  border-radius: 999px;
+  border: 1px solid rgba(226, 232, 240, 0.16);
+  background: radial-gradient(circle, rgba(226, 232, 240, 0.12), transparent 65%);
+}
+
+.rio-hero-overlay {
+  position: absolute;
+  inset: 0;
+  background:
+    linear-gradient(110deg, transparent 32%, rgba(148, 163, 184, 0.12) 33%, transparent 36%),
+    linear-gradient(110deg, transparent 58%, rgba(148, 163, 184, 0.08) 60%, transparent 63%);
+  opacity: 0.7;
+}
+
+.rio-hero-content {
+  position: relative;
+  z-index: 2;
+  padding: 46px 38px;
+}
+
+.rio-kicker {
+  margin: 0;
+  font-size: 12px;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: #cbd5e1;
+  font-weight: 700;
+}
+
+.rio-btn-light {
+  border: 0 !important;
+  background: #f8fafc !important;
+  color: #0f172a !important;
+  box-shadow: none !important;
+}
+
+.rio-btn-ghost {
+  border: 1px solid rgba(226, 232, 240, 0.38) !important;
+  color: #e2e8f0 !important;
+  background: rgba(15, 23, 42, 0.2) !important;
+}
+
+.rio-tag-row {
+  margin-top: 14px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.rio-tag {
+  border-radius: 999px;
+  border: 1px solid rgba(203, 213, 225, 0.28);
+  background: rgba(15, 23, 42, 0.28);
+  color: #e2e8f0;
+  padding: 6px 12px;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.rio-category-card {
+  overflow: hidden;
+  border: 1px solid #dbe3ef;
+  border-radius: 18px;
+  background: #fff;
+  text-align: left;
+  padding: 0;
+  transition: transform 220ms ease, box-shadow 220ms ease, border-color 220ms ease;
+}
+
+.rio-category-card:hover {
+  transform: translateY(-3px);
+  border-color: #bfdbfe;
+  box-shadow: 0 16px 28px rgba(148, 163, 184, 0.22);
+}
+
+.rio-category-image {
+  height: 180px;
+  overflow: hidden;
+}
+
+.rio-collection-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.rio-collection-card {
+  overflow: hidden;
+  position: relative;
+  min-height: 320px;
+  border-radius: 24px;
+  display: flex;
+  align-items: flex-end;
+}
+
+.rio-collection-men {
+  background:
+    linear-gradient(90deg, rgba(2, 6, 23, 0.62), rgba(2, 6, 23, 0.24)),
+    url("https://images.unsplash.com/photo-1617137968427-85924c800a22?auto=format&fit=crop&w=1500&q=80")
+      center/cover no-repeat;
+}
+
+.rio-collection-women {
+  background:
+    linear-gradient(90deg, rgba(2, 6, 23, 0.62), rgba(2, 6, 23, 0.2)),
+    url("https://images.unsplash.com/photo-1485230895905-ec40ba36b9bc?auto=format&fit=crop&w=1500&q=80")
+      center/cover no-repeat;
+}
+
+.rio-collection-content {
+  position: relative;
+  z-index: 2;
+  padding: 22px;
+  color: #fff;
+}
+
+.rio-collection-kicker {
+  margin: 0;
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.18em;
+  font-weight: 700;
+}
+
+.rio-collection-content h2 {
+  margin: 10px 0 14px;
+  font-size: 36px;
+  line-height: 1.08;
+  font-weight: 900;
+}
+
+.rio-product-section {
+  border-radius: 22px;
+  border: 1px solid #dbe3ef;
+  background: #fff;
+  padding: 18px;
+}
+
+.rio-section-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 14px;
+}
+
+.rio-mini-title {
+  margin: 0;
+  text-transform: uppercase;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.18em;
+  color: #64748b;
+}
+
+.rio-more-link {
+  border: 0;
+  background: transparent;
+  color: #334155;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.rio-product-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.rio-product-card {
+  border: 1px solid #dbe3ef;
+  border-radius: 16px;
+  overflow: hidden;
+  text-decoration: none;
+  color: inherit;
+  background: #fff;
+  transition: transform 220ms ease, box-shadow 220ms ease, border-color 220ms ease;
+}
+
+.rio-product-card:hover {
+  transform: translateY(-3px);
+  border-color: #bfdbfe;
+  box-shadow: 0 16px 28px rgba(148, 163, 184, 0.22);
+}
+
+.rio-product-image {
+  position: relative;
+  height: 280px;
+  overflow: hidden;
+  background: #e2e8f0;
+}
+
+.rio-product-category,
+.rio-product-discount {
+  position: absolute;
+  top: 10px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 700;
+  padding: 5px 10px;
+}
+
+.rio-product-category {
+  left: 10px;
+  background: rgba(15, 23, 42, 0.82);
+  color: #fff;
+}
+
+.rio-product-discount {
+  right: 10px;
+  background: #ef4444;
+  color: #fff;
+}
+
+.rio-value-card {
+  border: 1px solid #dbe3ef;
+  border-radius: 16px;
+  background: #fff;
+  padding: 18px;
+}
+
+.rio-value-card h4 {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 800;
+  color: #0f172a;
+}
+
+.rio-value-card p {
+  margin: 8px 0 0;
+  font-size: 14px;
+  color: #64748b;
+  line-height: 1.6;
+}
+
+.rio-story {
+  border: 1px solid #dbe3ef;
+  border-radius: 22px;
+  background: linear-gradient(145deg, #ffffff, #f8fafc);
+  padding: 22px;
+  display: grid;
+  gap: 16px;
+}
+
+.rio-newsletter {
+  border: 1px solid #dbe3ef;
+  border-radius: 18px;
+  background: #fff;
+  padding: 16px;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.rio-newsletter-form {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.rio-newsletter-input {
+  height: 44px;
+  min-width: 250px;
+  border: 1px solid #dbe3ef;
+  border-radius: 999px;
+  padding: 0 16px;
+  font-size: 14px;
+  background: #f8fafc;
+  color: #0f172a;
+  outline: none;
+}
+
+.rio-newsletter-input:focus {
+  border-color: #93c5fd;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.14);
+}
+
+

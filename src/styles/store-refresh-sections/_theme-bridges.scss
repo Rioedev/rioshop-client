@@ -1,0 +1,174 @@
+﻿.store-policy-strip {
+  border-bottom: 0;
+  background: #ffffff;
+}
+
+.store-policy-item {
+  font-size: 12px;
+  letter-spacing: 0.02em;
+}
+
+.store-policy-dot {
+  width: 8px;
+  height: 8px;
+  background: var(--yody-blue);
+}
+
+.store-footer {
+  margin-top: 14px;
+  background: #082a5c;
+}
+
+.store-footer-title {
+  font-size: 15px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.store-footer-text {
+  color: #d1def2;
+}
+
+.store-page-panel,
+.store-page-hero {
+  border: 1px solid var(--yody-border);
+  border-radius: 14px;
+  background: #ffffff;
+  box-shadow: 0 10px 24px rgba(15, 23, 42, 0.04);
+}
+
+.store-page-head-copy p {
+  color: var(--yody-blue);
+}
+
+.store-page-head-copy h2 {
+  letter-spacing: -0.02em;
+}
+
+.store-home-v3 {
+  --store-home-v3-border: var(--yody-border);
+  --store-home-v3-shadow: 0 14px 28px rgba(15, 23, 42, 0.06);
+  gap: 24px;
+}
+
+.store-home-v3-hero {
+  border: 1px solid var(--yody-border);
+  border-radius: 18px;
+}
+
+.store-home-v3-hero-badge {
+  background: var(--yody-yellow);
+  color: #1e293b;
+}
+
+.store-home-v3-primary-btn,
+.store-home-v3-primary-ghost {
+  border-color: var(--yody-blue) !important;
+  background: var(--yody-blue) !important;
+  color: #ffffff !important;
+}
+
+.store-home-v3-secondary-btn,
+.store-home-v3-secondary-ghost {
+  border-color: var(--yody-blue) !important;
+  color: var(--yody-blue) !important;
+  background: #ffffff !important;
+}
+
+.store-home-v3-primary-btn:hover,
+.store-home-v3-primary-ghost:hover {
+  border-color: var(--yody-blue-700) !important;
+  background: var(--yody-blue-700) !important;
+}
+
+.store-home-v3-secondary-btn:hover,
+.store-home-v3-secondary-ghost:hover {
+  border-color: var(--yody-blue-700) !important;
+  color: var(--yody-blue-700) !important;
+}
+
+.store-home-v3-metric-card,
+.store-home-v3-service-card,
+.store-home-v3-category-card,
+.store-home-v3-showcase-item,
+.store-home-v3-editorial-copy,
+.store-home-v3-curated-copy,
+.store-home-v3-member-card,
+.store-home-v3-coupon-card,
+.store-home-v3-proof-card {
+  border-radius: 14px;
+}
+
+.store-home-v3-showcase-feature {
+  border-radius: 16px;
+}
+
+.store-home-v3-section-head p,
+.store-home-v3-product-meta {
+  color: #64748b;
+}
+
+.store-home-v3-text-link {
+  color: var(--yody-blue);
+}
+
+.store-home-v3-pill {
+  border-radius: 10px;
+  font-size: 11px;
+}
+
+.store-home-v3-pill.is-active {
+  border-color: var(--yody-blue);
+  background: var(--yody-blue);
+}
+
+.store-home-v3-flash-shell {
+  border: 1px solid #ffd666;
+  border-radius: 18px;
+  background:
+    radial-gradient(circle at 0% 0%, rgba(255, 201, 40, 0.2), transparent 30%),
+    #fffdf5;
+}
+
+.store-home-v3-flash-feature,
+.store-home-v3-flash-card {
+  border-color: #ffe39a;
+  background: #ffffff;
+  color: #0f172a;
+}
+
+.store-home-v3-flash-feature p,
+.store-home-v3-flash-card-head small,
+.store-home-v3-flash-card-price span {
+  color: #64748b;
+}
+
+.store-home-v3-flash-card-head span {
+  color: #b45309;
+}
+
+.cool-product-card {
+  border-radius: 14px;
+  border: 1px solid var(--yody-border);
+  box-shadow: 0 10px 20px rgba(15, 23, 42, 0.05);
+}
+
+.cool-product-card:hover {
+  border-color: #99bced;
+  box-shadow: 0 18px 30px rgba(15, 79, 168, 0.14);
+}
+
+.cool-product-media {
+  height: 360px;
+  background: #f2f6fb;
+}
+
+.cool-product-badge {
+  background: #082a5c;
+}
+
+.cool-product-discount {
+  background: #dc2626;
+}
+
+

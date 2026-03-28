@@ -1,0 +1,138 @@
+﻿@media (max-width: 1152px) {
+  .rio-home {
+    padding-left: clamp(18px, 3vw, 34px);
+    padding-right: clamp(18px, 3vw, 34px);
+  }
+
+  .rio-home-campaign,
+  .rio-home-membership,
+  .rio-home-duo {
+    grid-template-columns: 1fr;
+  }
+
+  .rio-home-highlight-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .rio-home-product-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .rio-home-deals-row {
+    grid-template-columns: 1fr;
+  }
+
+  .home-v2-full-banner {
+    min-height: 72vh;
+  }
+
+  .home-v2-hero {
+    grid-template-columns: 1fr;
+  }
+
+  .home-v2-hero-side {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .home-v2-category-grid,
+  .home-v2-product-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .home-v2-deal-grid,
+  .home-v2-value-grid,
+  .home-v2-bottom-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 767px) {
+  .rio-home {
+    padding-left: 12px;
+    padding-right: 12px;
+  }
+
+  .rio-home-campaign-main {
+    padding: 30px 16px;
+  }
+
+  .rio-home-highlight-grid,
+  .rio-home-product-grid,
+  .rio-home-duo,
+  .rio-home-membership {
+    grid-template-columns: 1fr;
+  }
+
+  .rio-home-deals-row,
+  .rio-home-highlight-grid,
+  .rio-home-product-grid,
+  .rio-home-membership {
+    gap: 12px;
+  }
+
+  .rio-home-product-image {
+    height: 280px;
+  }
+
+  .rio-home-duo-card h3 {
+    font-size: 26px;
+  }
+
+  .rio-home-collection-banner {
+    min-height: 220px;
+    padding: 16px;
+    flex-direction: column;
+    align-items: flex-start;
+    justify-content: flex-end;
+  }
+
+  .rio-home-community {
+    padding: 16px;
+  }
+
+  .home-v2-full-banner {
+    min-height: 64vh;
+    border-radius: 22px;
+  }
+
+  .home-v2-full-content {
+    padding: 28px 20px;
+  }
+
+  .home-v2-hero-main {
+    border-radius: 22px;
+    padding: 30px 18px;
+  }
+
+  .home-v2-hero-metrics,
+  .home-v2-hero-side,
+  .home-v2-category-grid,
+  .home-v2-product-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .home-v2-side-card,
+  .home-v2-journal,
+  .home-v2-member-card {
+    border-radius: 16px;
+    padding: 18px;
+  }
+
+  .home-v2-head {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .home-v2-product-image,
+  .home-v2-category-image {
+    height: 230px;
+  }
+
+  .home-v2-newsletter-input,
+  .home-v2-newsletter-form {
+    width: 100%;
+  }
+}
+
+
+

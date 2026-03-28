@@ -1,0 +1,134 @@
+﻿@media (max-width: 1280px) {
+  .store-home-v3-hero-inner,
+  .store-home-v3-final-cta {
+    width: min(100vw - 32px, 1280px);
+  }
+
+  .store-home-v3-metric-grid,
+  .store-home-v3-service-grid,
+  .store-home-v3-product-grid,
+  .store-home-v3-editorial-grid,
+  .store-home-v3-coupon-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .store-home-v3-showcase-layout,
+  .store-home-v3-editorial,
+  .store-home-v3-curated,
+  .store-home-v3-member-shell,
+  .store-home-v3-category-mosaic,
+  .store-home-v3-flash-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .store-home-v3-showcase-feature {
+    grid-template-columns: minmax(240px, 0.9fr) minmax(0, 1.1fr);
+  }
+}
+
+@media (max-width: 767px) {
+  .store-home-v3 {
+    overflow: hidden;
+  }
+
+  .store-home-v3-hero {
+    min-height: auto;
+  }
+
+  .store-home-v3-hero-inner {
+    width: min(100vw - 20px, 100%);
+    grid-template-columns: 1fr;
+    padding: 28px 0 20px;
+  }
+
+  .store-home-v3-hero-copy {
+    padding: 8px 4px 0;
+  }
+
+  .store-home-v3-hero-panel {
+    grid-template-columns: 1fr;
+  }
+
+  .store-home-v3-hero-rail,
+  .store-home-v3-metric-grid,
+  .store-home-v3-service-grid,
+  .store-home-v3-product-grid,
+  .store-home-v3-editorial-grid,
+  .store-home-v3-coupon-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .store-home-v3-hero-mini {
+    grid-template-columns: 92px minmax(0, 1fr);
+  }
+
+  .store-home-v3-category-side {
+    grid-template-columns: 1fr;
+  }
+
+  .store-home-v3-section-head,
+  .store-home-v3-final-cta {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .store-home-v3-pill-row {
+    justify-content: flex-start;
+  }
+
+  .store-home-v3-showcase-feature,
+  .store-home-v3-showcase-item {
+    grid-template-columns: 1fr;
+  }
+
+  .store-home-v3-showcase-copy {
+    padding: 24px 22px 0;
+  }
+
+  .store-home-v3-showcase-media,
+  .store-home-v3-showcase-item-media {
+    min-height: 220px;
+    height: 220px;
+  }
+
+  .store-home-v3-product-card.is-large .store-home-v3-product-media,
+  .store-home-v3-product-media {
+    height: 340px;
+  }
+
+  .store-home-v3-category-lead,
+  .store-home-v3-editorial-card,
+  .store-home-v3-collection-banner {
+    min-height: 240px;
+  }
+
+  .store-home-v3-member-form {
+    flex-direction: column;
+  }
+}
+
+@keyframes storeHomeFadeUp {
+  from {
+    opacity: 0;
+    transform: translate3d(0, 26px, 0);
+  }
+
+  to {
+    opacity: 1;
+    transform: translate3d(0, 0, 0);
+  }
+}
+
+@keyframes storeHomeDrift {
+  0%,
+  100% {
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+
+  50% {
+    transform: translate3d(-18px, -14px, 0) scale(1.06);
+  }
+}
+
+
+

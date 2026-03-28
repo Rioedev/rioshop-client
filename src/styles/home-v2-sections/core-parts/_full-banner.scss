@@ -1,0 +1,47 @@
+﻿.home-v2-full-banner {
+  position: relative;
+  min-height: min(86vh, 760px);
+  border-radius: 30px;
+  overflow: hidden;
+  background-position: center;
+  background-size: cover;
+  border: 1px solid rgba(148, 163, 184, 0.28);
+  box-shadow: 0 26px 42px rgba(15, 23, 42, 0.22);
+}
+
+.home-v2-full-banner::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(circle at 82% 80%, rgba(56, 189, 248, 0.22), transparent 38%),
+    radial-gradient(circle at 18% 14%, rgba(59, 130, 246, 0.18), transparent 42%);
+}
+
+.home-v2-full-content {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  min-height: inherit;
+  flex-direction: column;
+  justify-content: center;
+  gap: 20px;
+  padding: 52px 46px;
+}
+
+.home-v2-full-kicker {
+  margin: 0;
+  text-transform: uppercase;
+  letter-spacing: 0.2em;
+  font-size: 12px;
+  font-weight: 700;
+  color: #cbd5e1;
+}
+
+.home-v2-full-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+

@@ -1,0 +1,367 @@
+﻿/* Home V2 */
+.home-v2 {
+  animation: home-v2-fade-in 420ms ease-out;
+}
+
+.rio-home {
+  animation: home-v2-fade-in 320ms ease-out;
+  padding-left: clamp(34px, 4.8vw, 110px);
+  padding-right: clamp(34px, 4.8vw, 110px);
+}
+
+.rio-home-bleed {
+  width: 100vw;
+  margin-left: calc(50% - 50vw);
+  margin-right: calc(50% - 50vw);
+}
+
+.rio-home-campaign {
+  display: grid;
+  grid-template-columns: minmax(0, 1.2fr) minmax(340px, 0.8fr);
+  border-radius: 0;
+  overflow: hidden;
+  border: 1px solid #e2e8f0;
+  background: linear-gradient(118deg, #7c2d12 0%, #b45309 46%, #f97316 100%);
+  min-height: 560px;
+}
+
+.rio-home-campaign-main {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 20px;
+  padding: 48px 44px;
+}
+
+.rio-home-campaign-kicker {
+  margin: 0;
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: #ffedd5;
+}
+
+.rio-home-campaign-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.rio-home-campaign-visual {
+  position: relative;
+  overflow: hidden;
+}
+
+.rio-home-campaign-visual::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(circle at 24% 20%, rgba(255, 255, 255, 0.18), transparent 42%),
+    linear-gradient(140deg, rgba(15, 23, 42, 0.06), rgba(15, 23, 42, 0.4));
+  z-index: 1;
+}
+
+.rio-home-campaign-visual img {
+  transform: scale(1.04);
+}
+
+.rio-home-deals-row {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 18px;
+}
+
+.rio-home-deal-item {
+  border: 1px solid #e2e8f0;
+  border-radius: 22px;
+  background: #fff;
+  padding: 20px;
+  text-decoration: none;
+  color: inherit;
+  min-height: 176px;
+}
+
+.rio-home-deal-item h3 {
+  margin: 10px 0 0;
+  font-size: 15px;
+  font-weight: 800;
+  color: #0f172a;
+}
+
+.rio-home-deal-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.rio-home-deal-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  border-radius: 999px;
+  background: #fff1f2;
+  color: #be123c;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  padding: 4px 8px;
+}
+
+.rio-home-deal-price {
+  margin: 8px 0;
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+}
+
+.rio-home-deal-price strong {
+  font-size: 20px;
+  font-weight: 900;
+  color: #0f172a;
+}
+
+.rio-home-deal-price span {
+  font-size: 12px;
+  color: #94a3b8;
+  text-decoration: line-through;
+}
+
+.rio-home-avatar-strip {
+  display: flex;
+  gap: 14px;
+  padding: 6px 4px 10px;
+  overflow-x: auto;
+}
+
+.rio-home-avatar-item {
+  min-width: 96px;
+  text-decoration: none;
+  color: inherit;
+  text-align: center;
+}
+
+.rio-home-avatar-item img {
+  width: 78px;
+  height: 78px;
+  border-radius: 999px;
+  border: 2px solid #dbeafe;
+  object-fit: cover;
+  box-shadow: 0 6px 12px rgba(148, 163, 184, 0.25);
+}
+
+.rio-home-avatar-item span {
+  display: block;
+  margin-top: 6px;
+  font-size: 11px;
+  font-weight: 700;
+  color: #334155;
+}
+
+.rio-home-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.rio-home-tab {
+  border: 1px solid #dbe3ef;
+  border-radius: 999px;
+  padding: 8px 14px;
+  text-decoration: none;
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #334155;
+  background: #fff;
+}
+
+.rio-home-tab:hover {
+  color: #0f172a;
+  border-color: #bfdbfe;
+}
+
+.rio-home-highlight-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 18px;
+}
+
+.rio-home-product-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 18px;
+}
+
+.rio-home-product-card {
+  border: 1px solid #dbe3ef;
+  border-radius: 22px;
+  overflow: hidden;
+  text-decoration: none;
+  color: inherit;
+  background: #fff;
+  transition: transform 180ms ease, box-shadow 180ms ease, border-color 180ms ease;
+}
+
+.rio-home-product-card:hover {
+  transform: translateY(-2px);
+  border-color: #bfdbfe;
+  box-shadow: 0 14px 24px rgba(148, 163, 184, 0.2);
+}
+
+.rio-home-product-image {
+  position: relative;
+  height: 360px;
+  background: #f1f5f9;
+}
+
+.rio-home-product-tag {
+  position: absolute;
+  left: 10px;
+  top: 10px;
+  border-radius: 999px;
+  padding: 5px 8px;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #0f172a;
+  background: rgba(255, 255, 255, 0.9);
+}
+
+.rio-home-product-card h3 {
+  margin: 0;
+  min-height: 48px;
+  font-size: 14px;
+  font-weight: 700;
+  color: #0f172a;
+}
+
+.rio-home-product-content {
+  padding: 14px 14px 16px;
+}
+
+.rio-home-price-row {
+  margin-top: 8px;
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+}
+
+.rio-home-price-row strong {
+  font-size: 15px;
+  font-weight: 900;
+  color: #0f172a;
+}
+
+.rio-home-price-row span {
+  font-size: 12px;
+  text-decoration: line-through;
+  color: #94a3b8;
+}
+
+.rio-home-duo {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.rio-home-duo-card {
+  min-height: 340px;
+  border-radius: 0;
+  overflow: hidden;
+  text-decoration: none;
+  padding: 34px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  border: 1px solid rgba(148, 163, 184, 0.28);
+  background-size: cover;
+  background-position: center;
+}
+
+.rio-home-duo-card h3 {
+  margin: 0;
+  font-size: 34px;
+  font-weight: 900;
+  color: #fff;
+  text-transform: uppercase;
+}
+
+.rio-home-collection {
+  display: grid;
+  gap: 12px;
+}
+
+.rio-home-collection-banner {
+  min-height: 320px;
+  border-radius: 0;
+  border: 1px solid #dbe3ef;
+  background-size: cover;
+  background-position: center;
+  padding: 34px;
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.rio-home-community {
+  border: 1px solid #fcd34d;
+  border-radius: 24px;
+  padding: 28px;
+  background: linear-gradient(120deg, #fde68a, #fef3c7);
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.rio-home-membership {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 18px;
+}
+
+.rio-home-member-card {
+  border: 1px solid #dbe3ef;
+  border-radius: 22px;
+  padding: 22px;
+  background: #fff;
+}
+
+.rio-home-benefits {
+  display: grid;
+  gap: 14px;
+}
+
+.rio-home-benefit-item {
+  border: 1px solid #dbe3ef;
+  border-radius: 22px;
+  padding: 16px;
+  background: #fff;
+  display: grid;
+  grid-template-columns: 42px minmax(0, 1fr);
+  gap: 10px;
+}
+
+.rio-home-benefit-item h4 {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 800;
+  color: #0f172a;
+}
+
+.rio-home-benefit-item p {
+  margin: 4px 0 0;
+  font-size: 12px;
+  line-height: 1.55;
+  color: #64748b;
+}
+
+

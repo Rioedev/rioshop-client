@@ -1,0 +1,127 @@
+﻿/* Yody-inspired storefront refresh */
+:root {
+  --yody-blue: #0f4fa8;
+  --yody-blue-700: #0b3f89;
+  --yody-yellow: #ffc928;
+  --yody-border: #e4eaf2;
+  --yody-soft: #f5f8fd;
+}
+
+.storefront-shell {
+  background: #ffffff;
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
+}
+
+.store-main-content {
+  flex: 1 0 auto;
+}
+
+.store-promo-bar {
+  padding: 8px 16px;
+  background: var(--yody-yellow);
+  color: #0f172a;
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+}
+
+.store-utility-strip {
+  border-bottom: 1px solid var(--yody-border);
+  background: #ffffff;
+}
+
+.store-utility-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+}
+
+.store-utility-links a {
+  color: #546277;
+  font-size: 12px;
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.store-utility-links a:hover {
+  color: var(--yody-blue);
+}
+
+.store-utility-hotline {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--yody-blue);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.store-header {
+  border-bottom: 0;
+  box-shadow: 0 4px 14px rgba(15, 23, 42, 0.03);
+}
+
+.store-logo {
+  gap: 6px;
+  font-size: 30px;
+  letter-spacing: 0.02em;
+  color: var(--yody-blue);
+}
+
+.store-logo span {
+  color: #0f172a;
+}
+
+.store-search.ant-input-affix-wrapper {
+  height: 44px;
+  border-radius: 10px;
+  border: 1px solid var(--yody-border);
+  background: #ffffff;
+}
+
+.store-search.ant-input-affix-wrapper:hover,
+.store-search.ant-input-affix-wrapper:focus-within {
+  border-color: #86b4f6;
+  box-shadow: 0 0 0 4px rgba(15, 79, 168, 0.12);
+}
+
+.store-top-icon {
+  border-radius: 10px;
+  border-color: var(--yody-border);
+}
+
+.store-top-icon:hover {
+  border-color: #8eb9f2;
+  color: var(--yody-blue);
+}
+
+.store-cart-count {
+  background: var(--yody-blue);
+}
+
+.store-main-nav {
+  border-top: 0;
+  padding-top: 10px;
+}
+
+.store-nav-pill {
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  color: #1e293b;
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  padding: 8px 0;
+  margin-right: 18px;
+}
+
+.store-nav-pill:hover {
+  border-color: transparent;
+  color: var(--yody-blue);
+}
+
+

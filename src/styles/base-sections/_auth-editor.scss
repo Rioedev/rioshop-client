@@ -1,0 +1,150 @@
+﻿.auth-page::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(circle at 20% 10%, rgba(34, 211, 238, 0.18), transparent 35%),
+    radial-gradient(circle at 80% 20%, rgba(59, 130, 246, 0.2), transparent 35%),
+    linear-gradient(140deg, #061427 0%, #0b2744 55%, #123e65 100%);
+}
+
+.auth-card {
+  animation: rise-in 480ms ease-out;
+}
+
+.auth-glow {
+  position: absolute;
+  border-radius: 9999px;
+  filter: blur(24px);
+  opacity: 0.48;
+  animation: float-y 8s ease-in-out infinite;
+}
+
+.auth-glow-left {
+  width: 280px;
+  height: 280px;
+  left: -110px;
+  top: 20%;
+  background: #22d3ee;
+}
+
+.auth-glow-right {
+  width: 340px;
+  height: 340px;
+  right: -130px;
+  bottom: 8%;
+  background: #3b82f6;
+  animation-delay: -2.8s;
+}
+
+.auth-kicker {
+  animation: rise-in 580ms ease-out;
+}
+
+@keyframes float-y {
+  0%,
+  100% {
+    transform: translate3d(0, 0, 0);
+  }
+  50% {
+    transform: translate3d(0, -18px, 0);
+  }
+}
+
+@keyframes rise-in {
+  from {
+    opacity: 0;
+    transform: translate3d(0, 18px, 0);
+  }
+  to {
+    opacity: 1;
+    transform: translate3d(0, 0, 0);
+  }
+}
+
+.product-form-smooth .ant-input,
+.product-form-smooth .ant-input-number,
+.product-form-smooth .ant-select-selector {
+  transition: border-color 180ms ease, box-shadow 180ms ease;
+}
+
+.product-form-smooth .ant-card {
+  border-radius: 12px;
+}
+
+.compact-uploader .ant-upload {
+  padding: 14px 12px;
+  min-height: 108px;
+}
+
+.compact-uploader--sm .ant-upload {
+  padding: 10px;
+  min-height: 84px;
+}
+
+.rte-shell {
+  border: 1px solid #d9d9d9;
+  border-radius: 10px;
+  background: #fff;
+}
+
+.rte-toolbar {
+  display: flex;
+  padding: 8px;
+  border-bottom: 1px solid #f0f0f0;
+  background: #fafafa;
+  border-top-left-radius: 10px;
+  border-top-right-radius: 10px;
+}
+
+.rte-content {
+  min-height: 180px;
+  padding: 12px;
+  outline: none;
+}
+
+.rte-content p {
+  margin: 0 0 10px;
+}
+
+.rte-content ul,
+.rte-content ol {
+  margin: 0 0 10px;
+  padding-left: 18px;
+}
+
+.rte-content img {
+  display: block;
+  max-width: 100%;
+  height: auto;
+  margin: 12px 0;
+  border-radius: 10px;
+}
+
+.blog-detail-content p {
+  margin: 0 0 14px;
+}
+
+.blog-detail-content ul,
+.blog-detail-content ol {
+  margin: 0 0 14px;
+  padding-left: 20px;
+}
+
+.blog-detail-content img {
+  display: block;
+  max-width: 100%;
+  height: auto;
+  margin: 16px 0;
+  border-radius: 12px;
+}
+
+.rte-content p.is-editor-empty:first-child::before {
+  color: #94a3b8;
+  content: attr(data-placeholder);
+  float: left;
+  height: 0;
+  pointer-events: none;
+}
+
+

@@ -1,0 +1,29 @@
+﻿/* Store Home V3 */
+.store-home-v3 {
+  position: relative;
+  --store-home-v3-border: #dbe3ef;
+  --store-home-v3-shadow: 0 26px 60px rgba(15, 23, 42, 0.08);
+}
+
+.store-home-v3-bleed {
+  width: 100vw;
+  margin-left: calc(50% - 50vw);
+  margin-right: calc(50% - 50vw);
+}
+
+.store-home-v3-notice {
+  border: 1px solid #dbe3ef;
+  border-radius: 18px;
+  background: #ffffff;
+  padding: 14px 18px;
+  color: #475569;
+  font-size: 14px;
+}
+
+.store-home-v3-notice.is-warning {
+  border-color: #fde68a;
+  background: #fffbeb;
+  color: #92400e;
+}
+
+
