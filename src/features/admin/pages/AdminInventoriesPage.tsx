@@ -1,4 +1,3 @@
-import { AxiosError } from "axios";
 import {
   Alert,
   Button,
@@ -22,6 +21,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import type { InventoryRecord, UpdateInventoryPayload } from "../../../services/inventoryService";
 import { subscribeAdminRealtime } from "../../../services/socketClient";
 import { useInventoryStore } from "../../../stores/inventoryStore";
+import { getErrorMessage } from "../../../utils/errorMessage";
 
 const { Paragraph, Text, Title } = Typography;
 
@@ -34,16 +34,6 @@ type InventoryFormValues = {
   reorderPoint?: number | null;
   reorderQty?: number | null;
   lowStockAlert: boolean;
-};
-
-const getErrorMessage = (error: unknown) => {
-  if (error instanceof AxiosError) {
-    return (error.response?.data as { message?: string } | undefined)?.message ?? error.message;
-  }
-  if (error instanceof Error) {
-    return error.message;
-  }
-  return "Yêu cầu thất bại";
 };
 
 const formatDateTime = (value?: string | null) => {
@@ -655,3 +645,5 @@ export function AdminInventoriesPage() {
     </div>
   );
 }
+
+

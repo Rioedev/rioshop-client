@@ -1,5 +1,5 @@
-import { AxiosError } from "axios";
 import { create } from "zustand";
+import { getErrorMessage } from "../utils/errorMessage";
 import { categoryService, type Category } from "../services/categoryService";
 import {
   productService,
@@ -46,16 +46,6 @@ type ProductState = {
   createProduct: (payload: ProductPayload) => Promise<void>;
   updateProduct: (id: string, payload: Partial<ProductPayload>) => Promise<void>;
   deleteProduct: (id: string) => Promise<void>;
-};
-
-const getErrorMessage = (error: unknown) => {
-  if (error instanceof AxiosError) {
-    return (error.response?.data as { message?: string } | undefined)?.message ?? error.message;
-  }
-  if (error instanceof Error) {
-    return error.message;
-  }
-  return "Request failed";
 };
 
 const buildCategoryData = (
@@ -194,3 +184,5 @@ export const useProductStore = create<ProductState>((set, get) => ({
     }
   },
 }));
+
+

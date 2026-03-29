@@ -1,9 +1,9 @@
-import { AxiosError } from "axios";
 import { create } from "zustand";
 import {
   notificationService,
   type NotificationItem,
 } from "../services/notificationService";
+import { getErrorMessage } from "../utils/errorMessage";
 
 type NotificationState = {
   notifications: NotificationItem[];
@@ -27,16 +27,6 @@ type NotificationState = {
 let unreadCountRequest: Promise<number> | null = null;
 let lastUnreadCountFetchedAt = 0;
 const UNREAD_COUNT_REFRESH_MIN_GAP_MS = 1200;
-
-const getErrorMessage = (error: unknown) => {
-  if (error instanceof AxiosError) {
-    return (error.response?.data as { message?: string } | undefined)?.message ?? error.message;
-  }
-  if (error instanceof Error) {
-    return error.message;
-  }
-  return "Yêu cầu thất bại";
-};
 
 export const useNotificationStore = create<NotificationState>((set, get) => ({
   notifications: [],
@@ -196,3 +186,4 @@ export const useNotificationStore = create<NotificationState>((set, get) => ({
       };
     }),
 }));
+

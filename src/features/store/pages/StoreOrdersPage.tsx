@@ -1,5 +1,5 @@
 ﻿import { Button, message } from "antd";
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { Link, useLocation } from "react-router-dom";
 import {
   StoreEmptyState,
@@ -90,7 +90,7 @@ export function StoreOrdersPage() {
     ];
   }, [orders]);
 
-  const loadOrders = async (nextPage = page) => {
+  const loadOrders = useCallback(async (nextPage: number) => {
     setLoading(true);
     try {
       const result = await orderService.getOrders({ page: nextPage, limit: 8 });
@@ -105,7 +105,7 @@ export function StoreOrdersPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [messageApi]);
 
   useEffect(() => {
     if (!isAuthenticated) {
@@ -115,8 +115,7 @@ export function StoreOrdersPage() {
     }
 
     void loadOrders(1);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isAuthenticated]);
+  }, [isAuthenticated, loadOrders]);
 
   const onCancelOrder = async (order: OrderRecord) => {
     try {

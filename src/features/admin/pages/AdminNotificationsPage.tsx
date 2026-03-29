@@ -1,4 +1,3 @@
-import { AxiosError } from "axios";
 import {
   Button,
   Card,
@@ -15,6 +14,7 @@ import type { ColumnsType, TablePaginationConfig } from "antd/es/table";
 import { useEffect, useMemo, useState } from "react";
 import type { NotificationChannel, NotificationItem, NotificationType } from "../../../services/notificationService";
 import { useNotificationStore } from "../../../stores/notificationStore";
+import { getErrorMessage } from "../../../utils/errorMessage";
 
 const { Paragraph, Text, Title } = Typography;
 
@@ -39,16 +39,6 @@ const CHANNEL_LABEL_MAP: Record<NotificationChannel, string> = {
   push: "Đẩy",
   email: "Email",
   sms: "SMS",
-};
-
-const getErrorMessage = (error: unknown) => {
-  if (error instanceof AxiosError) {
-    return (error.response?.data as { message?: string } | undefined)?.message ?? error.message;
-  }
-  if (error instanceof Error) {
-    return error.message;
-  }
-  return "Yêu cầu thất bại";
 };
 
 const formatDateTime = (value?: string) => {
@@ -290,3 +280,5 @@ export function AdminNotificationsPage() {
     </div>
   );
 }
+
+

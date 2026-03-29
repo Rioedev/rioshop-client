@@ -1,5 +1,11 @@
 import { create } from "zustand";
 import { createJSONStorage, persist } from "zustand/middleware";
+import {
+  toNormalizedPrice,
+  toNormalizedProductName,
+  toNormalizedSlug,
+  toTrimmedOrNull,
+} from "./storeItemNormalization";
 
 export type WishlistItem = {
   productId: string;
@@ -22,18 +28,26 @@ type WishlistState = {
 };
 
 const WISHLIST_STORAGE_KEY = "rioshop_wishlist";
+const GUEST_WISHLIST_STATE: Pick<WishlistState, "ownerUserId"> = {
+  ownerUserId: null,
+};
+
+const toGuestWishlistState = (items: WishlistItem[]) => ({
+  items,
+  ...GUEST_WISHLIST_STATE,
+});
 
 const normalizeWishlistItem = (item: WishlistItem): WishlistItem | null => {
-  const productId = item.productId?.trim();
+  const productId = toTrimmedOrNull(item.productId);
   if (!productId) {
     return null;
   }
 
   return {
     productId,
-    slug: item.slug?.trim() || "",
-    name: item.name?.trim() || "San pham",
-    price: Math.max(0, Number(item.price || 0)),
+    slug: toNormalizedSlug(item.slug),
+    name: toNormalizedProductName(item.name),
+    price: toNormalizedPrice(item.price),
     imageUrl: item.imageUrl,
   };
 };
@@ -55,7 +69,7 @@ export const useWishlistStore = create<WishlistState>()(
   persist(
     (set, get) => ({
       items: [],
-      ownerUserId: null,
+      ...GUEST_WISHLIST_STATE,
 
       setItems: (items, ownerUserId) =>
         set((state) => ({
@@ -64,10 +78,7 @@ export const useWishlistStore = create<WishlistState>()(
         })),
 
       resetWishlist: () =>
-        set({
-          items: [],
-          ownerUserId: null,
-        }),
+        set(toGuestWishlistState([])),
 
       addItem: (item) =>
         set((state) => {
@@ -77,35 +88,51 @@ export const useWishlistStore = create<WishlistState>()(
           }
 
           if (state.items.some((existing) => existing.productId === normalized.productId)) {
-            return {
-              items: state.items.map((existing) =>
+            return toGuestWishlistState(
+              state.items.map((existing) =>
                 existing.productId === normalized.productId ? normalized : existing,
               ),
-              ownerUserId: null,
-            };
+            );
           }
 
-          return { items: [...state.items, normalized], ownerUserId: null };
+          return toGuestWishlistState([...state.items, normalized]);
         }),
 
       removeItem: (productId) =>
-        set((state) => ({
-          items: state.items.filter((item) => item.productId !== productId),
-          ownerUserId: null,
-        })),
+        set((state) => {
+          const normalizedProductId = toTrimmedOrNull(productId);
+          if (!normalizedProductId) {
+            return state;
+          }
+
+          return toGuestWishlistState(
+            state.items.filter((item) => item.productId !== normalizedProductId),
+          );
+        }),
 
       toggleItem: (item) => {
-        const exists = get().items.some((existing) => existing.productId === item.productId);
-        if (exists) {
-          get().removeItem(item.productId);
+        const normalized = normalizeWishlistItem(item);
+        if (!normalized) {
           return;
         }
-        get().addItem(item);
+
+        const exists = get().items.some((existing) => existing.productId === normalized.productId);
+        if (exists) {
+          get().removeItem(normalized.productId);
+          return;
+        }
+        get().addItem(normalized);
       },
 
-      clear: () => set({ items: [], ownerUserId: null }),
+      clear: () => set(toGuestWishlistState([])),
 
-      hasItem: (productId) => get().items.some((item) => item.productId === productId),
+      hasItem: (productId) => {
+        const normalizedProductId = toTrimmedOrNull(productId);
+        if (!normalizedProductId) {
+          return false;
+        }
+        return get().items.some((item) => item.productId === normalizedProductId);
+      },
     }),
     {
       name: WISHLIST_STORAGE_KEY,

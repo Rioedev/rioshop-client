@@ -1,4 +1,3 @@
-import { AxiosError } from "axios";
 import {
   Button,
   Card,
@@ -31,6 +30,7 @@ import {
   useCategoryStore,
   type CategoryStatusFilter,
 } from "../../../stores/categoryStore";
+import { getErrorMessage } from "../../../utils/errorMessage";
 
 const { Text, Title } = Typography;
 
@@ -54,19 +54,6 @@ const STATUS_OPTIONS: { label: string; value: CategoryStatusFilter }[] = [
   { label: "Đang hoạt động", value: "active" },
   { label: "Không hoạt động", value: "inactive" },
 ];
-
-const getErrorMessage = (error: unknown) => {
-  if (error instanceof AxiosError) {
-    return (
-      (error.response?.data as { message?: string } | undefined)?.message ??
-      error.message
-    );
-  }
-  if (error instanceof Error) {
-    return error.message;
-  }
-  return "Có lỗi xảy ra";
-};
 
 const getParentCategoryName = (category: Category): string => {
   if (!category.parentId) {
@@ -545,3 +532,4 @@ export function AdminCategoriesPage() {
     </div>
   );
 }
+

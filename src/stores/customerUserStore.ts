@@ -1,5 +1,6 @@
 import { AxiosError } from "axios";
 import { create } from "zustand";
+import { getErrorMessage } from "../utils/errorMessage";
 import {
   customerUserService,
   type CreateCustomerPayload,
@@ -38,16 +39,6 @@ type CustomerUserState = {
   updateCustomer: (id: string, payload: UpdateCustomerPayload) => Promise<void>;
   updateCustomerStatus: (id: string, status: CustomerStatus) => Promise<void>;
   softDeleteCustomer: (id: string) => Promise<void>;
-};
-
-const getErrorMessage = (error: unknown) => {
-  if (error instanceof AxiosError) {
-    return (error.response?.data as { message?: string } | undefined)?.message ?? error.message;
-  }
-  if (error instanceof Error) {
-    return error.message;
-  }
-  return "Request failed";
 };
 
 export const useCustomerUserStore = create<CustomerUserState>((set, get) => ({
@@ -166,3 +157,5 @@ export const useCustomerUserStore = create<CustomerUserState>((set, get) => ({
     }
   },
 }));
+
+

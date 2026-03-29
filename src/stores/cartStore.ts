@@ -1,5 +1,12 @@
 import { create } from "zustand";
 import { createJSONStorage, persist } from "zustand/middleware";
+import {
+  toNormalizedPrice,
+  toNormalizedProductName,
+  toNormalizedSlug,
+  toTrimmedOrNull,
+  toTrimmedOrUndefined,
+} from "./storeItemNormalization";
 
 export type CartItem = {
   itemId?: string;
@@ -39,6 +46,16 @@ type CartState = {
 
 const CART_STORAGE_KEY = "rioshop_cart";
 export const CART_DEFAULT_VARIANT_KEY = "__default__";
+const EMPTY_CART_META_STATE: Pick<CartState, "ownerUserId" | "couponCode" | "couponDiscount"> = {
+  ownerUserId: null,
+  couponCode: null,
+  couponDiscount: 0,
+};
+
+const toDetachedCartState = (items: CartItem[]) => ({
+  items,
+  ...EMPTY_CART_META_STATE,
+});
 
 export const buildCartItemId = (payload: { productId: string; variantSku?: string }) =>
   `${payload.productId}::${payload.variantSku?.trim() || CART_DEFAULT_VARIANT_KEY}`;
@@ -89,21 +106,21 @@ const clampQuantityByStock = (quantity: number, availableStock?: number, minimum
 };
 
 const normalizeCartItem = (item: CartItem): CartItem | null => {
-  const productId = item.productId?.trim();
-  const variantSku = item.variantSku?.trim();
+  const productId = toTrimmedOrNull(item.productId);
+  const variantSku = toTrimmedOrNull(item.variantSku);
   if (!productId || !variantSku) {
     return null;
   }
 
   return {
-    itemId: item.itemId?.trim() || buildCartItemId({ productId, variantSku }),
+    itemId: toTrimmedOrNull(item.itemId) || buildCartItemId({ productId, variantSku }),
     productId,
-    slug: item.slug?.trim() || "",
-    name: item.name?.trim() || "San pham",
-    price: Math.max(0, Number(item.price || 0)),
+    slug: toNormalizedSlug(item.slug),
+    name: toNormalizedProductName(item.name),
+    price: toNormalizedPrice(item.price),
     imageUrl: item.imageUrl,
     variantSku,
-    variantLabel: item.variantLabel?.trim() || undefined,
+    variantLabel: toTrimmedOrUndefined(item.variantLabel),
     availableStock: toSafeAvailableStock(item.availableStock),
     quantity: clampQuantityByStock(item.quantity, toSafeAvailableStock(item.availableStock), 1),
   };
@@ -145,9 +162,7 @@ export const useCartStore = create<CartState>()(
   persist(
     (set) => ({
       items: [],
-      ownerUserId: null,
-      couponCode: null,
-      couponDiscount: 0,
+      ...EMPTY_CART_META_STATE,
 
       setItems: (items, ownerUserId, couponCode, couponDiscount) =>
         set((state) => ({
@@ -171,18 +186,12 @@ export const useCartStore = create<CartState>()(
               : toSafeCouponDiscount(couponDiscount),
         })),
 
-      resetCart: () =>
-        set({
-          items: [],
-          ownerUserId: null,
-          couponCode: null,
-          couponDiscount: 0,
-        }),
+      resetCart: () => set(toDetachedCartState([])),
 
       addItem: (payload) =>
         set((state) => {
-          const variantSku = payload.variantSku?.trim();
-          const productId = payload.productId?.trim();
+          const variantSku = toTrimmedOrNull(payload.variantSku);
+          const productId = toTrimmedOrNull(payload.productId);
           if (!productId || !variantSku) {
             return state;
           }
@@ -194,8 +203,8 @@ export const useCartStore = create<CartState>()(
 
           if (existing) {
             const maxStock = existing.availableStock || availableStock;
-            return {
-              items: state.items.map((item) =>
+            return toDetachedCartState(
+              state.items.map((item) =>
                 resolveCartItemId(item) === itemId
                   ? {
                       ...item,
@@ -204,65 +213,51 @@ export const useCartStore = create<CartState>()(
                     }
                   : item,
               ),
-              ownerUserId: null,
-              couponCode: null,
-              couponDiscount: 0,
-            };
+            );
           }
 
-          return {
-            items: [
-              ...state.items,
-              {
-                ...payload,
-                productId,
-                variantSku,
-                itemId,
-                availableStock,
-                quantity: clampQuantityByStock(quantity, availableStock, 1),
-              },
-            ],
-            ownerUserId: null,
-            couponCode: null,
-            couponDiscount: 0,
-          };
+          return toDetachedCartState([
+            ...state.items,
+            {
+              productId,
+              slug: toNormalizedSlug(payload.slug),
+              name: toNormalizedProductName(payload.name),
+              price: toNormalizedPrice(payload.price),
+              imageUrl: payload.imageUrl,
+              variantSku,
+              variantLabel: toTrimmedOrUndefined(payload.variantLabel),
+              itemId,
+              availableStock,
+              quantity: clampQuantityByStock(quantity, availableStock, 1),
+            },
+          ]);
         }),
 
       removeItem: (itemId) =>
-        set((state) => ({
-          items: state.items.filter((item) => resolveCartItemId(item) !== itemId),
-          ownerUserId: null,
-          couponCode: null,
-          couponDiscount: 0,
-        })),
+        set((state) =>
+          toDetachedCartState(state.items.filter((item) => resolveCartItemId(item) !== itemId)),
+        ),
 
       updateQuantity: (itemId, quantity) =>
-        set((state) => ({
-          items: state.items
-            .map((item) =>
-              resolveCartItemId(item) !== itemId
-                ? item
-                : {
-                    ...item,
-                    quantity:
-                      toSafeQuantity(quantity, 0) === 0
-                        ? 0
-                        : clampQuantityByStock(quantity, item.availableStock, 1),
-                  },
-            )
-            .filter((item) => item.quantity > 0),
-          ownerUserId: null,
-          couponCode: null,
-          couponDiscount: 0,
-        })),
+        set((state) =>
+          toDetachedCartState(
+            state.items
+              .map((item) =>
+                resolveCartItemId(item) !== itemId
+                  ? item
+                  : {
+                      ...item,
+                      quantity:
+                        toSafeQuantity(quantity, 0) === 0
+                          ? 0
+                          : clampQuantityByStock(quantity, item.availableStock, 1),
+                    },
+              )
+              .filter((item) => item.quantity > 0),
+          ),
+        ),
 
-      clearCart: () =>
-        set({
-          items: [],
-          ownerUserId: null,
-          couponCode: null,
-          couponDiscount: 0,
-        }),
+      clearCart: () => set(toDetachedCartState([])),
     }),
     {
       name: CART_STORAGE_KEY,

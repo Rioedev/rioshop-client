@@ -1,5 +1,5 @@
-import { AxiosError } from "axios";
 import { create } from "zustand";
+import { getErrorMessage } from "../utils/errorMessage";
 import {
   orderService,
   type OrderRecord,
@@ -27,16 +27,6 @@ type OrderStoreState = {
   setPaymentStatusFilter: (paymentStatusFilter: PaymentStatus | "all") => void;
   updateOrderStatus: (id: string, payload: UpdateOrderStatusPayload) => Promise<void>;
   cancelOrder: (id: string, note?: string) => Promise<void>;
-};
-
-const getErrorMessage = (error: unknown) => {
-  if (error instanceof AxiosError) {
-    return (error.response?.data as { message?: string } | undefined)?.message ?? error.message;
-  }
-  if (error instanceof Error) {
-    return error.message;
-  }
-  return "Yêu cầu thất bại";
 };
 
 export const useOrderStore = create<OrderStoreState>((set, get) => ({
@@ -119,3 +109,5 @@ export const useOrderStore = create<OrderStoreState>((set, get) => ({
     }
   },
 }));
+
+

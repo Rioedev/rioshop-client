@@ -1,5 +1,6 @@
 import { AxiosError } from "axios";
 import { create } from "zustand";
+import { getErrorMessage } from "../utils/errorMessage";
 import {
   brandConfigService,
   type BrandConfig,
@@ -13,16 +14,6 @@ type BrandConfigState = {
   notFound: boolean;
   loadBrandConfig: (brandKey: string) => Promise<void>;
   updateBrandConfig: (brandKey: string, payload: UpdateBrandConfigPayload) => Promise<void>;
-};
-
-const getErrorMessage = (error: unknown) => {
-  if (error instanceof AxiosError) {
-    return (error.response?.data as { message?: string } | undefined)?.message ?? error.message;
-  }
-  if (error instanceof Error) {
-    return error.message;
-  }
-  return "Yêu cầu thất bại";
 };
 
 export const useBrandConfigStore = create<BrandConfigState>((set) => ({
@@ -60,3 +51,5 @@ export const useBrandConfigStore = create<BrandConfigState>((set) => ({
     }
   },
 }));
+
+

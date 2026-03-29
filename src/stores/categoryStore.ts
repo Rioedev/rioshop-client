@@ -1,5 +1,5 @@
-import { AxiosError } from "axios";
 import { create } from "zustand";
+import { getErrorMessage } from "../utils/errorMessage";
 import { categoryService, type Category, type CategoryPayload } from "../services/categoryService";
 
 export type CategoryStatusFilter = "all" | "active" | "inactive";
@@ -26,16 +26,6 @@ type CategoryState = {
   createCategory: (payload: CategoryPayload) => Promise<void>;
   updateCategory: (id: string, payload: CategoryPayload) => Promise<void>;
   deleteCategory: (id: string) => Promise<void>;
-};
-
-const getErrorMessage = (error: unknown) => {
-  if (error instanceof AxiosError) {
-    return (error.response?.data as { message?: string } | undefined)?.message ?? error.message;
-  }
-  if (error instanceof Error) {
-    return error.message;
-  }
-  return "Yêu cầu thất bại";
 };
 
 const toIsActive = (statusFilter: CategoryStatusFilter): boolean | undefined => {
@@ -139,4 +129,6 @@ export const useCategoryStore = create<CategoryState>((set, get) => ({
     }
   },
 }));
+
+
 

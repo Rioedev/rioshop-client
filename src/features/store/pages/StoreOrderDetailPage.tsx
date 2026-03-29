@@ -1,5 +1,5 @@
-﻿import { Button, message } from "antd";
-import { useEffect, useMemo, useState } from "react";
+import { Button, message } from "antd";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import {
   StoreEmptyState,
@@ -32,9 +32,12 @@ const orderStatusLabelMap: Record<string, string> = {
   cancelled: "Đã hủy",
   returned: "Hoàn trả",
 };
+
 const ONLINE_PAYMENT_METHODS = new Set(["momo", "vnpay", "zalopay", "card", "bank_transfer"]);
 
-const getOrderStatusLabel = (order: Pick<OrderRecord, "status" | "paymentStatus" | "paymentMethod">) => {
+const getOrderStatusLabel = (
+  order: Pick<OrderRecord, "status" | "paymentStatus" | "paymentMethod">,
+) => {
   if (
     order.status === "pending" &&
     order.paymentStatus === "pending" &&
@@ -47,19 +50,19 @@ const getOrderStatusLabel = (order: Pick<OrderRecord, "status" | "paymentStatus"
 };
 
 const paymentStatusLabelMap: Record<PaymentStatus, string> = {
-  pending: "ChÆ°a thanh toÃ¡n",
-  paid: "ÄÃ£ thanh toÃ¡n",
-  failed: "Thanh toÃ¡n lá»—i",
-  refunded: "ÄÃ£ hoÃ n tiá»n",
+  pending: "Chưa thanh toán",
+  paid: "Đã thanh toán",
+  failed: "Thanh toán lỗi",
+  refunded: "Đã hoàn tiền",
 };
 
 const paymentMethodLabelMap: Record<PaymentMethod, string> = {
-  momo: "VÃ­ MoMo",
+  momo: "Ví MoMo",
   vnpay: "VNPay",
   zalopay: "ZaloPay",
-  cod: "Thanh toÃ¡n khi nháº­n hÃ ng",
-  bank_transfer: "Chuyá»ƒn khoáº£n ngÃ¢n hÃ ng",
-  card: "Tháº» ngÃ¢n hÃ ng",
+  cod: "Thanh toán khi nhận hàng",
+  bank_transfer: "Chuyển khoản ngân hàng",
+  card: "Thẻ ngân hàng",
 };
 
 const pickFirstText = (...values: unknown[]) => {
@@ -73,11 +76,11 @@ const pickFirstText = (...values: unknown[]) => {
 
 const formatShippingAddress = (shippingAddress: unknown) => {
   if (!shippingAddress) {
-    return "Äang cáº­p nháº­t";
+    return "Đang cập nhật";
   }
 
   if (typeof shippingAddress === "string") {
-    return shippingAddress.trim() || "Äang cáº­p nháº­t";
+    return shippingAddress.trim() || "Đang cập nhật";
   }
 
   if (typeof shippingAddress !== "object") {
@@ -99,17 +102,17 @@ const formatShippingAddress = (shippingAddress: unknown) => {
     return normalized.join(", ");
   }
 
-  return "Äang cáº­p nháº­t";
+  return "Đang cập nhật";
 };
 
 const formatDateTime = (value?: string) => {
   if (!value) {
-    return "Äang cáº­p nháº­t";
+    return "Đang cập nhật";
   }
 
   const parsedDate = new Date(value);
   if (Number.isNaN(parsedDate.getTime())) {
-    return "Äang cáº­p nháº­t";
+    return "Đang cập nhật";
   }
 
   return parsedDate.toLocaleString("vi-VN");
@@ -124,7 +127,7 @@ export function StoreOrderDetailPage() {
   const [loading, setLoading] = useState(true);
   const [retryingPayment, setRetryingPayment] = useState(false);
 
-  const loadOrderDetail = async () => {
+  const loadOrderDetail = useCallback(async () => {
     if (!id) {
       setOrder(null);
       setLoading(false);
@@ -136,13 +139,13 @@ export function StoreOrderDetailPage() {
       const result = await orderService.getOrderById(id);
       setOrder(result);
     } catch (error) {
-      const messageText = error instanceof Error ? error.message : "KhÃ´ng thá»ƒ táº£i chi tiáº¿t Ä‘Æ¡n hÃ ng";
+      const messageText = error instanceof Error ? error.message : "Không thể tải chi tiết đơn hàng";
       messageApi.error(messageText);
       setOrder(null);
     } finally {
       setLoading(false);
     }
-  };
+  }, [id, messageApi]);
 
   useEffect(() => {
     if (!isAuthenticated) {
@@ -152,8 +155,7 @@ export function StoreOrderDetailPage() {
     }
 
     void loadOrderDetail();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [id, isAuthenticated]);
+  }, [isAuthenticated, loadOrderDetail]);
 
   const canRetryMomoPayment = useMemo(() => {
     if (!order) {
@@ -174,19 +176,19 @@ export function StoreOrderDetailPage() {
 
     return [
       {
-        label: "Tá»•ng thanh toÃ¡n",
+        label: "Tổng thanh toán",
         value: formatStoreCurrency(order.pricing.total),
-        description: "Tá»•ng tiá»n gá»“m giÃ¡ sáº£n pháº©m, giáº£m trá»« vÃ  phÃ­ váº­n chuyá»ƒn.",
+        description: "Tổng tiền gồm giá sản phẩm, giảm trừ và phí vận chuyển.",
       },
       {
-        label: "Tráº¡ng thÃ¡i Ä‘Æ¡n",
+        label: "Trạng thái đơn",
         value: getOrderStatusLabel(order),
-        description: "Cáº­p nháº­t tiáº¿n Ä‘á»™ xá»­ lÃ½ giao hÃ ng cá»§a Ä‘Æ¡n.",
+        description: "Cập nhật tiến độ xử lý giao hàng của đơn.",
       },
       {
-        label: "Tráº¡ng thÃ¡i thanh toÃ¡n",
+        label: "Trạng thái thanh toán",
         value: paymentStatusLabelMap[order.paymentStatus] ?? order.paymentStatus,
-        description: "Theo dÃµi tÃ¬nh tráº¡ng thanh toÃ¡n hiá»‡n táº¡i.",
+        description: "Theo dõi tình trạng thanh toán hiện tại.",
       },
     ];
   }, [order]);
@@ -212,13 +214,13 @@ export function StoreOrderDetailPage() {
         null;
 
       if (!payUrl) {
-        messageApi.warning("KhÃ´ng láº¥y Ä‘Æ°á»£c link thanh toÃ¡n MoMo, vui lÃ²ng thá»­ láº¡i.");
+        messageApi.warning("Không lấy được link thanh toán MoMo, vui lòng thử lại.");
         return;
       }
 
       window.location.href = payUrl;
     } catch (error) {
-      const messageText = error instanceof Error ? error.message : "KhÃ´ng thá»ƒ táº¡o láº¡i giao dá»‹ch MoMo";
+      const messageText = error instanceof Error ? error.message : "Không thể tạo lại giao dịch MoMo";
       messageApi.error(messageText);
     } finally {
       setRetryingPayment(false);
@@ -228,13 +230,13 @@ export function StoreOrderDetailPage() {
   if (!isAuthenticated) {
     return (
       <StoreEmptyState
-        kicker="Chi tiáº¿t Ä‘Æ¡n hÃ ng"
-        title="Báº¡n cáº§n Ä‘Äƒng nháº­p Ä‘á»ƒ xem Ä‘Æ¡n hÃ ng"
-        description="ÄÄƒng nháº­p Ä‘á»ƒ xem Ä‘áº§y Ä‘á»§ sáº£n pháº©m, tráº¡ng thÃ¡i giao hÃ ng vÃ  thanh toÃ¡n."
+        kicker="Chi tiết đơn hàng"
+        title="Bạn cần đăng nhập để xem đơn hàng"
+        description="Đăng nhập để xem đầy đủ sản phẩm, trạng thái giao hàng và thanh toán."
         action={
           <Link to="/login">
             <Button type="primary" className={storeButtonClassNames.primary}>
-              ÄÄƒng nháº­p
+              Đăng nhập
             </Button>
           </Link>
         }
@@ -245,13 +247,13 @@ export function StoreOrderDetailPage() {
   if (!loading && !order) {
     return (
       <StoreEmptyState
-        kicker="Chi tiáº¿t Ä‘Æ¡n hÃ ng"
-        title="KhÃ´ng tÃ¬m tháº¥y Ä‘Æ¡n hÃ ng"
-        description="ÄÆ¡n hÃ ng cÃ³ thá»ƒ Ä‘Ã£ bá»‹ xÃ³a hoáº·c báº¡n khÃ´ng cÃ³ quyá»n xem Ä‘Æ¡n nÃ y."
+        kicker="Chi tiết đơn hàng"
+        title="Không tìm thấy đơn hàng"
+        description="Đơn hàng có thể đã bị xóa hoặc bạn không có quyền xem đơn này."
         action={
           <Link to="/orders">
             <Button type="primary" className={storeButtonClassNames.primary}>
-              Quay láº¡i danh sÃ¡ch Ä‘Æ¡n
+              Quay lại danh sách đơn
             </Button>
           </Link>
         }
@@ -264,17 +266,17 @@ export function StoreOrderDetailPage() {
       {contextHolder}
 
       <StoreHeroSection
-        kicker="Chi tiáº¿t Ä‘Æ¡n hÃ ng"
-        title={order ? `ÄÆ¡n ${order.orderNumber}` : "Äang táº£i Ä‘Æ¡n hÃ ng..."}
+        kicker="Chi tiết đơn hàng"
+        title={order ? `Đơn ${order.orderNumber}` : "Đang tải đơn hàng..."}
         description={
           order
-            ? `Äáº·t lÃºc ${formatDateTime(order.createdAt)}`
-            : "Vui lÃ²ng chá» trong giÃ¢y lÃ¡t Ä‘á»ƒ táº£i dá»¯ liá»‡u Ä‘Æ¡n hÃ ng."
+            ? `Đặt lúc ${formatDateTime(order.createdAt)}`
+            : "Vui lòng chờ trong giây lát để tải dữ liệu đơn hàng."
         }
         action={
           <div className="flex flex-wrap justify-end gap-2">
             <Link to="/orders">
-              <Button className={storeButtonClassNames.secondary}>Danh sÃ¡ch Ä‘Æ¡n</Button>
+              <Button className={storeButtonClassNames.secondary}>Danh sách đơn</Button>
             </Link>
             {canRetryMomoPayment ? (
               <Button
@@ -283,11 +285,15 @@ export function StoreOrderDetailPage() {
                 onClick={() => void onRetryMomoPayment()}
                 loading={retryingPayment}
               >
-                Thanh toÃ¡n láº¡i
+                Thanh toán lại
               </Button>
             ) : null}
-            <Button className={storeButtonClassNames.ghost} onClick={() => void loadOrderDetail()} loading={loading}>
-              Táº£i láº¡i
+            <Button
+              className={storeButtonClassNames.ghost}
+              onClick={() => void loadOrderDetail()}
+              loading={loading}
+            >
+              Tải lại
             </Button>
           </div>
         }
@@ -297,20 +303,20 @@ export function StoreOrderDetailPage() {
 
       {order ? (
         <>
-          <StorePanelSection kicker="Thanh toÃ¡n & váº­n chuyá»ƒn" title="ThÃ´ng tin Ä‘Æ¡n hÃ ng">
+          <StorePanelSection kicker="Thanh toán & vận chuyển" title="Thông tin đơn hàng">
             <div className="grid gap-3 md:grid-cols-2">
               <article className="store-page-info-card">
-                <span>NgÆ°á»i nháº­n</span>
-                <strong>{order.customerName || "Äang cáº­p nháº­t"}</strong>
-                <p>Sá»‘ Ä‘iá»‡n thoáº¡i: {order.customerPhone || "Äang cáº­p nháº­t"}</p>
+                <span>Người nhận</span>
+                <strong>{order.customerName || "Đang cập nhật"}</strong>
+                <p>Số điện thoại: {order.customerPhone || "Đang cập nhật"}</p>
               </article>
               <article className="store-page-info-card">
-                <span>Email liÃªn há»‡</span>
-                <strong>{order.customerEmail || "Äang cáº­p nháº­t"}</strong>
-                <p>Äá»‹a chá»‰ giao: {formatShippingAddress(order.shippingAddress)}</p>
+                <span>Email liên hệ</span>
+                <strong>{order.customerEmail || "Đang cập nhật"}</strong>
+                <p>Địa chỉ giao: {formatShippingAddress(order.shippingAddress)}</p>
               </article>
               <article className="store-page-info-card">
-                <span>Thanh toÃ¡n</span>
+                <span>Thanh toán</span>
                 <strong>{paymentMethodLabelMap[order.paymentMethod] ?? order.paymentMethod}</strong>
                 <p className="m-0">
                   <StoreStatusPill
@@ -320,31 +326,31 @@ export function StoreOrderDetailPage() {
                 </p>
               </article>
               <article className="store-page-info-card">
-                <span>Váº­n chuyá»ƒn</span>
-                <strong>{order.shippingCarrier || "Äang cáº­p nháº­t"}</strong>
+                <span>Vận chuyển</span>
+                <strong>{order.shippingCarrier || "Đang cập nhật"}</strong>
                 <p>
-                  PhÆ°Æ¡ng thá»©c:{" "}
+                  Phương thức:{" "}
                   {order.shippingMethod === "same_day"
-                    ? "Há»a tá»‘c"
+                    ? "Hỏa tốc"
                     : order.shippingMethod === "express"
                       ? "Nhanh"
-                      : "TiÃªu chuáº©n"}
+                      : "Tiêu chuẩn"}
                 </p>
               </article>
             </div>
 
             {order.note ? (
               <div className="mt-4">
-                <StoreInlineNote title="Ghi chÃº Ä‘Æ¡n hÃ ng" description={order.note} />
+                <StoreInlineNote title="Ghi chú đơn hàng" description={order.note} />
               </div>
             ) : null}
           </StorePanelSection>
 
-          <StorePanelSection kicker="Sáº£n pháº©m" title="Nhá»¯ng gÃ¬ cÃ³ trong Ä‘Æ¡n hÃ ng cá»§a báº¡n">
+          <StorePanelSection kicker="Sản phẩm" title="Những gì có trong đơn hàng của bạn">
             {order.items.length === 0 ? (
               <StoreInlineNote
-                title="ÄÆ¡n hÃ ng chÆ°a cÃ³ sáº£n pháº©m"
-                description="Náº¿u dá»¯ liá»‡u nÃ y khÃ´ng Ä‘Ãºng, báº¡n cÃ³ thá»ƒ táº£i láº¡i hoáº·c liÃªn há»‡ há»— trá»£."
+                title="Đơn hàng chưa có sản phẩm"
+                description="Nếu dữ liệu này không đúng, bạn có thể tải lại hoặc liên hệ hỗ trợ."
               />
             ) : (
               <div className="space-y-3">
@@ -352,12 +358,19 @@ export function StoreOrderDetailPage() {
                   const imageSource = resolveStoreImageUrl(item.image) || item.image;
 
                   return (
-                    <article key={`${order.id}-${item.productId ?? index}`} className="rounded-2xl border border-slate-200 bg-white/90 p-4">
+                    <article
+                      key={`${order.id}-${item.productId ?? index}`}
+                      className="rounded-2xl border border-slate-200 bg-white/90 p-4"
+                    >
                       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                         <div className="flex min-w-0 items-center gap-3">
                           <div className="h-16 w-16 shrink-0 overflow-hidden rounded-xl border border-slate-200 bg-slate-100">
                             {imageSource ? (
-                              <img src={imageSource} alt={item.productName ?? "Sáº£n pháº©m"} className="h-full w-full object-cover" />
+                              <img
+                                src={imageSource}
+                                alt={item.productName ?? "Sản phẩm"}
+                                className="h-full w-full object-cover"
+                              />
                             ) : (
                               <div className="flex h-full w-full items-center justify-center text-xs font-black tracking-[0.2em] text-slate-500">
                                 RIO
@@ -365,21 +378,24 @@ export function StoreOrderDetailPage() {
                             )}
                           </div>
                           <div className="min-w-0">
-                            <p className="m-0 truncate text-base font-bold text-slate-900">{item.productName ?? "Sáº£n pháº©m"}</p>
+                            <p className="m-0 truncate text-base font-bold text-slate-900">
+                              {item.productName ?? "Sản phẩm"}
+                            </p>
                             <p className="m-0 mt-1 text-sm text-slate-600">
-                              Biáº¿n thá»ƒ: {item.variantLabel || "Máº·c Ä‘á»‹nh"} â€¢ SKU: {item.variantSku || "Äang cáº­p nháº­t"}
+                              Biến thể: {item.variantLabel || "Mặc định"} • SKU:{" "}
+                              {item.variantSku || "Đang cập nhật"}
                             </p>
                           </div>
                         </div>
                         <div className="text-right">
-                          <p className="m-0 text-sm text-slate-500">Sá»‘ lÆ°á»£ng: {item.quantity}</p>
+                          <p className="m-0 text-sm text-slate-500">Số lượng: {item.quantity}</p>
                           <p className="m-0 mt-1 text-lg font-black tracking-[-0.03em] text-slate-900">
                             {formatStoreCurrency(item.totalPrice)}
                           </p>
                         </div>
                       </div>
                       <div className="mt-3 flex items-center justify-between border-t border-dashed border-slate-200 pt-3 text-sm text-slate-600">
-                        <span>ÄÆ¡n giÃ¡</span>
+                        <span>Đơn giá</span>
                         <strong className="text-slate-900">{formatStoreCurrency(item.unitPrice)}</strong>
                       </div>
                     </article>
@@ -389,21 +405,29 @@ export function StoreOrderDetailPage() {
             )}
           </StorePanelSection>
 
-          <StorePanelSection kicker="Lá»‹ch sá»­" title="DÃ²ng thá»i gian Ä‘Æ¡n hÃ ng">
+          <StorePanelSection kicker="Lịch sử" title="Dòng thời gian đơn hàng">
             {order.timeline.length === 0 ? (
-              <StoreInlineNote title="ChÆ°a cÃ³ lá»‹ch sá»­ cáº­p nháº­t" description="CÃ¡c thay Ä‘á»•i tráº¡ng thÃ¡i Ä‘Æ¡n sáº½ xuáº¥t hiá»‡n táº¡i Ä‘Ã¢y." />
+              <StoreInlineNote
+                title="Chưa có lịch sử cập nhật"
+                description="Các thay đổi trạng thái đơn sẽ xuất hiện tại đây."
+              />
             ) : (
               <div className="space-y-3">
                 {order.timeline.map((event, index) => (
-                  <article key={`${order.id}-timeline-${index}`} className="rounded-2xl border border-slate-200 bg-white/90 p-4">
+                  <article
+                    key={`${order.id}-timeline-${index}`}
+                    className="rounded-2xl border border-slate-200 bg-white/90 p-4"
+                  >
                     <div className="flex flex-wrap items-start justify-between gap-2">
                       <StoreStatusPill
                         status={event.status}
-                        label={orderStatusLabelMap[event.status || ""] ?? event.status ?? "Cáº­p nháº­t"}
+                        label={orderStatusLabelMap[event.status || ""] ?? event.status ?? "Cập nhật"}
                       />
                       <p className="m-0 text-sm text-slate-500">{formatDateTime(event.at)}</p>
                     </div>
-                    <p className="m-0 mt-2 text-sm text-slate-700">{event.note || "Äang cáº­p nháº­t tráº¡ng thÃ¡i Ä‘Æ¡n hÃ ng."}</p>
+                    <p className="m-0 mt-2 text-sm text-slate-700">
+                      {event.note || "Đang cập nhật trạng thái đơn hàng."}
+                    </p>
                   </article>
                 ))}
               </div>
@@ -414,5 +438,3 @@ export function StoreOrderDetailPage() {
     </StorePageShell>
   );
 }
-
-

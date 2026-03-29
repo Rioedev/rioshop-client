@@ -1,4 +1,3 @@
-import { AxiosError } from "axios";
 import {
   Alert,
   Button,
@@ -25,6 +24,7 @@ import {
 } from "../../../services/adminAccountService";
 import { useAdminAccountStore } from "../../../stores/adminAccountStore";
 import { useAuthStore } from "../../../stores/authStore";
+import { getErrorMessage } from "../../../utils/errorMessage";
 
 const { Paragraph, Title, Text } = Typography;
 
@@ -52,18 +52,6 @@ const ROLE_LABEL_MAP: Record<AdminRole, string> = {
   cs: "Nhân viên chăm sóc khách hàng",
   marketer: "Nhân viên marketing",
   sales: "Nhân viên bán hàng",
-};
-
-const getErrorMessage = (error: unknown) => {
-  if (error instanceof AxiosError) {
-    return (error.response?.data as { message?: string } | undefined)?.message ?? error.message;
-  }
-
-  if (error instanceof Error) {
-    return error.message;
-  }
-
-  return "Yêu cầu thất bại";
 };
 
 const formatDateTime = (value?: string) => {
@@ -435,3 +423,5 @@ export function AdminAccountsPage() {
     </div>
   );
 }
+
+

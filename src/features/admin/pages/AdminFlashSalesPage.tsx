@@ -1,4 +1,3 @@
-import { AxiosError } from "axios";
 import {
   Button,
   Card,
@@ -25,6 +24,7 @@ import { productService, type Product, type ProductVariant } from "../../../serv
 import { subscribeAdminRealtime } from "../../../services/socketClient";
 import { useFlashSaleStore } from "../../../stores/flashSaleStore";
 import { useAuthStore } from "../../../stores/authStore";
+import { getErrorMessage } from "../../../utils/errorMessage";
 
 const { Paragraph, Text, Title } = Typography;
 
@@ -60,16 +60,6 @@ const createDefaultSlot = () => ({
   stockLimit: 100,
   sold: 0,
 });
-
-const getErrorMessage = (error: unknown) => {
-  if (error instanceof AxiosError) {
-    return (error.response?.data as { message?: string } | undefined)?.message ?? error.message;
-  }
-  if (error instanceof Error) {
-    return error.message;
-  }
-  return "Yêu cầu thất bại";
-};
 
 const formatDateTime = (value?: string) => {
   if (!value) return "-";
@@ -879,3 +869,5 @@ export function AdminFlashSalesPage() {
     </div>
   );
 }
+
+

@@ -1,4 +1,3 @@
-import { AxiosError } from "axios";
 import {
   Button,
   Card,
@@ -15,6 +14,7 @@ import type { ColumnsType, TablePaginationConfig } from "antd/es/table";
 import { useEffect, useMemo, useState } from "react";
 import type { AnalyticsEvent, AnalyticsEventType } from "../../../services/analyticsEventService";
 import { useAnalyticsEventStore } from "../../../stores/analyticsEventStore";
+import { getErrorMessage } from "../../../utils/errorMessage";
 
 const { Paragraph, Text, Title } = Typography;
 
@@ -47,16 +47,6 @@ const EVENT_FILTER_OPTIONS: { value: AnalyticsEventType | ""; label: string }[] 
 ];
 
 const formatCurrency = new Intl.NumberFormat("vi-VN");
-
-const getErrorMessage = (error: unknown) => {
-  if (error instanceof AxiosError) {
-    return (error.response?.data as { message?: string } | undefined)?.message ?? error.message;
-  }
-  if (error instanceof Error) {
-    return error.message;
-  }
-  return "Yêu cầu thất bại";
-};
 
 const formatDateTime = (value?: string) => {
   if (!value) return "-";
@@ -331,3 +321,5 @@ export function AdminAnalyticsEventsPage() {
     </div>
   );
 }
+
+

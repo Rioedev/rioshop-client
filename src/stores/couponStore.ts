@@ -1,5 +1,5 @@
-import { AxiosError } from "axios";
 import { create } from "zustand";
+import { getErrorMessage } from "../utils/errorMessage";
 import {
   couponService,
   type Coupon,
@@ -36,16 +36,6 @@ type CouponState = {
   setActiveFilter: (active: "all" | "active" | "inactive") => void;
   clearSelectedCoupon: () => void;
   clearValidationResult: () => void;
-};
-
-const getErrorMessage = (error: unknown) => {
-  if (error instanceof AxiosError) {
-    return (error.response?.data as { message?: string } | undefined)?.message ?? error.message;
-  }
-  if (error instanceof Error) {
-    return error.message;
-  }
-  return "Yêu cầu thất bại";
 };
 
 export const useCouponStore = create<CouponState>((set, get) => ({
@@ -183,3 +173,5 @@ export const useCouponStore = create<CouponState>((set, get) => ({
   clearSelectedCoupon: () => set({ selectedCoupon: null }),
   clearValidationResult: () => set({ validationResult: null }),
 }));
+
+

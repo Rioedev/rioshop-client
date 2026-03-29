@@ -1,4 +1,3 @@
-import { AxiosError } from "axios";
 import { create } from "zustand";
 import {
   authService,
@@ -10,6 +9,7 @@ import {
 import { bindAuthTokenGetter } from "../services/apiClient";
 import { cartService, toCartCouponMeta, toCartStoreItems } from "../services/cartService";
 import { wishlistService, toWishlistStoreItems } from "../services/wishlistService";
+import { getErrorMessage as resolveErrorMessage } from "../utils/errorMessage";
 import { useCartStore } from "./cartStore";
 import { useNotificationStore } from "./notificationStore";
 import { useWishlistStore } from "./wishlistStore";
@@ -78,18 +78,7 @@ const clearAuthStorage = () => {
   localStorage.removeItem(AUTH_STORAGE_KEY);
 };
 
-const getErrorMessage = (error: unknown): string => {
-  if (error instanceof AxiosError) {
-    const responseMessage = (error.response?.data as { message?: string } | undefined)?.message;
-    return responseMessage ?? error.message;
-  }
-
-  if (error instanceof Error) {
-    return error.message;
-  }
-
-  return "Something went wrong";
-};
+const getErrorMessage = (error: unknown) => resolveErrorMessage(error, "Something went wrong");
 
 const applyAuthState = (user: AuthUser, token: string) => ({
   user,

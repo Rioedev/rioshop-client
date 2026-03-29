@@ -1,5 +1,5 @@
-import { AxiosError } from "axios";
 import { create } from "zustand";
+import { getErrorMessage } from "../utils/errorMessage";
 import {
   reviewService,
   type ReviewItem,
@@ -45,16 +45,6 @@ const EMPTY_STATS: ReviewStats = {
   count: 0,
   avg: 0,
   dist: { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 },
-};
-
-const getErrorMessage = (error: unknown) => {
-  if (error instanceof AxiosError) {
-    return (error.response?.data as { message?: string } | undefined)?.message ?? error.message;
-  }
-  if (error instanceof Error) {
-    return error.message;
-  }
-  return "Yêu cầu thất bại";
 };
 
 export const useReviewStore = create<ReviewState>((set, get) => ({
@@ -156,3 +146,5 @@ export const useReviewStore = create<ReviewState>((set, get) => ({
     }
   },
 }));
+
+

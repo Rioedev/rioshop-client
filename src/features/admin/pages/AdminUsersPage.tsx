@@ -1,4 +1,3 @@
-import { AxiosError } from "axios";
 import {
   Alert,
   Button,
@@ -26,6 +25,7 @@ import {
 import {
   useCustomerUserStore,
 } from "../../../stores/customerUserStore";
+import { getErrorMessage } from "../../../utils/errorMessage";
 
 const { Paragraph, Title, Text } = Typography;
 
@@ -53,18 +53,6 @@ const STATUS_LABEL_MAP: Record<CustomerStatus, string> = {
   active: "Đang hoạt động",
   inactive: "Ngừng hoạt động",
   banned: "Đã khóa",
-};
-
-const getErrorMessage = (error: unknown) => {
-  if (error instanceof AxiosError) {
-    return (error.response?.data as { message?: string } | undefined)?.message ?? error.message;
-  }
-
-  if (error instanceof Error) {
-    return error.message;
-  }
-
-  return "Yêu cầu thất bại";
 };
 
 const formatDateTime = (value?: string) => {
@@ -495,3 +483,5 @@ export function AdminUsersPage() {
     </div>
   );
 }
+
+

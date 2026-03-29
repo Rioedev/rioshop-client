@@ -1,5 +1,5 @@
-import { AxiosError } from "axios";
 import { create } from "zustand";
+import { getErrorMessage } from "../utils/errorMessage";
 import {
   analyticsEventService,
   type AnalyticsDashboardData,
@@ -28,16 +28,6 @@ type AnalyticsEventState = {
   loadDashboard: (params?: { startDate?: string; endDate?: string }) => Promise<void>;
   setEventFilter: (eventFilter?: AnalyticsEventType) => void;
   setDateRange: (startDate?: string, endDate?: string) => void;
-};
-
-const getErrorMessage = (error: unknown) => {
-  if (error instanceof AxiosError) {
-    return (error.response?.data as { message?: string } | undefined)?.message ?? error.message;
-  }
-  if (error instanceof Error) {
-    return error.message;
-  }
-  return "Yêu cầu thất bại";
 };
 
 export const useAnalyticsEventStore = create<AnalyticsEventState>((set, get) => ({
@@ -108,3 +98,5 @@ export const useAnalyticsEventStore = create<AnalyticsEventState>((set, get) => 
   setEventFilter: (eventFilter) => set({ eventFilter }),
   setDateRange: (startDate, endDate) => set({ startDate, endDate }),
 }));
+
+

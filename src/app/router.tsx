@@ -1,41 +1,174 @@
+import { lazy } from "react";
 import { createBrowserRouter, Navigate } from "react-router-dom";
-import { AdminLayout } from "../layouts/AdminLayout";
-import { StoreLayout } from "../layouts/StoreLayout";
-import { AdminDashboardPage } from "../features/admin/pages/AdminDashboardPage";
-import { AdminOrdersPage } from "../features/admin/pages/AdminOrdersPage";
-import { AdminProductsPage } from "../features/admin/pages/AdminProductsPage";
-import { AdminInventoriesPage } from "../features/admin/pages/AdminInventoriesPage";
-import { AdminCouponsPage } from "../features/admin/pages/AdminCouponsPage";
-import { AdminReviewsPage } from "../features/admin/pages/AdminReviewsPage";
-import { AdminFlashSalesPage } from "../features/admin/pages/AdminFlashSalesPage";
-import { AdminAnalyticsEventsPage } from "../features/admin/pages/AdminAnalyticsEventsPage";
-import { AdminCategoriesPage } from "../features/admin/pages/AdminCategoriesPage";
-import { AdminUsersPage } from "../features/admin/pages/AdminUsersPage";
-import { AdminAccountsPage } from "../features/admin/pages/AdminAccountsPage";
-import { AdminBrandConfigPage } from "../features/admin/pages/AdminBrandConfigPage";
-import { AdminBlogsPage } from "../features/admin/pages/AdminBlogsPage";
-import { StoreHomePage } from "../features/store/pages/StoreHomePage";
-import { StoreProductsPage } from "../features/store/pages/StoreProductsPage";
-import { StoreProductDetailPage } from "../features/store/pages/StoreProductDetailPage";
-import { StoreBlogsPage } from "../features/store/pages/StoreBlogsPage";
-import { StoreBlogDetailPage } from "../features/store/pages/StoreBlogDetailPage";
-import { StoreFlashSalesPage } from "../features/store/pages/StoreFlashSalesPage";
-import { StoreCartPage } from "../features/store/pages/StoreCartPage";
-import { StoreWishlistPage } from "../features/store/pages/StoreWishlistPage";
-import { StoreCheckoutPage } from "../features/store/pages/StoreCheckoutPage";
-import { StoreMomoReturnPage } from "../features/store/pages/StoreMomoReturnPage";
-import { StoreMomoSandboxPage } from "../features/store/pages/StoreMomoSandboxPage";
-import { StoreOrdersPage } from "../features/store/pages/StoreOrdersPage";
-import { StoreOrderDetailPage } from "../features/store/pages/StoreOrderDetailPage";
-import { StoreAccountPage } from "../features/store/pages/StoreAccountPage";
-import { LoginPage } from "../features/auth/pages/LoginPage";
-import { RegisterPage } from "../features/auth/pages/RegisterPage";
-import { ForgotPasswordPage } from "../features/auth/pages/ForgotPasswordPage";
-import { AdminLoginPage } from "../features/auth/pages/AdminLoginPage";
 import { RequireAuth } from "../components/route/RequireAuth";
 import { RequireStoreAuth } from "../components/route/RequireStoreAuth";
 import { PublicOnlyRoute } from "../components/route/PublicOnlyRoute";
 import { AdminPublicOnlyRoute } from "../components/route/AdminPublicOnlyRoute";
+
+const AdminLayout = lazy(() =>
+  import("../layouts/AdminLayout").then((module) => ({ default: module.AdminLayout })),
+);
+const StoreLayout = lazy(() =>
+  import("../layouts/StoreLayout").then((module) => ({ default: module.StoreLayout })),
+);
+
+const AdminDashboardPage = lazy(() =>
+  import("../features/admin/pages/AdminDashboardPage").then((module) => ({
+    default: module.AdminDashboardPage,
+  })),
+);
+const AdminOrdersPage = lazy(() =>
+  import("../features/admin/pages/AdminOrdersPage").then((module) => ({
+    default: module.AdminOrdersPage,
+  })),
+);
+const AdminProductsPage = lazy(() =>
+  import("../features/admin/pages/AdminProductsPage").then((module) => ({
+    default: module.AdminProductsPage,
+  })),
+);
+const AdminInventoriesPage = lazy(() =>
+  import("../features/admin/pages/AdminInventoriesPage").then((module) => ({
+    default: module.AdminInventoriesPage,
+  })),
+);
+const AdminCouponsPage = lazy(() =>
+  import("../features/admin/pages/AdminCouponsPage").then((module) => ({
+    default: module.AdminCouponsPage,
+  })),
+);
+const AdminReviewsPage = lazy(() =>
+  import("../features/admin/pages/AdminReviewsPage").then((module) => ({
+    default: module.AdminReviewsPage,
+  })),
+);
+const AdminFlashSalesPage = lazy(() =>
+  import("../features/admin/pages/AdminFlashSalesPage").then((module) => ({
+    default: module.AdminFlashSalesPage,
+  })),
+);
+const AdminAnalyticsEventsPage = lazy(() =>
+  import("../features/admin/pages/AdminAnalyticsEventsPage").then((module) => ({
+    default: module.AdminAnalyticsEventsPage,
+  })),
+);
+const AdminCategoriesPage = lazy(() =>
+  import("../features/admin/pages/AdminCategoriesPage").then((module) => ({
+    default: module.AdminCategoriesPage,
+  })),
+);
+const AdminUsersPage = lazy(() =>
+  import("../features/admin/pages/AdminUsersPage").then((module) => ({
+    default: module.AdminUsersPage,
+  })),
+);
+const AdminAccountsPage = lazy(() =>
+  import("../features/admin/pages/AdminAccountsPage").then((module) => ({
+    default: module.AdminAccountsPage,
+  })),
+);
+const AdminBrandConfigPage = lazy(() =>
+  import("../features/admin/pages/AdminBrandConfigPage").then((module) => ({
+    default: module.AdminBrandConfigPage,
+  })),
+);
+const AdminBlogsPage = lazy(() =>
+  import("../features/admin/pages/AdminBlogsPage").then((module) => ({
+    default: module.AdminBlogsPage,
+  })),
+);
+
+const StoreHomePage = lazy(() =>
+  import("../features/store/pages/StoreHomePage").then((module) => ({
+    default: module.StoreHomePage,
+  })),
+);
+const StoreProductsPage = lazy(() =>
+  import("../features/store/pages/StoreProductsPage").then((module) => ({
+    default: module.StoreProductsPage,
+  })),
+);
+const StoreProductDetailPage = lazy(() =>
+  import("../features/store/pages/StoreProductDetailPage").then((module) => ({
+    default: module.StoreProductDetailPage,
+  })),
+);
+const StoreBlogsPage = lazy(() =>
+  import("../features/store/pages/StoreBlogsPage").then((module) => ({
+    default: module.StoreBlogsPage,
+  })),
+);
+const StoreBlogDetailPage = lazy(() =>
+  import("../features/store/pages/StoreBlogDetailPage").then((module) => ({
+    default: module.StoreBlogDetailPage,
+  })),
+);
+const StoreFlashSalesPage = lazy(() =>
+  import("../features/store/pages/StoreFlashSalesPage").then((module) => ({
+    default: module.StoreFlashSalesPage,
+  })),
+);
+const StoreCartPage = lazy(() =>
+  import("../features/store/pages/StoreCartPage").then((module) => ({
+    default: module.StoreCartPage,
+  })),
+);
+const StoreWishlistPage = lazy(() =>
+  import("../features/store/pages/StoreWishlistPage").then((module) => ({
+    default: module.StoreWishlistPage,
+  })),
+);
+const StoreCheckoutPage = lazy(() =>
+  import("../features/store/pages/StoreCheckoutPage").then((module) => ({
+    default: module.StoreCheckoutPage,
+  })),
+);
+const StoreMomoReturnPage = lazy(() =>
+  import("../features/store/pages/StoreMomoReturnPage").then((module) => ({
+    default: module.StoreMomoReturnPage,
+  })),
+);
+const StoreMomoSandboxPage = lazy(() =>
+  import("../features/store/pages/StoreMomoSandboxPage").then((module) => ({
+    default: module.StoreMomoSandboxPage,
+  })),
+);
+const StoreOrdersPage = lazy(() =>
+  import("../features/store/pages/StoreOrdersPage").then((module) => ({
+    default: module.StoreOrdersPage,
+  })),
+);
+const StoreOrderDetailPage = lazy(() =>
+  import("../features/store/pages/StoreOrderDetailPage").then((module) => ({
+    default: module.StoreOrderDetailPage,
+  })),
+);
+const StoreAccountPage = lazy(() =>
+  import("../features/store/pages/StoreAccountPage").then((module) => ({
+    default: module.StoreAccountPage,
+  })),
+);
+
+const LoginPage = lazy(() =>
+  import("../features/auth/pages/LoginPage").then((module) => ({
+    default: module.LoginPage,
+  })),
+);
+const RegisterPage = lazy(() =>
+  import("../features/auth/pages/RegisterPage").then((module) => ({
+    default: module.RegisterPage,
+  })),
+);
+const ForgotPasswordPage = lazy(() =>
+  import("../features/auth/pages/ForgotPasswordPage").then((module) => ({
+    default: module.ForgotPasswordPage,
+  })),
+);
+const AdminLoginPage = lazy(() =>
+  import("../features/auth/pages/AdminLoginPage").then((module) => ({
+    default: module.AdminLoginPage,
+  })),
+);
 
 export const appRouter = createBrowserRouter([
   {
