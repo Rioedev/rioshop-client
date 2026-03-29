@@ -1,5 +1,4 @@
 ﻿import {
-  AutoComplete,
   Button,
   Card,
   Col,
@@ -12,14 +11,12 @@
   Row,
   Select,
   Space,
-  Switch,
   Table,
   Tag,
-  Typography,
   Upload,
   message,
 } from "antd";
-import { CopyOutlined, DeleteOutlined, InboxOutlined, PlusOutlined } from "@ant-design/icons";
+import { InboxOutlined, PlusOutlined } from "@ant-design/icons";
 import type { ColumnsType, TablePaginationConfig } from "antd/es/table";
 import type { UploadProps } from "antd/es/upload";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -27,11 +24,8 @@ import {
   productService,
   type Product,
   type ProductPayload,
-  type ProductGender,
   type ProductStatus,
   type ProductStatusFilter,
-  type ProductVariant,
-  type ProductVariantSize,
 } from "../../../services/productService";
 import {
   ensureImageFile,
@@ -42,365 +36,36 @@ import { useProductStore } from "../../../stores/productStore";
 import { RichTextEditor } from "../../../components/editor/RichTextEditor";
 import {
   buildProductSku,
-  buildVariantSku,
-  makeUniqueSku,
   normalizeSkuInput,
 } from "../utils/productSku";
-
-const { Paragraph, Title, Text } = Typography;
-const REQUIRED_RULE = [{ required: true, message: "Trường bắt buộc" }];
-
-type VariantImageFormValue = {
-  url: string;
-  pendingFileId?: string;
-};
-
-type VariantFormValue = {
-  variantId: string;
-  sku: string;
-  size: ProductVariantSize;
-  sizeLabel?: string;
-  stock?: number;
-  additionalPrice?: number;
-  isActive?: boolean;
-  colorName?: string;
-  colorHex?: string;
-  imageItems?: VariantImageFormValue[];
-};
-
-type VariantSizeFormValue = {
-  variantId?: string;
-  sku?: string;
-  size: ProductVariantSize;
-  sizeLabel?: string;
-  stock?: number;
-  additionalPrice?: number;
-  isActive?: boolean;
-};
-
-type VariantGroupFormValue = {
-  colorName?: string;
-  colorHex?: string;
-  imageItems?: VariantImageFormValue[];
-  sizes: VariantSizeFormValue[];
-  bulkSizesText?: string;
-};
-
-type ProductFormValues = {
-  sku: string;
-  name: string;
-  brand: string;
-  categoryId: string;
-  gender?: ProductGender;
-  ageGroup?: "adult" | "teen" | "kids" | "baby";
-  basePrice: number;
-  salePrice: number;
-  status: ProductStatus;
-  description?: string;
-  shortDescription?: string;
-  thumbnailUrl?: string;
-  materialText?: string;
-  careText?: string;
-  seoTitle?: string;
-  seoDescription?: string;
-  seoKeywordsText?: string;
-  variantGroups: VariantGroupFormValue[];
-};
-
-const STATUS_LABELS: Record<ProductStatus, string> = {
-  draft: "Nháp",
-  active: "Đang bán",
-  archived: "Lưu trữ",
-  out_of_stock: "Hết hàng",
-};
-
-const STATUS_COLORS: Record<ProductStatus, string> = {
-  draft: "gold",
-  active: "green",
-  archived: "default",
-  out_of_stock: "red",
-};
-
-const STATUS_FILTER_OPTIONS: { value: ProductStatusFilter; label: string }[] = [
-  { value: "all", label: "Tất cả trạng thái" },
-  { value: "active", label: "Đang bán" },
-  { value: "draft", label: "Nháp" },
-  { value: "archived", label: "Lưu trữ" },
-  { value: "out_of_stock", label: "Hết hàng" },
-];
-
-const PRODUCT_STATUS_OPTIONS: { value: ProductStatus; label: string }[] = [
-  { value: "active", label: "Đang bán" },
-  { value: "draft", label: "Nháp" },
-  { value: "out_of_stock", label: "Hết hàng" },
-  { value: "archived", label: "Lưu trữ" },
-];
-
-const VARIANT_SIZE_OPTIONS: { value: ProductVariantSize; label: ProductVariantSize }[] = [
-  { value: "XS", label: "XS" },
-  { value: "S", label: "S" },
-  { value: "M", label: "M" },
-  { value: "L", label: "L" },
-  { value: "XL", label: "XL" },
-  { value: "2XL", label: "2XL" },
-  { value: "3XL", label: "3XL" },
-  { value: "38", label: "38" },
-  { value: "39", label: "39" },
-  { value: "40", label: "40" },
-  { value: "41", label: "41" },
-  { value: "42", label: "42" },
-  { value: "43", label: "43" },
-];
-
-const GENDER_OPTIONS: { value: ProductGender; label: string }[] = [
-  { value: "men", label: "Nam" },
-  { value: "women", label: "Nữ" },
-  { value: "unisex", label: "Unisex" },
-  { value: "kids", label: "Trẻ em" },
-];
-
-const AGE_GROUP_OPTIONS: { value: "adult" | "teen" | "kids" | "baby"; label: string }[] = [
-  { value: "adult", label: "Người lớn" },
-  { value: "teen", label: "Thanh thiếu niên" },
-  { value: "kids", label: "Thiếu nhi" },
-  { value: "baby", label: "Em bé" },
-];
-
-const formatCurrency = new Intl.NumberFormat("vi-VN");
-
-const toSlug = (value: string) =>
-  value
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .trim()
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-+|-+$/g, "");
-
-const toList = (value?: string) =>
-  (value ?? "")
-    .split(",")
-    .map((item) => item.trim())
-    .filter(Boolean);
-
-const defaultVariantSize = (size: ProductVariantSize = "M"): VariantSizeFormValue => ({
-  variantId: "",
-  sku: "",
-  size,
-  sizeLabel: size,
-  stock: 0,
-  additionalPrice: 0,
-  isActive: true,
-});
-
-const defaultVariantGroup = (): VariantGroupFormValue => ({
-  colorName: "",
-  colorHex: "",
-  imageItems: [],
-  sizes: [defaultVariantSize("M")],
-  bulkSizesText: "",
-});
-
-const buildVariantGroupKey = (colorName?: string, colorHex?: string) =>
-  `${(colorName ?? "").trim().toLowerCase()}|${(colorHex ?? "").trim().toLowerCase()}`;
-
-const getUniqueVariantId = (baseVariantId: string, reservedVariantIds: Set<string>) => {
-  let candidate = baseVariantId;
-  let counter = 2;
-
-  while (reservedVariantIds.has(candidate)) {
-    candidate = `${baseVariantId}-${counter}`;
-    counter += 1;
-  }
-
-  reservedVariantIds.add(candidate);
-  return candidate;
-};
-
-const normalizeVariants = (variantValues: VariantFormValue[]): ProductVariant[] => {
-  const reservedVariantIds = new Set<string>();
-
-  return variantValues.reduce<ProductVariant[]>((acc, item, index) => {
-    const size = item.size?.trim();
-    if (!size) {
-      return acc;
-    }
-
-    const rawVariantId = item.variantId?.trim();
-    const variantId = rawVariantId
-      ? getUniqueVariantId(rawVariantId, reservedVariantIds)
-      : getUniqueVariantId(`variant-${index + 1}`, reservedVariantIds);
-
-    acc.push({
-      variantId,
-      sku: item.sku?.trim() || "",
-      size,
-      sizeLabel: item.sizeLabel?.trim() || size,
-      stock: Math.max(0, Number(item.stock ?? 0)),
-      additionalPrice: item.additionalPrice ?? 0,
-      isActive: item.isActive ?? true,
-      position: index,
-      color:
-        item.colorName || item.colorHex
-          ? { name: item.colorName?.trim() || "", hex: item.colorHex?.trim() || "" }
-          : undefined,
-      images: (item.imageItems ?? [])
-        .map((imageItem) => imageItem.url?.trim())
-        .filter(Boolean),
-    });
-
-    return acc;
-  }, []);
-};
-
-type ParsedSizeEntry = {
-  size: string;
-  stock?: number;
-};
-
-const normalizeVariantComboKey = (colorName?: string, colorHex?: string, size?: string) =>
-  `${(colorName ?? "").trim().toLowerCase()}|${(colorHex ?? "").trim().toLowerCase()}|${(size ?? "")
-    .trim()
-    .toLowerCase()}`;
-
-const parseBulkSizeEntries = (raw: string): ParsedSizeEntry[] => {
-  const seen = new Set<string>();
-
-  return raw
-    .split(/[\n,;]+/)
-    .map((token) => token.trim())
-    .filter(Boolean)
-    .reduce<ParsedSizeEntry[]>((acc, token) => {
-      const match = token.match(/^(.+?)(?:\s*[:=]\s*(\d+))?$/);
-      if (!match) {
-        return acc;
-      }
-
-      const nextSize = (match[1] ?? "").trim();
-      if (!nextSize) {
-        return acc;
-      }
-
-      const dedupeKey = nextSize.toLowerCase();
-      if (seen.has(dedupeKey)) {
-        return acc;
-      }
-      seen.add(dedupeKey);
-
-      const nextStock = match[2] === undefined ? undefined : Number(match[2]);
-      acc.push({
-        size: nextSize,
-        stock: Number.isFinite(nextStock) ? nextStock : undefined,
-      });
-      return acc;
-    }, []);
-};
-
-const mapVariantsToGroups = (variants: ProductVariant[] = []): VariantGroupFormValue[] => {
-  const groupMap = new Map<string, VariantGroupFormValue>();
-
-  variants.forEach((variant) => {
-    const colorName = variant.color?.name?.trim() || "";
-    const colorHex = variant.color?.hex?.trim() || "";
-    const key = buildVariantGroupKey(colorName, colorHex);
-
-    if (!groupMap.has(key)) {
-      groupMap.set(key, {
-        colorName,
-        colorHex,
-        imageItems: (variant.images ?? []).map((url) => ({ url })),
-        sizes: [],
-        bulkSizesText: "",
-      });
-    }
-
-    const group = groupMap.get(key);
-    if (!group) {
-      return;
-    }
-
-    if ((group.imageItems?.length ?? 0) === 0 && (variant.images?.length ?? 0) > 0) {
-      group.imageItems = (variant.images ?? []).map((url) => ({ url }));
-    }
-
-    group.sizes.push({
-      variantId: variant.variantId,
-      sku: variant.sku,
-      size: variant.size,
-      sizeLabel: variant.sizeLabel || variant.size,
-      stock: variant.stock ?? 0,
-      additionalPrice: variant.additionalPrice ?? 0,
-      isActive: variant.isActive ?? true,
-    });
-  });
-
-  const groups = Array.from(groupMap.values()).map((group) => ({
-    ...group,
-    sizes: group.sizes.length > 0 ? group.sizes : [defaultVariantSize("M")],
-  }));
-
-  return groups.length > 0 ? groups : [defaultVariantGroup()];
-};
-
-const flattenVariantGroups = (variantGroups: VariantGroupFormValue[]): VariantFormValue[] =>
-  variantGroups.flatMap((group, groupIndex) => {
-    const imageItems = (group.imageItems ?? []).map((item) => ({ ...item }));
-
-    return (group.sizes ?? []).map((sizeItem, sizeIndex) => ({
-      variantId: sizeItem.variantId?.trim() || `variant-${groupIndex + 1}-${sizeIndex + 1}`,
-      sku: sizeItem.sku?.trim() || "",
-      size: sizeItem.size,
-      sizeLabel: sizeItem.sizeLabel?.trim() || sizeItem.size,
-      stock: sizeItem.stock ?? 0,
-      additionalPrice: sizeItem.additionalPrice ?? 0,
-      isActive: sizeItem.isActive ?? true,
-      colorName: group.colorName?.trim() || "",
-      colorHex: group.colorHex?.trim() || "",
-      imageItems,
-    }));
-  });
-
-const buildVariantSkuPreviewMatrix = (
-  variantGroups: VariantGroupFormValue[] = [],
-  productSku = "",
-) => {
-  const matrix: string[][] = [];
-  const reservedSkus = new Set<string>();
-  const normalizedProductSku = normalizeSkuInput(productSku);
-
-  if (normalizedProductSku) {
-    reservedSkus.add(normalizedProductSku);
-  }
-
-  let globalIndex = 0;
-  variantGroups.forEach((group, groupIndex) => {
-    matrix[groupIndex] = [];
-    (group.sizes ?? []).forEach((sizeItem, sizeIndex) => {
-      const explicitSku = normalizeSkuInput(sizeItem.sku ?? "");
-      const requestedSku =
-        explicitSku ||
-        buildVariantSku({
-          productSku,
-          colorName: group.colorName ?? "",
-          size: sizeItem.size ?? "",
-          index: globalIndex,
-        });
-
-      matrix[groupIndex][sizeIndex] = makeUniqueSku(requestedSku, reservedSkus);
-      globalIndex += 1;
-    });
-  });
-
-  return matrix;
-};
-
-const getPrimaryImage = (product: Product) =>
-  product.media?.find((item) => item.isPrimary)?.url ??
-  product.media?.[0]?.url ??
-  product.variants?.find((variant) => (variant.images?.length ?? 0) > 0)?.images?.[0];
-
-const getStock = (product: Product) =>
-  product.inventorySummary?.available ?? product.inventorySummary?.total ?? 0;
+import {
+  AGE_GROUP_OPTIONS,
+  GENDER_OPTIONS,
+  PRODUCT_STATUS_OPTIONS,
+  REQUIRED_RULE,
+  STATUS_COLORS,
+  STATUS_FILTER_OPTIONS,
+  STATUS_LABELS,
+  buildVariantSkuPreviewMatrix,
+  defaultVariantGroup,
+  flattenVariantGroups,
+  formatCurrency,
+  getPrimaryImage,
+  getStock,
+  mapVariantsToGroups,
+  normalizeVariantComboKey,
+  normalizeVariants,
+  parseBulkSizeEntries,
+  toList,
+  toSlug,
+  type ProductFormValues,
+  type VariantGroupFormValue,
+  type VariantImageFormValue,
+  Paragraph,
+  Text,
+  Title,
+} from "./adminProductsShared";
+import { AdminProductVariantGroupsField } from "./AdminProductVariantGroupsField";
 
 export function AdminProductsPage() {
   const [form] = Form.useForm<ProductFormValues>();
@@ -1109,208 +774,15 @@ export function AdminProductsPage() {
                 </Form.Item>
               </div>
 
-              <div className="rounded-2xl border border-slate-200 bg-white p-4">
-                <div className="mb-3 flex items-center justify-between gap-2">
-                  <Title level={5} className="mb-0! mt-0!">Màu sắc & size</Title>
-                  <Button
-                    type="dashed"
-                    size="small"
-                    icon={<PlusOutlined />}
-                    onClick={() => {
-                      const currentGroups = ((form.getFieldValue("variantGroups") ?? []) as VariantGroupFormValue[]);
-                      form.setFieldValue("variantGroups", [...currentGroups, defaultVariantGroup()]);
-                    }}
-                  >
-                    Thêm màu
-                  </Button>
-                </div>
-
-                <Form.List name="variantGroups">
-                  {(groupFields, { remove: removeGroup }) => (
-                    <div className="space-y-3">
-                      {groupFields.map((groupField, groupIndex) => (
-                        <Card
-                          key={groupField.key}
-                          size="small"
-                          title={`Màu #${groupIndex + 1}`}
-                          extra={
-                            <Button
-                              size="small"
-                              danger
-                              onClick={() => {
-                                const groupImages = (form.getFieldValue(["variantGroups", groupField.name, "imageItems"]) ?? []) as VariantImageFormValue[];
-                                groupImages.forEach((imageItem) => unregisterPendingFile(imageItem.pendingFileId));
-                                removeGroup(groupField.name);
-                              }}
-                            >
-                              Xóa
-                            </Button>
-                          }
-                        >
-                          <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_260px] xl:items-start">
-                            <div className="space-y-3">
-                              <div className="grid gap-3 md:grid-cols-2">
-                                <Form.Item label="Tên màu" name={[groupField.name, "colorName"]} rules={REQUIRED_RULE}>
-                                  <Input placeholder="VD: Đen" />
-                                </Form.Item>
-                                <Form.Item label="Mã màu HEX" name={[groupField.name, "colorHex"]}>
-                                  <Input placeholder="#000000" />
-                                </Form.Item>
-                              </div>
-
-                              <div className="rounded-lg border border-slate-200 p-3">
-                                <div className="mb-2 flex items-center justify-between gap-2">
-                                  <Text strong>Danh sách size</Text>
-                                  <Button
-                                    size="small"
-                                    type="dashed"
-                                    icon={<PlusOutlined />}
-                                    onClick={() => {
-                                      const currentSizes = ((form.getFieldValue(["variantGroups", groupField.name, "sizes"]) ?? []) as VariantSizeFormValue[]);
-                                      form.setFieldValue(["variantGroups", groupField.name, "sizes"], [...currentSizes, defaultVariantSize("M")]);
-                                    }}
-                                  >
-                                    Thêm size
-                                  </Button>
-                                </div>
-
-                                <Form.List name={[groupField.name, "sizes"]}>
-                                  {(sizeFields, { remove: removeSize }) => (
-                                    <div className="space-y-2">
-                                      <div className="hidden gap-2 px-1 text-xs font-semibold uppercase tracking-[0.08em] text-slate-500 lg:grid lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_minmax(0,1fr)_minmax(0,1fr)_72px_40px]">
-                                        <span>Kích thước</span>
-                                        <span>Nhãn size</span>
-                                        <span>Tồn kho</span>
-                                        <span>Giá cộng</span>
-                                        <span>Hoạt động</span>
-                                        <span>Xóa</span>
-                                      </div>
-                                      {sizeFields.map((sizeField) => (
-                                        <div key={sizeField.key} className="grid gap-2 rounded-md border border-slate-200 p-2 sm:grid-cols-2 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_minmax(0,1fr)_minmax(0,1fr)_72px_40px]">
-                                          <Form.Item name={[sizeField.name, "size"]} rules={REQUIRED_RULE} className="mb-0!">
-                                            <AutoComplete
-                                              options={VARIANT_SIZE_OPTIONS}
-                                              placeholder="Ví dụ: M"
-                                              filterOption={(inputValue, option) =>
-                                                String(option?.value ?? "")
-                                                  .toLowerCase()
-                                                  .includes(inputValue.toLowerCase())
-                                              }
-                                            />
-                                          </Form.Item>
-                                          <Form.Item name={[sizeField.name, "sizeLabel"]} className="mb-0!">
-                                            <Input placeholder="Ví dụ: M" />
-                                          </Form.Item>
-                                          <Form.Item name={[sizeField.name, "stock"]} rules={REQUIRED_RULE} className="mb-0!">
-                                            <InputNumber min={0} className="w-full!" placeholder="0" />
-                                          </Form.Item>
-                                          <Form.Item name={[sizeField.name, "additionalPrice"]} className="mb-0!">
-                                            <InputNumber min={0} className="w-full!" placeholder="0" />
-                                          </Form.Item>
-                                          <Form.Item name={[sizeField.name, "isActive"]} valuePropName="checked" className="mb-0!">
-                                            <Switch />
-                                          </Form.Item>
-                                          <Button
-                                            danger
-                                            icon={<DeleteOutlined />}
-                                            className="h-8 w-10 min-w-0 sm:justify-self-start lg:justify-self-end"
-                                            onClick={() => removeSize(sizeField.name)}
-                                          />
-                                          <div className="sm:col-span-2 lg:col-span-6">
-                                            <Text className="text-xs text-slate-500">SKU biến thể</Text>
-                                            <Space.Compact className="mt-1 w-full">
-                                              <Input
-                                                readOnly
-                                                value={variantSkuPreviewMatrix[groupField.name]?.[sizeField.name] ?? ""}
-                                                placeholder="SKU sẽ tự sinh"
-                                              />
-                                              <Button
-                                                icon={<CopyOutlined />}
-                                                onClick={() =>
-                                                  void handleCopy(
-                                                    variantSkuPreviewMatrix[groupField.name]?.[sizeField.name] ?? "",
-                                                    "SKU biến thể",
-                                                  )
-                                                }
-                                              >
-                                                Copy
-                                              </Button>
-                                            </Space.Compact>
-                                          </div>
-                                        </div>
-                                      ))}
-                                    </div>
-                                  )}
-                                </Form.List>
-
-                                <div className="mt-2">
-                                  <Text className="mb-1 block">Tạo nhanh size</Text>
-                                  <div className="grid gap-2 md:grid-cols-[1fr_auto] md:items-start">
-                                    <Form.Item
-                                      name={[groupField.name, "bulkSizesText"]}
-                                      extra="VD: S:5, M:8, L:3"
-                                      className="mb-0!"
-                                    >
-                                      <Input placeholder="Nhập size nhanh" />
-                                    </Form.Item>
-                                    <Button className="self-start" onClick={() => appendSizesForGroup(groupField.name)}>
-                                      Áp dụng
-                                    </Button>
-                                  </div>
-                                </div>
-                              </div>
-                            </div>
-
-                            <div className="rounded-lg border border-slate-200 bg-slate-50 p-2.5">
-                              <Text className="text-sm" strong>Ảnh theo màu</Text>
-                              <div className="mt-2">
-                                <Upload
-                                  accept="image/*"
-                                  multiple
-                                  showUploadList={false}
-                                  customRequest={handleVariantGroupUpload(groupField.name)}
-                                  beforeUpload={beforeUpload}
-                                >
-                                  <Button size="small" icon={<PlusOutlined />} block>Thêm ảnh </Button>
-                                </Upload>
-                              </div>
-                              <Form.List name={[groupField.name, "imageItems"]}>
-                                {(imageFields, { remove: removeImage }) => (
-                                  <div className="mt-2 space-y-2">
-                                    {imageFields.map((imageField) => (
-                                      <div key={imageField.key} className="grid gap-2 grid-cols-[1fr_32px]">
-                                        <Form.Item name={[imageField.name, "url"]} rules={REQUIRED_RULE} className="mb-0!">
-                                          <Input size="small" placeholder="URL ảnh màu" />
-                                        </Form.Item>
-                                        <Button
-                                          size="small"
-                                          danger
-                                          className="w-8"
-                                          icon={<DeleteOutlined />}
-                                          onClick={() => {
-                                            const imageItem = form.getFieldValue([
-                                              "variantGroups",
-                                              groupField.name,
-                                              "imageItems",
-                                              imageField.name,
-                                            ]) as VariantImageFormValue | undefined;
-                                            unregisterPendingFile(imageItem?.pendingFileId);
-                                            removeImage(imageField.name);
-                                          }}
-                                        />
-                                      </div>
-                                    ))}
-                                  </div>
-                                )}
-                              </Form.List>
-                            </div>
-                          </div>
-                        </Card>
-                      ))}
-                    </div>
-                  )}
-                </Form.List>
-              </div>
+              <AdminProductVariantGroupsField
+                form={form}
+                variantSkuPreviewMatrix={variantSkuPreviewMatrix}
+                appendSizesForGroup={appendSizesForGroup}
+                handleVariantGroupUpload={handleVariantGroupUpload}
+                beforeUpload={beforeUpload}
+                unregisterPendingFile={unregisterPendingFile}
+                handleCopy={handleCopy}
+              />
             </div>
           </div>
         </Form>

@@ -11,7 +11,7 @@ import { Link, useParams } from "react-router-dom";
 import { cartService, toCartCouponMeta, toCartStoreItems } from "../../../services/cartService";
 import { couponService, type Coupon } from "../../../services/couponService";
 import { analyticsTracker } from "../../../services/analyticsTracker";
-import { productService, type Product } from "../../../services/productService";
+import { productService } from "../../../services/productService";
 import { reviewService, type ReviewItem } from "../../../services/reviewService";
 import { toWishlistStoreItems, wishlistService } from "../../../services/wishlistService";
 import { useAuthStore } from "../../../stores/authStore";
@@ -28,189 +28,25 @@ import {
   clampQuantityByStock,
   getSafeMaxQuantity,
 } from "../utils/quantityInputGuards";
+import {
+  DEFAULT_COLOR_HEX,
+  WISHLIST_FALLBACK_IMAGE,
+  demoColors,
+  demoSizes,
+  formatDetailCouponExpiry,
+  formatDetailCouponValue,
+  formatReviewDate,
+  generateReviewPercents,
+  getVariantColorName,
+  getVariantSizeLabel,
+  normalizeColorValue,
+  sanitizeProductHtml,
+  stripHtmlToText,
+  type ProductRuntime,
+} from "./storeProductDetailShared";
+import { StoreProductShowcaseGrid } from "./StoreProductShowcaseGrid";
 
 const { Paragraph, Title } = Typography;
-
-type ProductRuntime = Product & {
-  ratings?: {
-    avg?: number;
-    count?: number;
-    dist?: Record<string, number>;
-  };
-  totalSold?: number;
-};
-
-const demoColors = [
-  { name: "Coral", hex: "#ff7f7f" },
-  { name: "Pearl", hex: "#f1f5f9" },
-  { name: "Navy", hex: "#1e3a8a" },
-  { name: "Onyx", hex: "#0f172a" },
-  { name: "Slate", hex: "#64748b" },
-];
-
-const demoSizes = ["XS", "S", "M", "L", "XL", "2XL"];
-
-const DEFAULT_COLOR_HEX = "#cbd5e1";
-const WISHLIST_FALLBACK_IMAGE =
-  "https://dummyimage.com/400x400/e2e8f0/0f172a&text=RIO";
-
-const normalizeColorValue = (value?: string) => (value ?? "").trim().toLowerCase();
-
-const getVariantColorName = (variant: NonNullable<Product["variants"]>[number]) =>
-  variant.color?.name?.trim() || (variant.color?.hex?.trim() ? `Màu ${variant.color.hex.trim()}` : "Mặc định");
-
-const getVariantSizeLabel = (variant: NonNullable<Product["variants"]>[number]) =>
-  variant.sizeLabel?.trim() || variant.size?.trim() || "";
-
-const toProductCardImage = (item: ProductRuntime, fallback = "RIO") =>
-  resolveStoreProductThumbnail(item) ??
-  `https://dummyimage.com/800x1000/e2e8f0/0f172a&text=${encodeURIComponent(fallback)}`;
-
-const normalizeColorHex = (value?: string) => {
-  const hex = (value || "").trim();
-  return /^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/.test(hex) ? hex : DEFAULT_COLOR_HEX;
-};
-
-const getProductColorDots = (item: ProductRuntime) => {
-  const variants = (item.variants ?? []).filter((variant) => variant.isActive !== false);
-  const map = new Map<string, { name: string; hex: string }>();
-
-  variants.forEach((variant) => {
-    const name = variant.color?.name?.trim() || "";
-    const hex = normalizeColorHex(variant.color?.hex);
-    const key = `${normalizeColorValue(name || hex)}::${hex.toLowerCase()}`;
-    if (map.has(key)) {
-      return;
-    }
-
-    map.set(key, {
-      name: name || hex,
-      hex,
-    });
-  });
-
-  return Array.from(map.values()).slice(0, 4);
-};
-
-const generateReviewPercents = (dist?: Record<string, number>, count = 0) => {
-
-  if (dist && count > 0) {
-    return [5, 4, 3, 2, 1].map((star) => ({
-      star,
-      percent: Math.round(((dist[String(star)] ?? 0) / count) * 100),
-    }));
-  }
-
-  return [
-    { star: 5, percent: 78 },
-    { star: 4, percent: 15 },
-    { star: 3, percent: 4 },
-    { star: 2, percent: 2 },
-    { star: 1, percent: 1 },
-  ];
-};
-
-const formatReviewDate = (value?: string) => {
-  if (!value) {
-    return "Vừa xong";
-  }
-
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) {
-    return "Vừa xong";
-  }
-
-  return new Intl.DateTimeFormat("vi-VN", {
-    dateStyle: "medium",
-  }).format(date);
-};
-
-const formatDetailCouponValue = (coupon: Coupon) => {
-  if (coupon.type === "percent") {
-    return `Giảm ${coupon.value}%`;
-  }
-
-  if (coupon.type === "fixed") {
-    return `Giảm ${formatCurrency(coupon.value)}`;
-  }
-
-  if (coupon.type === "free_ship") {
-    return "Miễn phí vận chuyển";
-  }
-
-  return coupon.name;
-};
-
-const formatDetailCouponExpiry = (value?: string) => {
-  if (!value) {
-    return "Không giới hạn";
-  }
-
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) {
-    return "Không giới hạn";
-  }
-
-  return new Intl.DateTimeFormat("vi-VN", { dateStyle: "short" }).format(date);
-};
-
-const stripHtmlToText = (value?: string) =>
-  (value ?? "")
-    .replace(/<[^>]*>/g, " ")
-    .replace(/&nbsp;/gi, " ")
-    .replace(/\s+/g, " ")
-    .trim();
-
-const sanitizeProductHtml = (html?: string) => {
-  if (!html) {
-    return "";
-  }
-
-  if (typeof window === "undefined") {
-    return html;
-  }
-
-  try {
-    const parser = new DOMParser();
-    const doc = parser.parseFromString(html, "text/html");
-    doc.querySelectorAll("script, style, iframe, object, embed, link, meta").forEach((node) => node.remove());
-
-    doc.body.querySelectorAll("*").forEach((node) => {
-      Array.from(node.attributes).forEach((attribute) => {
-        const name = attribute.name.toLowerCase();
-        const value = attribute.value;
-
-        if (name.startsWith("on")) {
-          node.removeAttribute(attribute.name);
-          return;
-        }
-
-        if ((name === "href" || name === "src") && /^\s*javascript:/i.test(value)) {
-          node.removeAttribute(attribute.name);
-          return;
-        }
-
-        if (name === "style") {
-          const sanitizedStyle = value
-            .split(";")
-            .map((rule) => rule.trim())
-            .filter((rule) => rule && !/expression|url\(/i.test(rule))
-            .join("; ");
-
-          if (sanitizedStyle) {
-            node.setAttribute("style", sanitizedStyle);
-          } else {
-            node.removeAttribute("style");
-          }
-        }
-      });
-    });
-
-    return doc.body.innerHTML;
-  } catch {
-    return html;
-  }
-};
 
 export function StoreProductDetailPage() {
   const { slug } = useParams();
@@ -777,32 +613,6 @@ export function StoreProductDetailPage() {
     message.success("\u0110\u00e3 th\u00eam v\u00e0o y\u00eau th\u00edch");
   };
 
-  const renderProductCards = (items: ProductRuntime[]) => (
-    <div className="pdpv2-showcase-grid">
-      {items.map((item, index) => {
-        const colorDots = getProductColorDots(item);
-        return (
-          <Link key={item._id} to={`/products/${item.slug}`} className="pdpv2-showcase-card">
-            <div className="pdpv2-showcase-image">
-              <img src={toProductCardImage(item, `RIO-${index + 1}`)} alt={item.name} className="h-full w-full object-cover" />
-            </div>
-            <div className="pdpv2-showcase-content">
-              {colorDots.length > 0 ? (
-                <div className="pdpv2-color-row">
-                  {colorDots.map((color) => (
-                    <span key={`${item._id}-${color.name}-${color.hex}`} className="pdpv2-color-mini" style={{ background: color.hex }} />
-                  ))}
-                </div>
-              ) : null}
-              <h4>{item.name}</h4>
-              <p>{formatCurrency(item.pricing.salePrice)}</p>
-            </div>
-          </Link>
-        );
-      })}
-    </div>
-  );
-
   return (
     <div className="pdpv2-page space-y-8">
       <div className="flex flex-wrap items-center justify-between gap-3 text-sm text-slate-500">
@@ -1018,7 +828,7 @@ export function StoreProductDetailPage() {
 
       <section className="pdpv2-block">
         <h3 className="pdpv2-section-title">Sản phẩm cùng danh mục</h3>
-        {renderProductCards(sameCategoryProducts.length > 0 ? sameCategoryProducts : relatedProducts.slice(0, 4))}
+        <StoreProductShowcaseGrid items={sameCategoryProducts.length > 0 ? sameCategoryProducts : relatedProducts.slice(0, 4)} />
       </section>
 
       <section className="pdpv2-review-wrap">
@@ -1117,7 +927,7 @@ export function StoreProductDetailPage() {
 
       <section className="pdpv2-block">
         <h3 className="pdpv2-section-title">Sản phẩm bạn đã xem</h3>
-        {renderProductCards(viewedProducts)}
+        <StoreProductShowcaseGrid items={viewedProducts} />
       </section>
 
       {relatedProducts.length > 0 ? (
