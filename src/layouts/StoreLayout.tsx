@@ -1,25 +1,8 @@
-﻿import {
-  BellOutlined,
-  DownOutlined,
-  EnvironmentOutlined,
-  FacebookOutlined,
-  HeartOutlined,
-  InstagramOutlined,
-  LogoutOutlined,
-  MailOutlined,
-  MessageOutlined,
-  PhoneOutlined,
-  ProfileOutlined,
-  ShoppingCartOutlined,
-  TikTokOutlined,
-  UserOutlined,
-  YoutubeOutlined,
-} from "@ant-design/icons";
+import { PhoneOutlined } from "@ant-design/icons";
 import { Input } from "antd";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Link, Outlet, useLocation, useNavigate } from "react-router-dom";
 import { StoreNotificationsModal } from "../features/store/components/StoreNotificationsModal";
-import { resolveStoreImageUrl } from "../features/store/utils/storeFormatting";
 import { analyticsTracker } from "../services/analyticsTracker";
 import { brandConfigService } from "../services/brandConfigService";
 import { categoryService, type Category } from "../services/categoryService";
@@ -28,220 +11,27 @@ import {
   toCartCouponMeta,
   toCartStoreItems,
 } from "../services/cartService";
+import { subscribeUserNotifications } from "../services/socketClient";
 import {
   toWishlistStoreItems,
   wishlistService,
 } from "../services/wishlistService";
-import { subscribeUserNotifications } from "../services/socketClient";
 import { useAuthStore } from "../stores/authStore";
 import { useCartStore } from "../stores/cartStore";
 import { useNotificationStore } from "../stores/notificationStore";
 import { useWishlistStore } from "../stores/wishlistStore";
-
-const defaultMenuItems = [
-  { label: "Áo polo", category: "ao-polo" },
-  { label: "Áo sơ mi", category: "ao-so-mi" },
-  { label: "Quần jeans", category: "quan-jeans" },
-  { label: "Đồ thể thao", category: "do-the-thao" },
-];
-
-const policyItems = [
-  "Miễn phí đổi trả 60 ngày",
-  "Miễn phí ship từ 499K",
-  "Kiểm tra hàng trước khi nhận",
-  "Hotline 1900 8888",
-];
-
-const utilityLinks = [
-  { label: "Hệ thống cửa hàng", href: "/products" },
-  { label: "Flash Sale", href: "/flash-sales" },
-  { label: "Tra cứu đơn hàng", href: "/orders" },
-  { label: "Rio Member", href: "/account" },
-];
-
-const STORE_BRAND_KEY = "rioshop-default";
-
-type MegaLeaf = {
-  key: string;
-  label: string;
-  href: string;
-};
-
-type MegaItem = {
-  key: string;
-  label: string;
-  href: string;
-  image?: string;
-  children: MegaLeaf[];
-};
-
-type MegaColumn = {
-  key: "men" | "women" | "kids";
-  title: string;
-  items: MegaItem[];
-};
-
-type MegaCollectionCard = {
-  key: string;
-  title: string;
-  href: string;
-  image: string;
-};
-
-const stripDiacritics = (value = "") =>
-  value
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .toLowerCase();
-
-const toCategoryHref = (slug?: string) =>
-  slug ? `/products?category=${encodeURIComponent(slug)}` : "/products";
-
-const flattenCategoryTree = (nodes: Category[]): Category[] =>
-  nodes.reduce<Category[]>((acc, node) => {
-    acc.push(node);
-    if (node.children && node.children.length > 0) {
-      acc.push(...flattenCategoryTree(node.children));
-    }
-    return acc;
-  }, []);
-
-const toMegaItem = (node: Category): MegaItem => ({
-  key: node._id,
-  label: node.name,
-  href: toCategoryHref(node.slug),
-  image: resolveStoreImageUrl(node.image),
-  children: (node.children ?? [])
-    .filter((child) => Boolean(child.slug))
-    .slice(0, 8)
-    .map((child) => ({
-      key: child._id,
-      label: child.name,
-      href: toCategoryHref(child.slug),
-    })),
-});
-
-const buildMegaColumns = (categoryTree: Category[]): MegaColumn[] => {
-  const rootNodes = categoryTree.filter((node) => Boolean(node.slug));
-  const allNodes = flattenCategoryTree(categoryTree).filter((node) =>
-    Boolean(node.slug),
-  );
-  const usedNodeIds = new Set<string>();
-
-  const groupConfigs: Array<{
-    key: MegaColumn["key"];
-    title: string;
-    keywords: string[];
-  }> = [
-    { key: "men", title: "NAM", keywords: ["nam", "men"] },
-    { key: "women", title: "NỮ", keywords: ["nu", "women", "female"] },
-    {
-      key: "kids",
-      title: "TRẺ EM",
-      keywords: ["tre em", "kid", "kids", "baby", "be"],
-    },
-  ];
-
-  const columns = groupConfigs.map((group) => {
-    const groupRoot = rootNodes.find((node) => {
-      const normalized = stripDiacritics(node.name);
-      return group.keywords.some(
-        (keyword) =>
-          normalized === keyword ||
-          normalized.startsWith(`${keyword} `) ||
-          normalized.endsWith(` ${keyword}`) ||
-          normalized.includes(keyword),
-      );
-    });
-
-    const sourceNodes = groupRoot
-      ? (groupRoot.children ?? []).length > 0
-        ? (groupRoot.children ?? [])
-        : [groupRoot]
-      : allNodes.filter((node) => {
-          const normalized = stripDiacritics(node.name);
-          return group.keywords.some((keyword) => normalized.includes(keyword));
-        });
-
-    const primaryItems = sourceNodes
-      .filter((node) => Boolean(node.slug) && !usedNodeIds.has(node._id))
-      .slice(0, 8)
-      .map((node) => {
-        usedNodeIds.add(node._id);
-        return toMegaItem(node);
-      });
-
-    return {
-      key: group.key,
-      title: group.title,
-      items: primaryItems,
-    };
-  });
-
-  const remaining = allNodes.filter((node) => !usedNodeIds.has(node._id));
-  let remainingIndex = 0;
-
-  columns.forEach((column) => {
-    while (column.items.length < 8 && remainingIndex < remaining.length) {
-      const candidate = remaining[remainingIndex];
-      remainingIndex += 1;
-      if (!candidate.slug) continue;
-      column.items.push(toMegaItem(candidate));
-    }
-  });
-
-  return columns;
-};
-
-const fallbackCollectionImages = [
-  "https://dummyimage.com/960x420/e2e8f0/0f172a&text=BST+M%E1%BB%9Bi",
-  "https://dummyimage.com/960x420/fde2e4/7f1d1d&text=BST+Hot",
-  "https://dummyimage.com/960x420/fee2e2/991b1b&text=BST+Flash",
-];
-
-const buildMegaCollectionCards = (
-  categoryTree: Category[],
-): MegaCollectionCard[] => {
-  const imageNodes = flattenCategoryTree(categoryTree)
-    .filter((node) => Boolean(node.slug))
-    .map((node) => ({
-      ...node,
-      image: resolveStoreImageUrl(node.image),
-    }))
-    .filter((node) => Boolean(node.image))
-    .slice(0, 3);
-
-  if (imageNodes.length > 0) {
-    const cards = imageNodes.map((node, index) => ({
-      key: node._id,
-      title: `BST ${node.name}`,
-      href: toCategoryHref(node.slug),
-      image:
-        node.image ||
-        fallbackCollectionImages[index % fallbackCollectionImages.length],
-    }));
-
-    while (cards.length < 3) {
-      const index = cards.length;
-      cards.push({
-        key: `fallback-${index}`,
-        title: `BST nổi bật ${index + 1}`,
-        href: "/products",
-        image:
-          fallbackCollectionImages[index % fallbackCollectionImages.length],
-      });
-    }
-
-    return cards;
-  }
-
-  return fallbackCollectionImages.map((image, index) => ({
-    key: `fallback-${index}`,
-    title: `BST nổi bật ${index + 1}`,
-    href: "/products",
-    image,
-  }));
-};
+import { StoreFooter } from "./StoreFooter";
+import { StoreHeaderActions } from "./StoreHeaderActions";
+import { StoreMegaMenu } from "./StoreMegaMenu";
+import {
+  STORE_BRAND_KEY,
+  buildMegaCollectionCards,
+  buildMegaColumns,
+  defaultMenuItems,
+  policyItems,
+  utilityLinks,
+  type MegaColumn,
+} from "./storeLayoutShared";
 
 export function StoreLayout() {
   const navigate = useNavigate();
@@ -454,7 +244,6 @@ export function StoreLayout() {
     user?.id,
   ]);
 
-  // Scroll to top when route changes
   useEffect(() => {
     window.scrollTo(0, 0);
   }, [location.pathname]);
@@ -562,7 +351,7 @@ export function StoreLayout() {
   return (
     <div className="storefront-shell min-h-screen">
       <div className="store-promo-bar">
-        FLASH SALE 10H - 14H | Giảm đến 50% + Freeship toàn quốc
+        FLASH SALE 10H - 14H | Gi?m d?n 50% + Freeship to�n qu?c
       </div>
 
       <div className="store-utility-strip">
@@ -595,316 +384,61 @@ export function StoreLayout() {
                 onChange={(event) => setSearchKeyword(event.target.value)}
                 onPressEnter={onSearch}
                 className="store-search"
-                placeholder="Tìm áo thun, quần short, combo..."
+                placeholder="T�m �o thun, qu?n short, combo..."
               />
             </div>
 
-            <div className="ml-auto flex flex-wrap items-center justify-end gap-2">
-              <button
-                type="button"
-                className="store-icon-link border-none bg-transparent p-0"
-                onClick={() => setIsNotificationModalOpen(true)}
-              >
-                <span
-                  className="store-top-icon"
-                  title="Thông báo"
-                  aria-label="Thông báo"
-                >
-                  <BellOutlined />
-                  {unreadNotificationCount > 0 ? (
-                    <span className="store-cart-count">
-                      {unreadNotificationCount}
-                    </span>
-                  ) : null}
-                </span>
-              </button>
-
-              <Link to="/wishlist" className="store-icon-link">
-                <span
-                  className="store-top-icon"
-                  title="Yêu thích"
-                  aria-label="Yêu thích"
-                >
-                  <HeartOutlined />
-                  {wishlistItems.length > 0 ? (
-                    <span className="store-cart-count">
-                      {wishlistItems.length}
-                    </span>
-                  ) : null}
-                </span>
-              </Link>
-
-              <Link to="/cart" className="store-icon-link">
-                <span
-                  className="store-top-icon"
-                  title="Giỏ hàng"
-                  aria-label="Giỏ hàng"
-                >
-                  <ShoppingCartOutlined />
-                  {cartCount > 0 ? (
-                    <span className="store-cart-count">{cartCount}</span>
-                  ) : null}
-                </span>
-              </Link>
-
-              {isAuthenticated ? (
-                <div
-                  className={`store-account-menu ${isAccountMenuOpen ? "is-open" : ""}`}
-                  ref={accountMenuRef}
-                >
-                  <button
-                    type="button"
-                    className="store-account-trigger"
-                    title="Tài khoản"
-                    aria-label="Tài khoản"
-                    onClick={() => setIsAccountMenuOpen((prev) => !prev)}
-                  >
-                    <span className="store-avatar-wrap">
-                      {avatarUrl ? (
-                        <img
-                          src={avatarUrl}
-                          alt={fullName}
-                          className="store-avatar-image"
-                        />
-                      ) : (
-                        <span className="store-avatar-fallback">
-                          {initials || "U"}
-                        </span>
-                      )}
-                    </span>
-                  </button>
-                  <div className="store-user-dropdown">
-                    <div className="store-user-dropdown-head">
-                      <p className="store-user-dropdown-name">{fullName}</p>
-                      <p className="store-user-dropdown-role">
-                        {accountType === "admin"
-                          ? "Quản trị viên"
-                          : "Khách hàng"}
-                      </p>
-                    </div>
-                    <Link
-                      to="/account"
-                      className="store-user-dropdown-item"
-                      onClick={() => setIsAccountMenuOpen(false)}
-                    >
-                      <UserOutlined />
-                      Tài khoản của tôi
-                    </Link>
-                    <button
-                      type="button"
-                      className="store-user-dropdown-item"
-                      onClick={() => {
-                        setIsAccountMenuOpen(false);
-                        setIsNotificationModalOpen(true);
-                      }}
-                    >
-                      <BellOutlined />
-                      Thông báo của tôi
-                    </button>
-                    <Link
-                      to="/orders"
-                      className="store-user-dropdown-item"
-                      onClick={() => setIsAccountMenuOpen(false)}
-                    >
-                      <ProfileOutlined />
-                      Đơn hàng của tôi
-                    </Link>
-                    {accountType === "admin" ? (
-                      <Link
-                        to="/admin/dashboard"
-                        className="store-user-dropdown-item"
-                        onClick={() => setIsAccountMenuOpen(false)}
-                      >
-                        <UserOutlined />
-                        Trang quản trị
-                      </Link>
-                    ) : null}
-                    <button
-                      type="button"
-                      className="store-user-dropdown-item"
-                      onClick={() => {
-                        setIsAccountMenuOpen(false);
-                        void logout();
-                      }}
-                    >
-                      <LogoutOutlined />
-                      Đăng xuất
-                    </button>
-                  </div>
-                </div>
-              ) : (
-                <div
-                  className={`store-user-menu ${isAccountMenuOpen ? "is-open" : ""}`}
-                  ref={accountMenuRef}
-                >
-                  <button
-                    type="button"
-                    className="store-top-icon"
-                    title="Tài khoản"
-                    aria-label="Tài khoản"
-                    onClick={() => setIsAccountMenuOpen((prev) => !prev)}
-                  >
-                    <UserOutlined />
-                  </button>
-                  <div className="store-user-dropdown">
-                    <Link
-                      to="/login"
-                      className="store-user-dropdown-item"
-                      onClick={() => setIsAccountMenuOpen(false)}
-                    >
-                      Đăng nhập
-                    </Link>
-                    <Link
-                      to="/register"
-                      className="store-user-dropdown-item"
-                      onClick={() => setIsAccountMenuOpen(false)}
-                    >
-                      Đăng ký
-                    </Link>
-                  </div>
-                </div>
-              )}
-            </div>
+            <StoreHeaderActions
+              isAuthenticated={isAuthenticated}
+              accountType={accountType}
+              fullName={fullName}
+              initials={initials}
+              avatarUrl={avatarUrl}
+              unreadNotificationCount={unreadNotificationCount}
+              wishlistCount={wishlistItems.length}
+              cartCount={cartCount}
+              isAccountMenuOpen={isAccountMenuOpen}
+              accountMenuRef={accountMenuRef}
+              onToggleAccountMenu={() =>
+                setIsAccountMenuOpen((prev) => !prev)
+              }
+              onCloseAccountMenu={() => setIsAccountMenuOpen(false)}
+              onOpenNotificationModal={() => setIsNotificationModalOpen(true)}
+              onLogout={() => {
+                void logout();
+              }}
+            />
           </div>
 
           <nav className="store-main-nav mt-3 flex gap-2 overflow-x-auto pb-1">
             <Link to="/" className="store-nav-pill">
-              Trang chủ
+              Trang ch?
             </Link>
             <Link to="/products?sort=best_selling" className="store-nav-pill">
-              Bán chạy
+              B�n ch?y
             </Link>
             <Link to="/products?sort=newest" className="store-nav-pill">
-              Mới về
+              M?i v?
             </Link>
             <Link to="/products?sort=price_desc" className="store-nav-pill">
               Flash sale
             </Link>
             <Link to="/products" className="store-nav-pill">
-              Tất cả sản phẩm
+              T?t c? s?n ph?m
             </Link>
 
-            <div
-              ref={megaMenuRef}
-              className={`store-nav-mega ${isMegaMenuOpen ? "is-open" : ""}`}
-              onMouseEnter={openMegaMenu}
-              onMouseLeave={closeMegaMenu}
-            >
-              <button
-                type="button"
-                className="store-nav-pill store-nav-pill--mega"
-                aria-expanded={isMegaMenuOpen}
-                onClick={() => setIsMegaMenuOpen((prev) => !prev)}
-              >
-                Danh mục
-                <DownOutlined />
-              </button>
-
-              <div className="store-mega-panel">
-                <div className="store-mega-grid">
-                  {megaColumns.map((column) => {
-                    const activeItemKey = normalizedActiveMegaItemKeys[column.key];
-                    return (
-                      <section key={column.key} className="store-mega-col">
-                        <h4 className="store-mega-heading">{column.title} ↗</h4>
-                        <div className="store-mega-list">
-                          {column.items.map((item) => {
-                            const isOpen = item.key === activeItemKey;
-                            return (
-                              <article
-                                key={item.key}
-                                className={`store-mega-item ${isOpen ? "is-open" : ""}`}
-                              >
-                                <div className="store-mega-item-trigger">
-                                  <Link
-                                    to={item.href}
-                                    className="store-mega-item-main"
-                                    onClick={() => setIsMegaMenuOpen(false)}
-                                  >
-                                    <span className="store-mega-thumb">
-                                      {item.image ? (
-                                        <img
-                                          src={item.image}
-                                          alt={item.label}
-                                          className="h-full w-full object-cover"
-                                        />
-                                      ) : (
-                                        <span>
-                                          {item.label.slice(0, 1).toUpperCase()}
-                                        </span>
-                                      )}
-                                    </span>
-                                    <span className="store-mega-item-label">
-                                      {item.label}
-                                    </span>
-                                  </Link>
-                                  {item.children.length > 0 ? (
-                                    <button
-                                      type="button"
-                                      className="store-mega-toggle"
-                                      aria-expanded={isOpen}
-                                      onClick={() =>
-                                        toggleMegaChildren(column.key, item.key)
-                                      }
-                                    >
-                                      <DownOutlined className="store-mega-chevron" />
-                                    </button>
-                                  ) : null}
-                                </div>
-                                {isOpen && item.children.length > 0 ? (
-                                  <div className="store-mega-children">
-                                    {item.children.map((child) => (
-                                      <Link
-                                        key={child.key}
-                                        to={child.href}
-                                        onClick={() => setIsMegaMenuOpen(false)}
-                                      >
-                                        {child.label}
-                                      </Link>
-                                    ))}
-                                  </div>
-                                ) : null}
-                              </article>
-                            );
-                          })}
-                        </div>
-                      </section>
-                    );
-                  })}
-
-                  <section className="store-mega-col store-mega-col--collection">
-                    <h4 className="store-mega-heading">BỘ SƯU TẬP</h4>
-                    <div className="store-mega-collection-list">
-                      {megaCollectionCards.map((card) => (
-                        <Link
-                          key={card.key}
-                          to={card.href}
-                          className="store-mega-collection-card"
-                          onClick={() => setIsMegaMenuOpen(false)}
-                        >
-                          <div className="store-mega-collection-media">
-                            <img
-                              src={card.image}
-                              alt={card.title}
-                              className="h-full w-full object-cover"
-                            />
-                          </div>
-                          <p>{card.title}</p>
-                        </Link>
-                      ))}
-                    </div>
-                  </section>
-                </div>
-                <div className="store-mega-foot">
-                  <button
-                    type="button"
-                    onClick={() => setIsMegaMenuOpen(false)}
-                  >
-                    Đóng
-                  </button>
-                </div>
-              </div>
-            </div>
+            <StoreMegaMenu
+              megaMenuRef={megaMenuRef}
+              isMegaMenuOpen={isMegaMenuOpen}
+              megaColumns={megaColumns}
+              normalizedActiveMegaItemKeys={normalizedActiveMegaItemKeys}
+              megaCollectionCards={megaCollectionCards}
+              onOpenMenu={openMegaMenu}
+              onCloseMenu={closeMegaMenu}
+              onToggleMenu={() => setIsMegaMenuOpen((prev) => !prev)}
+              onCloseMenuNow={() => setIsMegaMenuOpen(false)}
+              onToggleMegaChildren={toggleMegaChildren}
+            />
 
             {menuItems.slice(0, 6).map((item) => (
               <Link
@@ -943,136 +477,7 @@ export function StoreLayout() {
         <Outlet />
       </main>
 
-      <footer className="store-footer">
-        <div className="mx-auto w-full max-w-405 px-3 py-10 sm:px-4 xl:px-6">
-          <div className="store-footer-top">
-            <div className="store-footer-intro">
-              <h4>RIOSHOP XIN CHÀO 💖</h4>
-              <p>
-                Chúng tôi luôn quý trọng và tiếp thu mọi ý kiến đóng góp từ
-                khách hàng, nhằm không ngừng cải thiện và nâng tầm trải nghiệm
-                dịch vụ cùng chất lượng sản phẩm.
-              </p>
-              <form
-                className="store-footer-subscribe"
-                onSubmit={(event) => event.preventDefault()}
-              >
-                <input placeholder="Nhập địa chỉ email của bạn" />
-                <button type="submit">Gửi</button>
-              </form>
-            </div>
-
-            <div className="store-footer-contact">
-              <div className="store-footer-contact-item">
-                <PhoneOutlined />
-                <div>
-                  <p>Hotline</p>
-                  <strong>1800 2086</strong>
-                  <span>Bấm phím 1 để được tư vấn mua hàng</span>
-                  <span>Bấm phím 2 để góp ý, khiếu nại</span>
-                </div>
-              </div>
-              <div className="store-footer-contact-item">
-                <MailOutlined />
-                <div>
-                  <p>Email</p>
-                  <strong>chamsockhachhang@rioshop.vn</strong>
-                </div>
-              </div>
-              <div className="store-footer-contact-item">
-                <EnvironmentOutlined />
-                <div>
-                  <p>Địa chỉ</p>
-                  <strong>
-                    Đường An Định - Phường Việt Hòa - TP Hải Phòng
-                  </strong>
-                </div>
-              </div>
-            </div>
-
-            <div className="store-footer-social">
-              <a href="#" aria-label="Zalo">
-                Z
-              </a>
-              <a href="#" aria-label="Messenger">
-                <MessageOutlined />
-              </a>
-              <a href="#" aria-label="TikTok">
-                <TikTokOutlined />
-              </a>
-              <a href="#" aria-label="YouTube">
-                <YoutubeOutlined />
-              </a>
-              <a
-                href={footerSocialLinks.instagram || "#"}
-                aria-label="Instagram"
-                target={footerSocialLinks.instagram ? "_blank" : undefined}
-                rel={
-                  footerSocialLinks.instagram
-                    ? "noreferrer noopener"
-                    : undefined
-                }
-                onClick={(event) => {
-                  if (!footerSocialLinks.instagram) {
-                    event.preventDefault();
-                  }
-                }}
-              >
-                <InstagramOutlined />
-              </a>
-              <a
-                href={footerSocialLinks.facebook || "#"}
-                aria-label="Facebook"
-                target={footerSocialLinks.facebook ? "_blank" : undefined}
-                rel={
-                  footerSocialLinks.facebook ? "noreferrer noopener" : undefined
-                }
-                onClick={(event) => {
-                  if (!footerSocialLinks.facebook) {
-                    event.preventDefault();
-                  }
-                }}
-              >
-                <FacebookOutlined />
-              </a>
-            </div>
-          </div>
-
-          <div className="store-footer-links">
-            {[
-              "HỆ THỐNG CỬA HÀNG",
-              "MUA SẮM",
-              "TIN TỨC",
-              "DỊCH VỤ KHÁCH HÀNG",
-              "VỀ RIOSHOP",
-            ].map((item) => (
-              <button
-                key={item}
-                type="button"
-                className="store-footer-link-row"
-              >
-                <span>{item}</span>
-                <DownOutlined />
-              </button>
-            ))}
-          </div>
-
-          <div className="store-footer-bottom">
-            <div>
-              <h5>@ CÔNG TY CỔ PHẦN THỜI TRANG RIOSHOP</h5>
-              <p>
-                Mã số doanh nghiệp: 0801206940. Giấy chứng nhận đăng ký doanh
-                nghiệp do Sở Kế hoạch và Đầu tư TP Hải Dương cấp lần đầu ngày
-                04/03/2017
-              </p>
-            </div>
-            <div className="store-footer-certs">
-              <span>DMCA PROTECTED</span>
-              <span>ĐÃ THÔNG BÁO BỘ CÔNG THƯƠNG</span>
-            </div>
-          </div>
-        </div>
-      </footer>
+      <StoreFooter footerSocialLinks={footerSocialLinks} />
     </div>
   );
 }

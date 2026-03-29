@@ -1,7 +1,6 @@
 ﻿import {
   ClockCircleOutlined,
   FireOutlined,
-  StarFilled,
   ThunderboltOutlined,
 } from "@ant-design/icons";
 import { Button, Progress, message } from "antd";
@@ -40,6 +39,9 @@ import {
   type ResolvedHomeContent,
   writeSavedCouponCodes,
 } from "./storeHomeShared";
+import { StoreHomeHeroSection } from "./StoreHomeHeroSection";
+import { StoreHomeProductCard } from "./StoreHomeProductCard";
+import { StoreHomeShowcaseSection } from "./StoreHomeShowcaseSection";
 
 export function StoreHomePage() {
   const [messageApi, contextHolder] = message.useMessage();
@@ -427,18 +429,14 @@ export function StoreHomePage() {
     };
   }, [heroSlides.length]);
 
-  const normalizedHeroIndex = heroSlides.length > 0 ? activeHeroIndex % heroSlides.length : 0;
-  const activeHeroSlide = heroSlides[normalizedHeroIndex] ?? heroSlides[0];
-  const activeQuickCategory = quickCategories.find((item) => item.id === activeQuickCategoryId) ?? quickCategories[0];
-
   const showcaseProducts = useMemo(() => {
-    const preferredCategoryId = activeQuickCategory?.id;
+    const preferredCategoryId = activeQuickCategoryId || quickCategories[0]?.id;
     if (!preferredCategoryId) {
       return productPool.slice(0, 5);
     }
 
     return productPool.filter((item) => item.categoryId === preferredCategoryId).slice(0, 5);
-  }, [activeQuickCategory, productPool]);
+  }, [activeQuickCategoryId, productPool, quickCategories]);
 
   const showcaseLeadProduct = showcaseProducts[0];
   const showcaseRailProducts = showcaseProducts.slice(1, 5);
@@ -474,75 +472,6 @@ export function StoreHomePage() {
     }
   };
 
-  const renderProductCard = (product: HomeProduct, large = false) => {
-    const hasDiscount = typeof product.originalPrice === "number" && product.originalPrice > product.price;
-
-    return (
-      <Link to={`/products/${product.slug}`} className={`store-home-v3-product-card ${large ? "is-large" : ""}`}>
-        <div className="store-home-v3-product-media">
-          <img src={product.image} alt={product.name} className="h-full w-full object-cover" />
-          <span className="store-home-v3-product-chip">{product.categoryName ?? product.category}</span>
-          {hasDiscount && product.badge ? <span className="store-home-v3-product-sale">{product.badge}</span> : null}
-        </div>
-        <div className="store-home-v3-product-body">
-          <p className="store-home-v3-product-meta">{product.category}</p>
-          <h3>{product.name}</h3>
-          {product.colors && product.colors.length > 0 ? (
-            <div className="store-home-v3-product-colors">
-              {product.colors.map((color) => (
-                <span
-                  key={`${product.id}-${color.name}-${color.hex}`}
-                  className="store-home-v3-product-color"
-                  style={{ backgroundColor: color.hex }}
-                  title={color.name}
-                  aria-label={color.name}
-                />
-              ))}
-            </div>
-          ) : null}
-          <div className="store-home-v3-price-row">
-            <strong>{formatCurrency(product.price)}</strong>
-            {hasDiscount ? <span>{formatCurrency(product.originalPrice ?? product.price)}</span> : null}
-          </div>
-          <div className="store-home-v3-product-foot">
-            <span className="inline-flex items-center gap-1 text-amber-500">
-              <StarFilled />
-              {product.rating.toFixed(1)}
-            </span>
-            <span>{product.sold}</span>
-          </div>
-        </div>
-      </Link>
-    );
-  };
-
-  const renderShowcaseCard = (product: HomeProduct) => {
-    const hasDiscount = typeof product.originalPrice === "number" && product.originalPrice > product.price;
-
-    return (
-      <Link key={`showcase-${product.id}`} to={`/products/${product.slug}`} className="store-home-v3-showcase-item">
-        <div className="store-home-v3-showcase-item-media">
-          <img src={product.image} alt={product.name} className="h-full w-full object-cover" />
-        </div>
-        <div className="store-home-v3-showcase-item-copy">
-          <p>{product.categoryName ?? product.category}</p>
-          <h3>{product.name}</h3>
-          <div className="store-home-v3-showcase-item-price">
-            <strong>{formatCurrency(product.price)}</strong>
-            {hasDiscount ? <span>{formatCurrency(product.originalPrice ?? product.price)}</span> : null}
-          </div>
-          <div className="store-home-v3-showcase-item-foot">
-            <span className="inline-flex items-center gap-1 text-amber-500">
-              <StarFilled />
-              {product.rating.toFixed(1)}
-            </span>
-            <span>{product.sold}</span>
-          </div>
-        </div>
-      </Link>
-    );
-  };
-
   return (
     <div className="store-home-v3 space-y-8 md:space-y-12">
       {contextHolder}
@@ -550,84 +479,16 @@ export function StoreHomePage() {
         <div className="store-home-v3-notice">{homeContent.labels.loadingHome}</div>
       ) : null}
 
-      <section
-        className="store-home-v3-hero store-home-v3-bleed"
-        style={{
-          backgroundImage: `linear-gradient(118deg, rgba(15, 79, 168, 0.82), rgba(15, 79, 168, 0.24)), url(${activeHeroSlide?.image ?? campaignImage})`,
-        }}
-      >
-        <div className="store-home-v3-hero-inner">
-          <div className="store-home-v3-hero-copy">
-            <div className="store-home-v3-hero-copy-top">
-              <p className="store-home-v3-kicker">{activeHeroSlide?.kicker ?? homeContent.hero.kicker}</p>
-              <span className="store-home-v3-hero-badge">{activeHeroSlide?.badge ?? homeContent.labels.flashDeal}</span>
-            </div>
-            <h1>
-              {activeHeroSlide?.titleLine1 ?? homeContent.hero.titleLine1}
-              <br />
-              {activeHeroSlide?.titleLine2 ?? homeContent.hero.titleLine2}
-            </h1>
-            <p className="store-home-v3-hero-text">{activeHeroSlide?.description ?? homeContent.hero.description}</p>
-            <div className="store-home-v3-hero-actions">
-              <Link to={activeHeroSlide?.href ?? primaryCtaLink}>
-                <Button type="primary" className="store-home-v3-primary-btn h-12! rounded-full! px-7! font-bold! shadow-none!">
-                  {activeHeroSlide?.primaryLabel ?? homeContent.hero.primaryCtaLabel}
-                </Button>
-              </Link>
-              <Link to={activeHeroSlide?.secondaryHref ?? secondaryCtaLink}>
-                <Button className="store-home-v3-secondary-btn h-12! rounded-full! px-7! font-bold!">
-                  {activeHeroSlide?.secondaryLabel ?? homeContent.hero.secondaryCtaLabel}
-                </Button>
-              </Link>
-            </div>
-
-            <div className="store-home-v3-hero-panel">
-              <div className="store-home-v3-hero-panel-item">
-                <span>{homeContent.labels.heroPriceLabel}</span>
-                <strong>{activeHeroSlide?.priceLabel ?? formatCurrency(featuredProducts[0]?.price ?? 0)}</strong>
-              </div>
-              <div className="store-home-v3-hero-panel-item">
-                <span>{homeContent.labels.heroSignalLabel}</span>
-                <strong>{activeHeroSlide?.meta ?? homeContent.hero.metrics[0]?.value ?? homeContent.labels.updatingLabel}</strong>
-              </div>
-            </div>
-
-            {heroSlides.length > 1 ? (
-              <div className="store-home-v3-hero-dots" aria-label="Chọn ảnh nổi bật">
-                {heroSlides.map((slide, index) => (
-                  <button
-                    key={`hero-dot-${slide.id}`}
-                    type="button"
-                    className={`store-home-v3-hero-dot ${index === normalizedHeroIndex ? "is-active" : ""}`}
-                    aria-label={`Hiển thị ảnh nổi bật ${index + 1}`}
-                    onClick={() => setActiveHeroIndex(index)}
-                  />
-                ))}
-              </div>
-            ) : null}
-          </div>
-
-          <div className="store-home-v3-hero-rail">
-            {heroSlides.map((slide, index) => (
-              <button
-                key={`hero-${slide.id}`}
-                type="button"
-                className={`store-home-v3-hero-mini ${index === normalizedHeroIndex ? "is-active" : ""}`}
-                onClick={() => setActiveHeroIndex(index)}
-              >
-                <div className="store-home-v3-hero-mini-media">
-                  <img src={slide.image} alt={slide.titleLine1} className="h-full w-full object-cover" />
-                </div>
-                <div>
-                  <p>{slide.kicker}</p>
-                  <h3>{slide.titleLine1}</h3>
-                  <strong>{slide.priceLabel}</strong>
-                </div>
-              </button>
-            ))}
-          </div>
-        </div>
-      </section>
+      <StoreHomeHeroSection
+        homeContent={homeContent}
+        heroSlides={heroSlides}
+        activeHeroIndex={activeHeroIndex}
+        campaignImage={campaignImage}
+        primaryCtaLink={primaryCtaLink}
+        secondaryCtaLink={secondaryCtaLink}
+        fallbackPrice={featuredProducts[0]?.price ?? 0}
+        onSelectSlide={setActiveHeroIndex}
+      />
 
       <section className="store-home-v3-metric-grid">
         {socialStats.map((item) => (
@@ -698,59 +559,14 @@ export function StoreHomePage() {
       ) : null}
 
       {showcaseLeadProduct ? (
-        <section className="store-home-v3-section store-home-v3-showcase">
-          <div className="store-home-v3-section-head">
-            <div>
-              <p>{homeContent.sections.showcaseKicker}</p>
-              <h2>{homeContent.sections.showcaseTitle}</h2>
-            </div>
-            <div className="store-home-v3-pill-row">
-              {quickCategories.slice(0, 6).map((item) => (
-                <button
-                  key={`pill-${item.id}`}
-                  type="button"
-                  className={`store-home-v3-pill ${item.id === activeQuickCategory?.id ? "is-active" : ""}`}
-                  onClick={() => setActiveQuickCategoryId(item.id)}
-                >
-                  {item.name}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          <div className="store-home-v3-showcase-layout">
-            <Link to={`/products/${showcaseLeadProduct.slug}`} className="store-home-v3-showcase-feature">
-              <div className="store-home-v3-showcase-copy">
-                <span className="store-home-v3-showcase-badge">
-                  {activeQuickCategory?.name ?? showcaseLeadProduct.categoryName ?? showcaseLeadProduct.category}
-                </span>
-                <h3>{showcaseLeadProduct.name}</h3>
-                <p>{homeContent.sections.showcaseDescription}</p>
-                <div className="store-home-v3-showcase-price">
-                  <strong>{formatCurrency(showcaseLeadProduct.price)}</strong>
-                  {typeof showcaseLeadProduct.originalPrice === "number" &&
-                  showcaseLeadProduct.originalPrice > showcaseLeadProduct.price ? (
-                    <span>{formatCurrency(showcaseLeadProduct.originalPrice)}</span>
-                  ) : null}
-                </div>
-                <div className="store-home-v3-showcase-meta">
-                  <span className="inline-flex items-center gap-1 text-amber-500">
-                    <StarFilled />
-                    {showcaseLeadProduct.rating.toFixed(1)}
-                  </span>
-                  <span>{showcaseLeadProduct.sold}</span>
-                </div>
-              </div>
-              <div className="store-home-v3-showcase-media">
-                <img src={showcaseLeadProduct.image} alt={showcaseLeadProduct.name} className="h-full w-full object-cover" />
-              </div>
-            </Link>
-
-            <div className="store-home-v3-showcase-side">
-              {showcaseRailProducts.map((product) => renderShowcaseCard(product))}
-            </div>
-          </div>
-        </section>
+        <StoreHomeShowcaseSection
+          homeContent={homeContent}
+          quickCategories={quickCategories}
+          activeQuickCategoryId={activeQuickCategoryId}
+          showcaseLeadProduct={showcaseLeadProduct}
+          showcaseRailProducts={showcaseRailProducts}
+          onSelectCategory={setActiveQuickCategoryId}
+        />
       ) : null}
 
       {flashDeals.length > 0 ? (
@@ -821,7 +637,9 @@ export function StoreHomePage() {
 
           <div className="store-home-v3-product-grid">
             {bestsellingProducts.map((product) => (
-              <div key={`best-${product.id}`}>{renderProductCard(product)}</div>
+              <div key={`best-${product.id}`}>
+                <StoreHomeProductCard product={product} />
+              </div>
             ))}
           </div>
         </section>
@@ -842,7 +660,9 @@ export function StoreHomePage() {
 
           <div className="store-home-v3-product-grid">
             {curatedProducts.map((product) => (
-              <div key={`curated-${product.id}`}>{renderProductCard(product)}</div>
+              <div key={`curated-${product.id}`}>
+                <StoreHomeProductCard product={product} />
+              </div>
             ))}
           </div>
         </section>
@@ -870,7 +690,9 @@ export function StoreHomePage() {
 
           <div className="store-home-v3-product-grid">
             {block.products.map((product) => (
-              <div key={`category-${block.category.id}-${product.id}`}>{renderProductCard(product)}</div>
+              <div key={`category-${block.category.id}-${product.id}`}>
+                <StoreHomeProductCard product={product} />
+              </div>
             ))}
           </div>
         </section>
