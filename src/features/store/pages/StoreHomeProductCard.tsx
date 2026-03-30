@@ -1,7 +1,7 @@
-import { StarFilled } from "@ant-design/icons";
+﻿import { StarFilled } from "@ant-design/icons";
 import { Link } from "react-router-dom";
 import { formatStoreCurrency as formatCurrency } from "../utils/storeFormatting";
-import type { HomeProduct } from "./storeHomeShared";
+import type { HomeProduct } from "../shared/home";
 
 type StoreHomeProductCardProps = {
   product: HomeProduct;
@@ -96,3 +96,4 @@ export function StoreHomeShowcaseItem({ product }: StoreHomeShowcaseItemProps) {
     </Link>
   );
 }
+

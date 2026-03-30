@@ -1,10 +1,10 @@
-import { BellOutlined } from "@ant-design/icons";
+﻿import { BellOutlined } from "@ant-design/icons";
 import { Button, Empty, Modal, Switch, Tag, message } from "antd";
 import { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { useAuthStore } from "../../../stores/authStore";
-import { useNotificationStore } from "../../../stores/notificationStore";
-import { storeButtonClassNames } from "./StorePageChrome";
+import { useAuthStore } from "../../stores/authStore";
+import { useNotificationStore } from "../../stores/notificationStore";
+import { getErrorMessage } from "../../utils/errorMessage";
 
 const TYPE_LABEL_MAP = {
   order_update: "Cập nhật đơn hàng",
@@ -38,12 +38,19 @@ const formatDateTime = (value?: string) => {
   }).format(date);
 };
 
-type StoreNotificationsModalProps = {
+type AppNotificationsModalProps = {
   open: boolean;
   onClose: () => void;
+  primaryButtonClassName?: string;
+  secondaryButtonClassName?: string;
 };
 
-export function StoreNotificationsModal({ open, onClose }: StoreNotificationsModalProps) {
+export function AppNotificationsModal({
+  open,
+  onClose,
+  primaryButtonClassName,
+  secondaryButtonClassName,
+}: AppNotificationsModalProps) {
   const navigate = useNavigate();
   const [messageApi, contextHolder] = message.useMessage();
 
@@ -68,7 +75,7 @@ export function StoreNotificationsModal({ open, onClose }: StoreNotificationsMod
     }
 
     void loadNotifications({ page: 1, pageSize: 8, unreadOnly: false }).catch((error) => {
-      messageApi.error(error instanceof Error ? error.message : "Không tải được thông báo.");
+      messageApi.error(getErrorMessage(error));
     });
   }, [isAuthenticated, loadNotifications, messageApi, open]);
 
@@ -81,7 +88,7 @@ export function StoreNotificationsModal({ open, onClose }: StoreNotificationsMod
         unreadOnly: checked,
       });
     } catch (error) {
-      messageApi.error(error instanceof Error ? error.message : "Không lọc được thông báo.");
+      messageApi.error(getErrorMessage(error));
     }
   };
 
@@ -89,7 +96,7 @@ export function StoreNotificationsModal({ open, onClose }: StoreNotificationsMod
     try {
       await markAsRead(id);
     } catch (error) {
-      messageApi.error(error instanceof Error ? error.message : "Không đánh dấu đã đọc được.");
+      messageApi.error(getErrorMessage(error));
     }
   };
 
@@ -98,7 +105,7 @@ export function StoreNotificationsModal({ open, onClose }: StoreNotificationsMod
       await markAllAsRead();
       messageApi.success("Đã đánh dấu tất cả thông báo là đã đọc.");
     } catch (error) {
-      messageApi.error(error instanceof Error ? error.message : "Không xử lý được yêu cầu.");
+      messageApi.error(getErrorMessage(error));
     }
   };
 
@@ -107,11 +114,11 @@ export function StoreNotificationsModal({ open, onClose }: StoreNotificationsMod
       await deleteNotification(id);
       messageApi.success("Đã xóa thông báo.");
     } catch (error) {
-      messageApi.error(error instanceof Error ? error.message : "Không xóa được thông báo.");
+      messageApi.error(getErrorMessage(error));
     }
   };
 
-  const handleOpenLink = (href: string) => {
+  const closeAndNavigate = (href: string) => {
     onClose();
     navigate(href);
   };
@@ -135,11 +142,8 @@ export function StoreNotificationsModal({ open, onClose }: StoreNotificationsMod
             <div className="flex items-center gap-2">
               <Button
                 type="primary"
-                className={storeButtonClassNames.primaryCompact}
-                onClick={() => {
-                  onClose();
-                  navigate("/login");
-                }}
+                className={primaryButtonClassName}
+                onClick={() => closeAndNavigate("/login")}
               >
                 Đăng nhập
               </Button>
@@ -163,7 +167,7 @@ export function StoreNotificationsModal({ open, onClose }: StoreNotificationsMod
                 />
                 <Button
                   size="small"
-                  className={storeButtonClassNames.secondaryCompact}
+                  className={secondaryButtonClassName}
                   disabled={saving || unreadCount <= 0}
                   onClick={() => void handleMarkAllAsRead()}
                 >
@@ -203,7 +207,7 @@ export function StoreNotificationsModal({ open, onClose }: StoreNotificationsMod
                         </Button>
                       ) : null}
                       {item.link ? (
-                        <Button size="small" onClick={() => handleOpenLink(item.link || "/")}>
+                        <Button size="small" onClick={() => closeAndNavigate(item.link || "/")}>
                           Mở liên kết
                         </Button>
                       ) : null}

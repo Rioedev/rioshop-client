@@ -37,7 +37,7 @@ import {
   sanitizeProductHtml,
   stripHtmlToText,
   type ProductRuntime,
-} from "./storeProductDetailShared";
+} from "../shared/productDetail";
 import { StoreProductShowcaseGrid } from "./StoreProductShowcaseGrid";
 
 const { Paragraph, Title } = Typography;
@@ -798,3 +798,4 @@ export function StoreProductDetailPage() {
     </div>
   );
 }
+

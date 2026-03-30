@@ -64,7 +64,7 @@ import {
   Paragraph,
   Text,
   Title,
-} from "./adminProductsShared";
+} from "../shared/products";
 import { AdminProductVariantGroupsField } from "./AdminProductVariantGroupsField";
 
 export function AdminProductsPage() {
@@ -790,6 +790,7 @@ export function AdminProductsPage() {
     </div>
   );
 }
+
 
 
 

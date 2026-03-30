@@ -1,10 +1,10 @@
-import { DownOutlined } from "@ant-design/icons";
+﻿import { DownOutlined } from "@ant-design/icons";
 import type { RefObject } from "react";
 import { Link } from "react-router-dom";
 import type {
   MegaCollectionCard,
   MegaColumn,
-} from "./storeLayoutShared";
+} from "./shared/storeLayout";
 
 type StoreMegaMenuProps = {
   megaMenuRef: RefObject<HTMLDivElement | null>;
@@ -47,7 +47,7 @@ export function StoreMegaMenu({
         aria-expanded={isMegaMenuOpen}
         onClick={onToggleMenu}
       >
-        Danh mục
+        Danh má»¥c
         <DownOutlined />
       </button>
 
@@ -57,7 +57,7 @@ export function StoreMegaMenu({
             const activeItemKey = normalizedActiveMegaItemKeys[column.key];
             return (
               <section key={column.key} className="store-mega-col">
-                <h4 className="store-mega-heading">{column.title} ↗</h4>
+                <h4 className="store-mega-heading">{column.title} â†—</h4>
                 <div className="store-mega-list">
                   {column.items.map((item) => {
                     const isOpen = item.key === activeItemKey;
@@ -122,7 +122,7 @@ export function StoreMegaMenu({
           })}
 
           <section className="store-mega-col store-mega-col--collection">
-            <h4 className="store-mega-heading">BỘ SƯU TẬP</h4>
+            <h4 className="store-mega-heading">Bá»˜ SÆ¯U Táº¬P</h4>
             <div className="store-mega-collection-list">
               {megaCollectionCards.map((card) => (
                 <Link
@@ -146,10 +146,11 @@ export function StoreMegaMenu({
         </div>
         <div className="store-mega-foot">
           <button type="button" onClick={onCloseMenuNow}>
-            Đóng
+            ÄÃ³ng
           </button>
         </div>
       </div>
     </div>
   );
 }
+

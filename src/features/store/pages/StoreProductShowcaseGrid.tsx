@@ -1,10 +1,10 @@
-import { Link } from "react-router-dom";
+﻿import { Link } from "react-router-dom";
 import { formatStoreCurrency as formatCurrency } from "../utils/storeFormatting";
 import {
   getProductColorDots,
   toProductCardImage,
   type ProductRuntime,
-} from "./storeProductDetailShared";
+} from "../shared/productDetail";
 
 type StoreProductShowcaseGridProps = {
   items: ProductRuntime[];
@@ -37,3 +37,4 @@ export function StoreProductShowcaseGrid({ items }: StoreProductShowcaseGridProp
     </div>
   );
 }
+

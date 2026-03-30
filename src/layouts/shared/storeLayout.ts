@@ -1,5 +1,5 @@
-import type { Category } from "../services/categoryService";
-import { resolveStoreImageUrl } from "../features/store/utils/storeFormatting";
+﻿import type { Category } from "../../services/categoryService";
+import { resolveStoreImageUrl } from "../../features/store/utils/storeFormatting";
 
 export type StoreMenuItem = {
   label: string;
@@ -7,27 +7,25 @@ export type StoreMenuItem = {
 };
 
 export const defaultMenuItems: StoreMenuItem[] = [
-  { label: "Áo polo", category: "ao-polo" },
-  { label: "Áo sơ mi", category: "ao-so-mi" },
-  { label: "Quần jeans", category: "quan-jeans" },
-  { label: "Đồ thể thao", category: "do-the-thao" },
+  { label: "Ão polo", category: "ao-polo" },
+  { label: "Ão sÆ¡ mi", category: "ao-so-mi" },
+  { label: "Quáº§n jeans", category: "quan-jeans" },
+  { label: "Äá»“ thá»ƒ thao", category: "do-the-thao" },
 ];
 
 export const policyItems = [
-  "Miễn phí đổi trả 60 ngày",
-  "Miễn phí ship từ 499K",
-  "Kiểm tra hàng trước khi nhận",
+  "Miá»…n phÃ­ Ä‘á»•i tráº£ 60 ngÃ y",
+  "Miá»…n phÃ­ ship tá»« 499K",
+  "Kiá»ƒm tra hÃ ng trÆ°á»›c khi nháº­n",
   "Hotline 1900 8888",
 ];
 
 export const utilityLinks = [
-  { label: "Hệ thống cửa hàng", href: "/products" },
+  { label: "Há»‡ thá»‘ng cá»­a hÃ ng", href: "/products" },
   { label: "Flash Sale", href: "/flash-sales" },
-  { label: "Tra cứu đơn hàng", href: "/orders" },
+  { label: "Tra cá»©u Ä‘Æ¡n hÃ ng", href: "/orders" },
   { label: "Rio Member", href: "/account" },
 ];
-
-export const STORE_BRAND_KEY = "rioshop-default";
 
 export type MegaLeaf = {
   key: string;
@@ -102,10 +100,10 @@ export const buildMegaColumns = (categoryTree: Category[]): MegaColumn[] => {
     keywords: string[];
   }> = [
     { key: "men", title: "NAM", keywords: ["nam", "men"] },
-    { key: "women", title: "NỮ", keywords: ["nu", "women", "female"] },
+    { key: "women", title: "Ná»®", keywords: ["nu", "women", "female"] },
     {
       key: "kids",
-      title: "TRẺ EM",
+      title: "TRáºº EM",
       keywords: ["tre em", "kid", "kids", "baby", "be"],
     },
   ];
@@ -193,7 +191,7 @@ export const buildMegaCollectionCards = (
       const index = cards.length;
       cards.push({
         key: `fallback-${index}`,
-        title: `BST nổi bật ${index + 1}`,
+        title: `BST ná»•i báº­t ${index + 1}`,
         href: "/products",
         image:
           fallbackCollectionImages[index % fallbackCollectionImages.length],
@@ -205,8 +203,12 @@ export const buildMegaCollectionCards = (
 
   return fallbackCollectionImages.map((image, index) => ({
     key: `fallback-${index}`,
-    title: `BST nổi bật ${index + 1}`,
+    title: `BST ná»•i báº­t ${index + 1}`,
     href: "/products",
     image,
   }));
 };
+
+
+
+

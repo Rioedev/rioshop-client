@@ -15,8 +15,6 @@ import {
   resolveStoreProductThumbnail,
 } from "../utils/storeFormatting";
 
-
-export const STORE_BRAND_KEY = "rioshop-default";
 export const SAVED_COUPON_STORAGE_KEY = "rioshop_saved_coupons";
 
 export const FALLBACK_CATEGORY_IMAGES = [
@@ -632,4 +630,7 @@ export const mergeHomeContent = (apiHome?: StorefrontHomeContent): ResolvedHomeC
         : DEFAULT_HOME_CONTENT.apiNotice,
   };
 };
+
+
+
 

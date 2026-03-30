@@ -6,6 +6,7 @@
 import { Button, Progress, message } from "antd";
 import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
+import { STORE_BRAND_KEY } from "../../../app/constants/storeBrand";
 import { brandConfigService } from "../../../services/brandConfigService";
 import { categoryService, type Category } from "../../../services/categoryService";
 import { blogService, type BlogPost } from "../../../services/blogService";
@@ -20,7 +21,6 @@ import { useAuthStore } from "../../../stores/authStore";
 import {
   DEFAULT_HOME_CONTENT,
   FALLBACK_CATEGORY_IMAGES,
-  STORE_BRAND_KEY,
   buildTemplateMessage,
   formatBlogDate,
   formatCouponCondition,
@@ -38,7 +38,7 @@ import {
   type ProductRuntime,
   type ResolvedHomeContent,
   writeSavedCouponCodes,
-} from "./storeHomeShared";
+} from "../shared/home";
 import { StoreHomeHeroSection } from "./StoreHomeHeroSection";
 import { StoreHomeProductCard } from "./StoreHomeProductCard";
 import { StoreHomeShowcaseSection } from "./StoreHomeShowcaseSection";
@@ -805,5 +805,7 @@ export function StoreHomePage() {
     </div>
   );
 }
+
+
 
 

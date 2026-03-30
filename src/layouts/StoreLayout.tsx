@@ -1,8 +1,9 @@
-import { PhoneOutlined } from "@ant-design/icons";
+Ôªøimport { PhoneOutlined } from "@ant-design/icons";
 import { Input } from "antd";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Link, Outlet, useLocation, useNavigate } from "react-router-dom";
-import { StoreNotificationsModal } from "../features/store/components/StoreNotificationsModal";
+import { AppNotificationsModal } from "../components/notifications/AppNotificationsModal";
+import { STORE_BRAND_KEY } from "../app/constants/storeBrand";
 import { analyticsTracker } from "../services/analyticsTracker";
 import { brandConfigService } from "../services/brandConfigService";
 import { categoryService, type Category } from "../services/categoryService";
@@ -24,14 +25,19 @@ import { StoreFooter } from "./StoreFooter";
 import { StoreHeaderActions } from "./StoreHeaderActions";
 import { StoreMegaMenu } from "./StoreMegaMenu";
 import {
-  STORE_BRAND_KEY,
   buildMegaCollectionCards,
   buildMegaColumns,
   defaultMenuItems,
   policyItems,
   utilityLinks,
   type MegaColumn,
-} from "./storeLayoutShared";
+} from "./shared/storeLayout";
+
+import "../styles/home-v2.scss";
+import "../styles/pdp-v2.scss";
+import "../styles/store-home-v3.scss";
+import "../styles/store-refresh.scss";
+import "../styles/store-blog-footer.scss";
 
 export function StoreLayout() {
   const navigate = useNavigate();
@@ -351,7 +357,7 @@ export function StoreLayout() {
   return (
     <div className="storefront-shell min-h-screen">
       <div className="store-promo-bar">
-        FLASH SALE 10H - 14H | Gi?m d?n 50% + Freeship to‡n qu?c
+        FLASH SALE 10H - 14H | Gi?m d?n 50% + Freeship to√†n qu?c
       </div>
 
       <div className="store-utility-strip">
@@ -384,7 +390,7 @@ export function StoreLayout() {
                 onChange={(event) => setSearchKeyword(event.target.value)}
                 onPressEnter={onSearch}
                 className="store-search"
-                placeholder="TÏm ·o thun, qu?n short, combo..."
+                placeholder="T√¨m √°o thun, qu?n short, combo..."
               />
             </div>
 
@@ -415,7 +421,7 @@ export function StoreLayout() {
               Trang ch?
             </Link>
             <Link to="/products?sort=best_selling" className="store-nav-pill">
-              B·n ch?y
+              B√°n ch?y
             </Link>
             <Link to="/products?sort=newest" className="store-nav-pill">
               M?i v?
@@ -453,7 +459,7 @@ export function StoreLayout() {
         </div>
       </header>
 
-      <StoreNotificationsModal
+      <AppNotificationsModal
         open={isNotificationModalOpen}
         onClose={() => setIsNotificationModalOpen(false)}
       />
@@ -481,3 +487,7 @@ export function StoreLayout() {
     </div>
   );
 }
+
+
+
+

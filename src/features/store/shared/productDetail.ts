@@ -1,4 +1,4 @@
-import type { Coupon } from "../../../services/couponService";
+﻿import type { Coupon } from "../../../services/couponService";
 import type { Product } from "../../../services/productService";
 import {
   formatStoreCurrency as formatCurrency,
@@ -35,7 +35,7 @@ export const normalizeColorValue = (value?: string) =>
 
 export const getVariantColorName = (variant: ProductVariant) =>
   variant.color?.name?.trim() ||
-  (variant.color?.hex?.trim() ? `Màu ${variant.color.hex.trim()}` : "Mặc định");
+  (variant.color?.hex?.trim() ? `MÃ u ${variant.color.hex.trim()}` : "Máº·c Ä‘á»‹nh");
 
 export const getVariantSizeLabel = (variant: ProductVariant) =>
   variant.sizeLabel?.trim() || variant.size?.trim() || "";
@@ -92,12 +92,12 @@ export const generateReviewPercents = (
 
 export const formatReviewDate = (value?: string) => {
   if (!value) {
-    return "Vừa xong";
+    return "Vá»«a xong";
   }
 
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) {
-    return "Vừa xong";
+    return "Vá»«a xong";
   }
 
   return new Intl.DateTimeFormat("vi-VN", {
@@ -107,15 +107,15 @@ export const formatReviewDate = (value?: string) => {
 
 export const formatDetailCouponValue = (coupon: Coupon) => {
   if (coupon.type === "percent") {
-    return `Giảm ${coupon.value}%`;
+    return `Giáº£m ${coupon.value}%`;
   }
 
   if (coupon.type === "fixed") {
-    return `Giảm ${formatCurrency(coupon.value)}`;
+    return `Giáº£m ${formatCurrency(coupon.value)}`;
   }
 
   if (coupon.type === "free_ship") {
-    return "Miễn phí vận chuyển";
+    return "Miá»…n phÃ­ váº­n chuyá»ƒn";
   }
 
   return coupon.name;
@@ -123,12 +123,12 @@ export const formatDetailCouponValue = (coupon: Coupon) => {
 
 export const formatDetailCouponExpiry = (value?: string) => {
   if (!value) {
-    return "Không giới hạn";
+    return "KhÃ´ng giá»›i háº¡n";
   }
 
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) {
-    return "Không giới hạn";
+    return "KhÃ´ng giá»›i háº¡n";
   }
 
   return new Intl.DateTimeFormat("vi-VN", { dateStyle: "short" }).format(date);
@@ -191,3 +191,4 @@ export const sanitizeProductHtml = (html?: string) => {
     return html;
   }
 };
+

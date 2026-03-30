@@ -25,10 +25,11 @@ import { Avatar, Badge, Button, Dropdown, Layout, Menu, Typography, message } fr
 import type { ItemType } from "antd/es/menu/interface";
 import { useEffect, useMemo, useState } from "react";
 import { Outlet, useLocation, useNavigate } from "react-router-dom";
-import { StoreNotificationsModal } from "../features/store/components/StoreNotificationsModal";
+import { AppNotificationsModal } from "../components/notifications/AppNotificationsModal";
 import { subscribeUserNotifications } from "../services/socketClient";
 import { useAuthStore } from "../stores/authStore";
 import { useNotificationStore } from "../stores/notificationStore";
+import "../styles/admin-darkmode.scss";
 
 const { Header, Content, Sider } = Layout;
 const { Text, Title } = Typography;
@@ -358,10 +359,11 @@ export function AdminLayout() {
         </Content>
       </Layout>
 
-      <StoreNotificationsModal
+      <AppNotificationsModal
         open={isNotificationsModalOpen}
         onClose={() => setIsNotificationsModalOpen(false)}
       />
     </Layout>
   );
 }
+

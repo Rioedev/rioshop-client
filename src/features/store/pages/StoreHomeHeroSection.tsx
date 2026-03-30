@@ -1,7 +1,7 @@
-import { Button } from "antd";
+﻿import { Button } from "antd";
 import { Link } from "react-router-dom";
 import { formatStoreCurrency as formatCurrency } from "../utils/storeFormatting";
-import type { ResolvedHomeContent } from "./storeHomeShared";
+import type { ResolvedHomeContent } from "../shared/home";
 
 export type HomeHeroSlide = {
   id: string;
@@ -103,13 +103,13 @@ export function StoreHomeHeroSection({
           </div>
 
           {heroSlides.length > 1 ? (
-            <div className="store-home-v3-hero-dots" aria-label="Chọn ảnh nổi bật">
+            <div className="store-home-v3-hero-dots" aria-label="Chá»n áº£nh ná»•i báº­t">
               {heroSlides.map((slide, index) => (
                 <button
                   key={`hero-dot-${slide.id}`}
                   type="button"
                   className={`store-home-v3-hero-dot ${index === normalizedHeroIndex ? "is-active" : ""}`}
-                  aria-label={`Hiển thị ảnh nổi bật ${index + 1}`}
+                  aria-label={`Hiá»ƒn thá»‹ áº£nh ná»•i báº­t ${index + 1}`}
                   onClick={() => onSelectSlide(index)}
                 />
               ))}
@@ -140,3 +140,4 @@ export function StoreHomeHeroSection({
     </section>
   );
 }
+

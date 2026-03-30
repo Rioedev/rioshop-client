@@ -1,7 +1,7 @@
-import { Button, Input, Progress, Rate } from "antd";
+﻿import { Button, Input, Progress, Rate } from "antd";
 import { Link } from "react-router-dom";
 import type { ReviewItem } from "../../../services/reviewService";
-import { formatReviewDate } from "./storeProductDetailShared";
+import { formatReviewDate } from "../shared/productDetail";
 
 type ReviewPercent = {
   star: number;
@@ -37,12 +37,12 @@ export function StoreProductReviewSection({
 }: StoreProductReviewSectionProps) {
   return (
     <section className="pdpv2-review-wrap">
-      <h3 className="pdpv2-section-title">Đánh giá sản phẩm</h3>
+      <h3 className="pdpv2-section-title">ÄÃ¡nh giÃ¡ sáº£n pháº©m</h3>
       <div className="pdpv2-review-grid">
         <div className="pdpv2-review-score">
           <p className="pdpv2-score-number">{ratingValue.toFixed(1)}</p>
           <Rate allowHalf disabled value={ratingValue} className="text-base!" />
-          <p className="m-0 text-sm text-slate-500">{ratingCount} đánh giá từ khách hàng</p>
+          <p className="m-0 text-sm text-slate-500">{ratingCount} Ä‘Ã¡nh giÃ¡ tá»« khÃ¡ch hÃ ng</p>
         </div>
 
         <div className="space-y-3">
@@ -58,21 +58,21 @@ export function StoreProductReviewSection({
       <div className="pdpv2-review-composer">
         <div className="pdpv2-review-composer-head">
           <div>
-            <p className="pdpv2-review-composer-kicker">Chia sẻ trải nghiệm của bạn</p>
+            <p className="pdpv2-review-composer-kicker">Chia sáº» tráº£i nghiá»‡m cá»§a báº¡n</p>
             <p className="pdpv2-review-composer-hint">
-              Đánh giá thực tế sẽ giúp người mua khác chọn đúng sản phẩm hơn.
+              ÄÃ¡nh giÃ¡ thá»±c táº¿ sáº½ giÃºp ngÆ°á»i mua khÃ¡c chá»n Ä‘Ãºng sáº£n pháº©m hÆ¡n.
             </p>
           </div>
           {!isAuthenticated ? (
             <Link to="/login" className="pdpv2-review-login">
-              Đăng nhập để bình luận
+              ÄÄƒng nháº­p Ä‘á»ƒ bÃ¬nh luáº­n
             </Link>
           ) : null}
         </div>
 
         <div className="mt-4 space-y-3">
           <div className="pdpv2-review-rating-line">
-            <span>Chấm điểm của bạn</span>
+            <span>Cháº¥m Ä‘iá»ƒm cá»§a báº¡n</span>
             <Rate
               value={reviewRating}
               onChange={onReviewRatingChange}
@@ -83,7 +83,7 @@ export function StoreProductReviewSection({
           <Input.TextArea
             value={reviewBody}
             onChange={(event) => onReviewBodyChange(event.target.value)}
-            placeholder="Chia sẻ trải nghiệm của bạn về sản phẩm..."
+            placeholder="Chia sáº» tráº£i nghiá»‡m cá»§a báº¡n vá» sáº£n pháº©m..."
             rows={5}
             maxLength={1000}
             showCount
@@ -92,7 +92,7 @@ export function StoreProductReviewSection({
           />
 
           <div className="pdpv2-review-actions">
-            <span>Vui lòng giữ nội dung lịch sự, hữu ích và đúng trải nghiệm thực tế.</span>
+            <span>Vui lÃ²ng giá»¯ ná»™i dung lá»‹ch sá»±, há»¯u Ã­ch vÃ  Ä‘Ãºng tráº£i nghiá»‡m thá»±c táº¿.</span>
             <Button
               type="primary"
               onClick={onSubmitReview}
@@ -100,7 +100,7 @@ export function StoreProductReviewSection({
               disabled={!isAuthenticated}
               className="rounded-full! px-5! font-semibold!"
             >
-              Gửi bình luận
+              Gá»­i bÃ¬nh luáº­n
             </Button>
           </div>
         </div>
@@ -112,7 +112,7 @@ export function StoreProductReviewSection({
             <article key={review.id} className="pdpv2-review-item">
               <div className="pdpv2-review-item-head">
                 <div>
-                  <p className="pdpv2-review-user">{review.user?.fullName || "Khách hàng đã mua"}</p>
+                  <p className="pdpv2-review-user">{review.user?.fullName || "KhÃ¡ch hÃ ng Ä‘Ã£ mua"}</p>
                   <p className="pdpv2-review-date">{formatReviewDate(review.createdAt)}</p>
                 </div>
                 <Rate disabled value={review.rating} className="text-xs!" />
@@ -120,16 +120,18 @@ export function StoreProductReviewSection({
               <p className="m-0 mt-2 text-sm text-slate-600">{review.body}</p>
               {review.adminReply?.body ? (
                 <div className="pdpv2-review-reply">
-                  <span className="font-semibold text-slate-700">Phản hồi từ shop:</span>{" "}
+                  <span className="font-semibold text-slate-700">Pháº£n há»“i tá»« shop:</span>{" "}
                   {review.adminReply.body}
                 </div>
               ) : null}
             </article>
           ))
         ) : (
-          <p className="m-0 text-sm text-slate-500">Chưa có đánh giá chi tiết cho sản phẩm này.</p>
+          <p className="m-0 text-sm text-slate-500">ChÆ°a cÃ³ Ä‘Ã¡nh giÃ¡ chi tiáº¿t cho sáº£n pháº©m nÃ y.</p>
         )}
       </div>
     </section>
   );
 }
+
+

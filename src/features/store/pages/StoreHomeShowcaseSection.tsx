@@ -1,11 +1,11 @@
-import { StarFilled } from "@ant-design/icons";
+﻿import { StarFilled } from "@ant-design/icons";
 import { Link } from "react-router-dom";
 import { formatStoreCurrency as formatCurrency } from "../utils/storeFormatting";
 import {
   type HomeCategory,
   type HomeProduct,
   type ResolvedHomeContent,
-} from "./storeHomeShared";
+} from "../shared/home";
 import { StoreHomeShowcaseItem } from "./StoreHomeProductCard";
 
 type StoreHomeShowcaseSectionProps = {
@@ -93,3 +93,4 @@ export function StoreHomeShowcaseSection({
     </section>
   );
 }
+

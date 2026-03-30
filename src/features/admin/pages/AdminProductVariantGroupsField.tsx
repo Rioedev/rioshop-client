@@ -1,4 +1,4 @@
-import { CopyOutlined, DeleteOutlined, PlusOutlined } from "@ant-design/icons";
+﻿import { CopyOutlined, DeleteOutlined, PlusOutlined } from "@ant-design/icons";
 import { AutoComplete, Button, Card, Form, Input, InputNumber, Space, Switch, Upload } from "antd";
 import type { FormInstance } from "antd/es/form";
 import type { UploadProps } from "antd/es/upload";
@@ -13,7 +13,7 @@ import {
   type VariantSizeFormValue,
   Text,
   Title,
-} from "./adminProductsShared";
+} from "../shared/products";
 
 type AdminProductVariantGroupsFieldProps = {
   form: FormInstance<ProductFormValues>;
@@ -38,7 +38,7 @@ export function AdminProductVariantGroupsField({
     <div className="rounded-2xl border border-slate-200 bg-white p-4">
       <div className="mb-3 flex items-center justify-between gap-2">
         <Title level={5} className="mb-0! mt-0!">
-          Màu sắc & size
+          MÃ u sáº¯c & size
         </Title>
         <Button
           type="dashed"
@@ -49,7 +49,7 @@ export function AdminProductVariantGroupsField({
             form.setFieldValue("variantGroups", [...currentGroups, defaultVariantGroup()]);
           }}
         >
-          Thêm màu
+          ThÃªm mÃ u
         </Button>
       </div>
 
@@ -60,7 +60,7 @@ export function AdminProductVariantGroupsField({
               <Card
                 key={groupField.key}
                 size="small"
-                title={`Màu #${groupIndex + 1}`}
+                title={`MÃ u #${groupIndex + 1}`}
                 extra={
                   <Button
                     size="small"
@@ -77,7 +77,7 @@ export function AdminProductVariantGroupsField({
                       removeGroup(groupField.name);
                     }}
                   >
-                    Xóa
+                    XÃ³a
                   </Button>
                 }
               >
@@ -85,20 +85,20 @@ export function AdminProductVariantGroupsField({
                   <div className="space-y-3">
                     <div className="grid gap-3 md:grid-cols-2">
                       <Form.Item
-                        label="Tên màu"
+                        label="TÃªn mÃ u"
                         name={[groupField.name, "colorName"]}
                         rules={REQUIRED_RULE}
                       >
-                        <Input placeholder="VD: Đen" />
+                        <Input placeholder="VD: Äen" />
                       </Form.Item>
-                      <Form.Item label="Mã màu HEX" name={[groupField.name, "colorHex"]}>
+                      <Form.Item label="MÃ£ mÃ u HEX" name={[groupField.name, "colorHex"]}>
                         <Input placeholder="#000000" />
                       </Form.Item>
                     </div>
 
                     <div className="rounded-lg border border-slate-200 p-3">
                       <div className="mb-2 flex items-center justify-between gap-2">
-                        <Text strong>Danh sách size</Text>
+                        <Text strong>Danh sÃ¡ch size</Text>
                         <Button
                           size="small"
                           type="dashed"
@@ -115,7 +115,7 @@ export function AdminProductVariantGroupsField({
                             ]);
                           }}
                         >
-                          Thêm size
+                          ThÃªm size
                         </Button>
                       </div>
 
@@ -123,12 +123,12 @@ export function AdminProductVariantGroupsField({
                         {(sizeFields, { remove: removeSize }) => (
                           <div className="space-y-2">
                             <div className="hidden gap-2 px-1 text-xs font-semibold uppercase tracking-[0.08em] text-slate-500 lg:grid lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_minmax(0,1fr)_minmax(0,1fr)_72px_40px]">
-                              <span>Kích thước</span>
-                              <span>Nhãn size</span>
-                              <span>Tồn kho</span>
-                              <span>Giá cộng</span>
-                              <span>Hoạt động</span>
-                              <span>Xóa</span>
+                              <span>KÃ­ch thÆ°á»›c</span>
+                              <span>NhÃ£n size</span>
+                              <span>Tá»“n kho</span>
+                              <span>GiÃ¡ cá»™ng</span>
+                              <span>Hoáº¡t Ä‘á»™ng</span>
+                              <span>XÃ³a</span>
                             </div>
                             {sizeFields.map((sizeField) => (
                               <div
@@ -142,7 +142,7 @@ export function AdminProductVariantGroupsField({
                                 >
                                   <AutoComplete
                                     options={VARIANT_SIZE_OPTIONS}
-                                    placeholder="Ví dụ: M"
+                                    placeholder="VÃ­ dá»¥: M"
                                     filterOption={(inputValue, option) =>
                                       String(option?.value ?? "")
                                         .toLowerCase()
@@ -151,7 +151,7 @@ export function AdminProductVariantGroupsField({
                                   />
                                 </Form.Item>
                                 <Form.Item name={[sizeField.name, "sizeLabel"]} className="mb-0!">
-                                  <Input placeholder="Ví dụ: M" />
+                                  <Input placeholder="VÃ­ dá»¥: M" />
                                 </Form.Item>
                                 <Form.Item
                                   name={[sizeField.name, "stock"]}
@@ -180,19 +180,19 @@ export function AdminProductVariantGroupsField({
                                   onClick={() => removeSize(sizeField.name)}
                                 />
                                 <div className="sm:col-span-2 lg:col-span-6">
-                                  <Text className="text-xs text-slate-500">SKU biến thể</Text>
+                                  <Text className="text-xs text-slate-500">SKU biáº¿n thá»ƒ</Text>
                                   <Space.Compact className="mt-1 w-full">
                                     <Input
                                       readOnly
                                       value={variantSkuPreviewMatrix[groupField.name]?.[sizeField.name] ?? ""}
-                                      placeholder="SKU sẽ tự sinh"
+                                      placeholder="SKU sáº½ tá»± sinh"
                                     />
                                     <Button
                                       icon={<CopyOutlined />}
                                       onClick={() =>
                                         void handleCopy(
                                           variantSkuPreviewMatrix[groupField.name]?.[sizeField.name] ?? "",
-                                          "SKU biến thể",
+                                          "SKU biáº¿n thá»ƒ",
                                         )
                                       }
                                     >
@@ -207,20 +207,20 @@ export function AdminProductVariantGroupsField({
                       </Form.List>
 
                       <div className="mt-2">
-                        <Text className="mb-1 block">Tạo nhanh size</Text>
+                        <Text className="mb-1 block">Táº¡o nhanh size</Text>
                         <div className="grid gap-2 md:grid-cols-[1fr_auto] md:items-start">
                           <Form.Item
                             name={[groupField.name, "bulkSizesText"]}
                             extra="VD: S:5, M:8, L:3"
                             className="mb-0!"
                           >
-                            <Input placeholder="Nhập size nhanh" />
+                            <Input placeholder="Nháº­p size nhanh" />
                           </Form.Item>
                           <Button
                             className="self-start"
                             onClick={() => appendSizesForGroup(groupField.name)}
                           >
-                            Áp dụng
+                            Ãp dá»¥ng
                           </Button>
                         </div>
                       </div>
@@ -229,7 +229,7 @@ export function AdminProductVariantGroupsField({
 
                   <div className="rounded-lg border border-slate-200 bg-slate-50 p-2.5">
                     <Text className="text-sm" strong>
-                      Ảnh theo màu
+                      áº¢nh theo mÃ u
                     </Text>
                     <div className="mt-2">
                       <Upload
@@ -240,7 +240,7 @@ export function AdminProductVariantGroupsField({
                         beforeUpload={beforeUpload}
                       >
                         <Button size="small" icon={<PlusOutlined />} block>
-                          Thêm ảnh
+                          ThÃªm áº£nh
                         </Button>
                       </Upload>
                     </div>
@@ -254,7 +254,7 @@ export function AdminProductVariantGroupsField({
                                 rules={REQUIRED_RULE}
                                 className="mb-0!"
                               >
-                                <Input size="small" placeholder="URL ảnh màu" />
+                                <Input size="small" placeholder="URL áº£nh mÃ u" />
                               </Form.Item>
                               <Button
                                 size="small"
@@ -287,3 +287,5 @@ export function AdminProductVariantGroupsField({
     </div>
   );
 }
+
+
