@@ -64,7 +64,6 @@ export type ProductFormValues = {
   status: ProductStatus;
   description?: string;
   shortDescription?: string;
-  thumbnailUrl?: string;
   materialText?: string;
   careText?: string;
   seoTitle?: string;

@@ -78,6 +78,40 @@
   background: linear-gradient(135deg, #e8f1ff, #f7faff);
 }
 
+.pdpv2-price-row {
+  display: flex;
+  align-items: flex-end;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.pdpv2-sale-price {
+  font-size: 42px;
+  line-height: 1;
+  font-weight: 900;
+  color: #dc2626;
+}
+
+.pdpv2-base-price {
+  font-size: 30px;
+  line-height: 1.1;
+  color: #94a3b8;
+  text-decoration: line-through;
+}
+
+.pdpv2-discount-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 8px;
+  background: #dc2626;
+  color: #ffffff;
+  font-size: 13px;
+  font-weight: 800;
+  line-height: 1;
+  padding: 6px 10px;
+}
+
 @media (min-width: 1181px) {
   .pdpv2-gallery-panel {
     --pdpv2-gallery-height: min(74vh, 694px);
@@ -107,6 +141,14 @@
 }
 
 @media (max-width: 767px) {
+  .pdpv2-sale-price {
+    font-size: 34px;
+  }
+
+  .pdpv2-base-price {
+    font-size: 24px;
+  }
+
   .store-utility-strip {
     display: none;
   }

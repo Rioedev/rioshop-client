@@ -1,7 +1,14 @@
-﻿import { CopyOutlined, DeleteOutlined, PlusOutlined } from "@ant-design/icons";
+import {
+  ArrowDownOutlined,
+  ArrowUpOutlined,
+  CopyOutlined,
+  DeleteOutlined,
+  PlusOutlined,
+} from "@ant-design/icons";
 import { AutoComplete, Button, Card, Form, Input, InputNumber, Space, Switch, Upload } from "antd";
 import type { FormInstance } from "antd/es/form";
 import type { UploadProps } from "antd/es/upload";
+import { useState, type DragEvent } from "react";
 import {
   REQUIRED_RULE,
   VARIANT_SIZE_OPTIONS,
@@ -34,6 +41,54 @@ export function AdminProductVariantGroupsField({
   unregisterPendingFile,
   handleCopy,
 }: AdminProductVariantGroupsFieldProps) {
+  const [draggingImage, setDraggingImage] = useState<{
+    groupFieldName: number;
+    imageIndex: number;
+  } | null>(null);
+
+  const moveImageItem = (
+    groupFieldName: number,
+    fromIndex: number,
+    toIndex: number,
+  ) => {
+    const imageItems = [
+      ...((form.getFieldValue([
+        "variantGroups",
+        groupFieldName,
+        "imageItems",
+      ]) ?? []) as VariantImageFormValue[]),
+    ];
+
+    if (
+      fromIndex < 0 ||
+      toIndex < 0 ||
+      fromIndex >= imageItems.length ||
+      toIndex >= imageItems.length ||
+      fromIndex === toIndex
+    ) {
+      return;
+    }
+
+    const [movedItem] = imageItems.splice(fromIndex, 1);
+    imageItems.splice(toIndex, 0, movedItem);
+    form.setFieldValue(["variantGroups", groupFieldName, "imageItems"], imageItems);
+  };
+
+  const handleImageDrop = (groupFieldName: number, targetIndex: number) => {
+    if (!draggingImage || draggingImage.groupFieldName !== groupFieldName) {
+      return;
+    }
+
+    moveImageItem(groupFieldName, draggingImage.imageIndex, targetIndex);
+    setDraggingImage(null);
+  };
+
+  const canPreviewImage = (url: string) =>
+    /^(https?:\/\/|data:image\/|blob:)/i.test((url ?? "").trim());
+
+  const toLocalFileLabel = (url: string) =>
+    url.startsWith("[Local file] ") ? url.slice("[Local file] ".length) : url;
+
   return (
     <div className="rounded-2xl border border-slate-200 bg-white p-4">
       <div className="mb-3 flex items-center justify-between gap-2">
@@ -81,8 +136,7 @@ export function AdminProductVariantGroupsField({
                   </Button>
                 }
               >
-                <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_260px] xl:items-start">
-                  <div className="space-y-3">
+                <div className="space-y-3">
                     <div className="grid gap-3 md:grid-cols-2">
                       <Form.Item
                         label="Tên màu"
@@ -225,55 +279,127 @@ export function AdminProductVariantGroupsField({
                         </div>
                       </div>
                     </div>
-                  </div>
 
                   <div className="rounded-lg border border-slate-200 bg-slate-50 p-2.5">
                     <Text className="text-sm" strong>
                       Ảnh theo màu
                     </Text>
-                    <div className="mt-2">
-                      <Upload
-                        accept="image/*"
-                        multiple
-                        showUploadList={false}
-                        customRequest={handleVariantGroupUpload(groupField.name)}
-                        beforeUpload={beforeUpload}
-                      >
-                        <Button size="small" icon={<PlusOutlined />} block>
-                          Thêm ảnh
-                        </Button>
-                      </Upload>
-                    </div>
+                    <Text className="mt-1 block text-xs text-slate-500">
+                      Kéo thả để sắp xếp thứ tự hiển thị. Ảnh số 1 là ảnh đại diện màu.
+                    </Text>
+
                     <Form.List name={[groupField.name, "imageItems"]}>
                       {(imageFields, { remove: removeImage }) => (
-                        <div className="mt-2 space-y-2">
-                          {imageFields.map((imageField) => (
-                            <div key={imageField.key} className="grid gap-2 grid-cols-[1fr_32px]">
-                              <Form.Item
-                                name={[imageField.name, "url"]}
-                                rules={REQUIRED_RULE}
-                                className="mb-0!"
-                              >
-                                <Input size="small" placeholder="URL ảnh màu" />
-                              </Form.Item>
+                        <div className="mt-2">
+                          <div className="grid grid-cols-[repeat(auto-fill,minmax(180px,1fr))] gap-2">
+                            {imageFields.map((imageField, imageIndex) => {
+                              const imageItem = form.getFieldValue([
+                                "variantGroups",
+                                groupField.name,
+                                "imageItems",
+                                imageField.name,
+                              ]) as VariantImageFormValue | undefined;
+                              const imageUrl = imageItem?.url ?? "";
+                              const isPrimaryImage = imageIndex === 0;
+
+                              return (
+                                <div
+                                  key={imageField.key}
+                                  className="rounded-lg border border-slate-200 bg-white p-2"
+                                  draggable
+                                  onDragStart={() =>
+                                    setDraggingImage({
+                                      groupFieldName: groupField.name,
+                                      imageIndex,
+                                    })
+                                  }
+                                  onDragEnd={() => setDraggingImage(null)}
+                                  onDragOver={(event: DragEvent<HTMLDivElement>) => {
+                                    event.preventDefault();
+                                  }}
+                                  onDrop={(event: DragEvent<HTMLDivElement>) => {
+                                    event.preventDefault();
+                                    handleImageDrop(groupField.name, imageIndex);
+                                  }}
+                                >
+                                  <div className="relative mb-2 h-36 overflow-hidden rounded-md border border-slate-200 bg-slate-100">
+                                    {canPreviewImage(imageUrl) ? (
+                                      <img
+                                        src={imageUrl}
+                                        alt={`Ảnh màu ${imageIndex + 1}`}
+                                        className="h-full w-full object-cover"
+                                      />
+                                    ) : (
+                                      <div className="flex h-full items-center justify-center px-2 text-center text-xs text-slate-500">
+                                        {toLocalFileLabel(imageUrl) || "Ảnh màu"}
+                                      </div>
+                                    )}
+                                    <span className="absolute left-2 top-2 rounded-full bg-slate-900 px-2 py-0.5 text-xs font-semibold text-white">
+                                      {imageIndex + 1}
+                                    </span>
+                                    {isPrimaryImage ? (
+                                      <span className="absolute bottom-2 left-2 rounded-md bg-blue-600 px-2 py-0.5 text-[11px] font-semibold text-white">
+                                        Ảnh đại diện màu
+                                      </span>
+                                    ) : null}
+                                  </div>
+
+                                  <Form.Item
+                                    name={[imageField.name, "url"]}
+                                    rules={REQUIRED_RULE}
+                                    className="mb-2!"
+                                  >
+                                    <Input size="small" placeholder="URL ảnh màu" />
+                                  </Form.Item>
+
+                                  <div className="flex items-center justify-between gap-2">
+                                    <Space.Compact size="small">
+                                      <Button
+                                        icon={<ArrowUpOutlined />}
+                                        disabled={imageIndex === 0}
+                                        onClick={() =>
+                                          moveImageItem(groupField.name, imageIndex, imageIndex - 1)
+                                        }
+                                      />
+                                      <Button
+                                        icon={<ArrowDownOutlined />}
+                                        disabled={imageIndex === imageFields.length - 1}
+                                        onClick={() =>
+                                          moveImageItem(groupField.name, imageIndex, imageIndex + 1)
+                                        }
+                                      />
+                                    </Space.Compact>
+                                    <Button
+                                      size="small"
+                                      danger
+                                      icon={<DeleteOutlined />}
+                                      onClick={() => {
+                                        unregisterPendingFile(imageItem?.pendingFileId);
+                                        removeImage(imageField.name);
+                                      }}
+                                    />
+                                  </div>
+                                </div>
+                              );
+                            })}
+
+                            <Upload
+                              accept="image/*"
+                              multiple
+                              showUploadList={false}
+                              customRequest={handleVariantGroupUpload(groupField.name)}
+                              beforeUpload={beforeUpload}
+                            >
                               <Button
                                 size="small"
-                                danger
-                                className="w-8"
-                                icon={<DeleteOutlined />}
-                                onClick={() => {
-                                  const imageItem = form.getFieldValue([
-                                    "variantGroups",
-                                    groupField.name,
-                                    "imageItems",
-                                    imageField.name,
-                                  ]) as VariantImageFormValue | undefined;
-                                  unregisterPendingFile(imageItem?.pendingFileId);
-                                  removeImage(imageField.name);
-                                }}
-                              />
-                            </div>
-                          ))}
+                                icon={<PlusOutlined />}
+                                className="h-[190px] border-dashed!"
+                                block
+                              >
+                                Thêm ảnh
+                              </Button>
+                            </Upload>
+                          </div>
                         </div>
                       )}
                     </Form.List>
@@ -287,6 +413,3 @@ export function AdminProductVariantGroupsField({
     </div>
   );
 }
-
-
-

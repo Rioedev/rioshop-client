@@ -123,17 +123,38 @@
 }
 
 .store-home-v3-flash-shell {
-  border: 1px solid #ffd666;
+  border: 1px solid #f4b93f;
   border-radius: 18px;
   background:
-    radial-gradient(circle at 0% 0%, rgba(255, 201, 40, 0.2), transparent 30%),
-    #fffdf5;
+    radial-gradient(circle at 0% 0%, rgba(251, 146, 60, 0.28), transparent 34%),
+    linear-gradient(135deg, #fff9e8 0%, #fff2c7 100%);
+  box-shadow: 0 14px 30px rgba(180, 83, 9, 0.1);
+}
+
+.store-home-v3-flash-shell .store-home-v3-section-head.is-light p {
+  color: #b45309;
+}
+
+.store-home-v3-flash-shell .store-home-v3-section-head.is-light h2 {
+  color: #0f172a;
+}
+
+.store-home-v3-flash-shell .store-home-v3-text-link.is-light {
+  color: #1d4ed8;
 }
 
 .store-home-v3-flash-feature,
 .store-home-v3-flash-card {
-  border-color: #ffe39a;
+  border-color: #f5c977;
   background: #ffffff;
+  color: #0f172a;
+  box-shadow: 0 10px 22px rgba(15, 23, 42, 0.06);
+}
+
+.store-home-v3-flash-feature h3,
+.store-home-v3-flash-card h3,
+.store-home-v3-flash-price strong,
+.store-home-v3-flash-card-price strong {
   color: #0f172a;
 }
 
@@ -144,7 +165,11 @@
 }
 
 .store-home-v3-flash-card-head span {
-  color: #b45309;
+  color: #c2410c;
+}
+
+.store-home-v3-flash-time {
+  color: #c2410c;
 }
 
 .cool-product-card {

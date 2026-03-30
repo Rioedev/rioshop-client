@@ -72,6 +72,11 @@ export function StoreProductMainSection({
   isInWishlist,
   onToggleWishlist,
 }: StoreProductMainSectionProps) {
+  const discountPercent =
+    hasDiscount && selectedVariantBasePrice > 0
+      ? Math.round(((selectedVariantBasePrice - selectedVariantPrice) / selectedVariantBasePrice) * 100)
+      : 0;
+
   return (
     <section className="pdpv2-main-wrap">
       <div className="pdpv2-gallery-panel">
@@ -116,14 +121,17 @@ export function StoreProductMainSection({
           <span>{soldText}</span>
         </div>
 
-        <div className="mb-4 mt-4 flex items-end gap-2">
-          <span className="text-3xl font-black text-slate-900">
+        <div className="pdpv2-price-row mb-4 mt-4">
+          <span className="pdpv2-sale-price">
             {formatCurrency(selectedVariantPrice)}
           </span>
           {hasDiscount ? (
-            <span className="text-lg text-slate-400 line-through">
+            <span className="pdpv2-base-price">
               {formatCurrency(selectedVariantBasePrice)}
             </span>
+          ) : null}
+          {discountPercent > 0 ? (
+            <span className="pdpv2-discount-badge">-{discountPercent}%</span>
           ) : null}
         </div>
 
