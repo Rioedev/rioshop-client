@@ -357,7 +357,7 @@ export function StoreLayout() {
   return (
     <div className="storefront-shell min-h-screen">
       <div className="store-promo-bar">
-        FLASH SALE 10H - 14H | Gi?m d?n 50% + Freeship toàn qu?c
+        FLASH SALE 10H - 14H | Giảm đến 50% + Freeship toàn quốc
       </div>
 
       <div className="store-utility-strip">
@@ -390,7 +390,7 @@ export function StoreLayout() {
                 onChange={(event) => setSearchKeyword(event.target.value)}
                 onPressEnter={onSearch}
                 className="store-search"
-                placeholder="Tìm áo thun, qu?n short, combo..."
+                placeholder="Tìm áo thun, quần short, combo..."
               />
             </div>
 
@@ -418,19 +418,19 @@ export function StoreLayout() {
 
           <nav className="store-main-nav mt-3 flex gap-2 overflow-x-auto pb-1">
             <Link to="/" className="store-nav-pill">
-              Trang ch?
+              Trang chủ
             </Link>
             <Link to="/products?sort=best_selling" className="store-nav-pill">
-              Bán ch?y
+              Bán chạy
             </Link>
             <Link to="/products?sort=newest" className="store-nav-pill">
-              M?i v?
+              Mới về
             </Link>
             <Link to="/products?sort=price_desc" className="store-nav-pill">
               Flash sale
             </Link>
             <Link to="/products" className="store-nav-pill">
-              T?t c? s?n ph?m
+              Tất cả sản phẩm
             </Link>
 
             <StoreMegaMenu

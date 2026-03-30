@@ -170,7 +170,7 @@ export function AdminFlashSalesPage() {
 
   const summary = useMemo(() => {
     const active = flashSales.filter((item) => item.isActive).length;
-    const running = flashSales.filter((item) => getFlashSalePhase(item).label === "Äang diá»…n ra").length;
+    const running = flashSales.filter((item) => getFlashSalePhase(item).label === "Đang diễn ra").length;
     const totalSlots = flashSales.reduce((sum, item) => sum + item.slots.length, 0);
 
     return { active, running, totalSlots };
@@ -271,12 +271,12 @@ export function AdminFlashSalesPage() {
 
   const uploadBannerFile = async (file: File) => {
     if (!file.type?.startsWith("image/")) {
-      messageApi.error("Chá»‰ há»— trá»£ táº£i lÃªn file áº£nh.");
+      messageApi.error("Chỉ hỗ trợ tải lên file ảnh.");
       return;
     }
 
     if (file.size > 5 * 1024 * 1024) {
-      messageApi.error("áº¢nh banner tá»‘i Ä‘a 5MB.");
+      messageApi.error("Ảnh banner tối đa 5MB.");
       return;
     }
 
@@ -284,7 +284,7 @@ export function AdminFlashSalesPage() {
     try {
       const url = await productService.uploadProductImage(file);
       form.setFieldValue("banner", url);
-      messageApi.success("Táº£i áº£nh banner thÃ nh cÃ´ng.");
+      messageApi.success("Tải ảnh banner thành công.");
     } catch (error) {
       messageApi.error(getErrorMessage(error));
     } finally {
@@ -335,10 +335,10 @@ export function AdminFlashSalesPage() {
         const { createdBy, ...updatePayload } = payload;
         void createdBy;
         await updateFlashSale(editingFlashSale.id, updatePayload);
-        messageApi.success("Cáº­p nháº­t chÆ°Æ¡ng trÃ¬nh giáº£m giÃ¡ chá»›p nhoÃ¡ng thÃ nh cÃ´ng.");
+        messageApi.success("Cập nhật chương trình giảm giá chớp nhoáng thành công.");
       } else {
         await createFlashSale(payload);
-        messageApi.success("Táº¡o chÆ°Æ¡ng trÃ¬nh giáº£m giÃ¡ chá»›p nhoÃ¡ng thÃ nh cÃ´ng.");
+        messageApi.success("Tạo chương trình giảm giá chớp nhoáng thành công.");
       }
       setIsModalOpen(false);
       setEditingFlashSale(null);
@@ -354,7 +354,7 @@ export function AdminFlashSalesPage() {
   const handleDelete = async (sale: FlashSale) => {
     try {
       await deleteFlashSale(sale.id);
-      messageApi.success("ÄÃ£ xÃ³a chÆ°Æ¡ng trÃ¬nh giáº£m giÃ¡ chá»›p nhoÃ¡ng.");
+      messageApi.success("Đã xóa chương trình giảm giá chớp nhoáng.");
     } catch (error) {
       messageApi.error(getErrorMessage(error));
     }
@@ -362,30 +362,30 @@ export function AdminFlashSalesPage() {
 
   const columns: ColumnsType<FlashSale> = [
     {
-      title: "TÃªn chÆ°Æ¡ng trÃ¬nh",
+      title: "Tên chương trình",
       dataIndex: "name",
       key: "name",
       width: 250,
     },
     {
-      title: "Thá»i gian",
+      title: "Thời gian",
       key: "period",
       width: 260,
       render: (_, record) => (
         <div>
-          <div>Báº¯t Ä‘áº§u: {formatDateTime(record.startsAt)}</div>
-          <Text type="secondary">Káº¿t thÃºc: {formatDateTime(record.endsAt)}</Text>
+          <div>Bắt đầu: {formatDateTime(record.startsAt)}</div>
+          <Text type="secondary">Kết thúc: {formatDateTime(record.endsAt)}</Text>
         </div>
       ),
     },
     {
-      title: "Tráº¡ng thÃ¡i kÃ­ch hoáº¡t",
+      title: "Trạng thái kích hoạt",
       key: "active",
       width: 150,
-      render: (_, record) => <Tag color={record.isActive ? "green" : "default"}>{record.isActive ? "Äang báº­t" : "Äang táº¯t"}</Tag>,
+      render: (_, record) => <Tag color={record.isActive ? "green" : "default"}>{record.isActive ? "Đang bật" : "Đang tắt"}</Tag>,
     },
     {
-      title: "Pha khuyáº¿n mÃ£i",
+      title: "Pha khuyến mãi",
       key: "phase",
       width: 140,
       render: (_, record) => {
@@ -394,13 +394,13 @@ export function AdminFlashSalesPage() {
       },
     },
     {
-      title: "Sá»‘ slot",
+      title: "Số slot",
       key: "slots",
       width: 100,
       render: (_, record) => record.slots.length,
     },
     {
-      title: "ÄÃ£ bÃ¡n/Tá»“n slot",
+      title: "Đã bán/Tồn slot",
       key: "sold",
       width: 160,
       render: (_, record) => {
@@ -410,31 +410,31 @@ export function AdminFlashSalesPage() {
       },
     },
     {
-      title: "Táº¡o lÃºc",
+      title: "Tạo lúc",
       dataIndex: "createdAt",
       key: "createdAt",
       width: 150,
       render: (value?: string) => formatDateTime(value),
     },
     {
-      title: "Thao tÃ¡c",
+      title: "Thao tác",
       key: "actions",
       fixed: "right",
       width: 190,
       render: (_, record) => (
         <Space size="small">
           <Button size="small" onClick={() => openEditModal(record)}>
-            Sá»­a
+            Sửa
           </Button>
           <Popconfirm
-            title="XÃ³a chÆ°Æ¡ng trÃ¬nh nÃ y?"
-            description="HÃ nh Ä‘á»™ng nÃ y khÃ´ng thá»ƒ hoÃ n tÃ¡c."
-            okText="XÃ³a"
-            cancelText="Há»§y"
+            title="Xóa chương trình này?"
+            description="Hành động này không thể hoàn tác."
+            okText="Xóa"
+            cancelText="Hủy"
             onConfirm={() => void handleDelete(record)}
           >
             <Button size="small" danger>
-              XÃ³a
+              Xóa
             </Button>
           </Popconfirm>
         </Space>
@@ -448,17 +448,17 @@ export function AdminFlashSalesPage() {
 
       <div>
         <Title level={3} className="mb-1! mt-0!">
-          Quáº£n lÃ½ Flash Sales
+          Quản lý Flash Sales
         </Title>
         <Paragraph className="mb-0!" type="secondary">
-          Theo dÃµi chiáº¿n dá»‹ch Flash Sales, lá»c theo tráº¡ng thÃ¡i vÃ  táº¡o chÆ°Æ¡ng trÃ¬nh má»›i.
+          Theo dõi chiến dịch Flash Sales, lọc theo trạng thái và tạo chương trình mới.
         </Paragraph>
       </div>
 
       <Row gutter={[12, 12]}>
         <Col xs={24} md={8}>
           <Card>
-            <Text type="secondary">Äang báº­t (trang hiá»‡n táº¡i)</Text>
+            <Text type="secondary">Đang bật (trang hiện tại)</Text>
             <Title level={3} className="mb-0! mt-1!">
               {summary.active}
             </Title>
@@ -466,7 +466,7 @@ export function AdminFlashSalesPage() {
         </Col>
         <Col xs={24} md={8}>
           <Card>
-            <Text type="secondary">Äang diá»…n ra (trang hiá»‡n táº¡i)</Text>
+            <Text type="secondary">Đang diễn ra (trang hiện tại)</Text>
             <Title level={3} className="mb-0! mt-1! text-emerald-600!">
               {summary.running}
             </Title>
@@ -474,7 +474,7 @@ export function AdminFlashSalesPage() {
         </Col>
         <Col xs={24} md={8}>
           <Card>
-            <Text type="secondary">Tá»•ng slot (trang hiá»‡n táº¡i)</Text>
+            <Text type="secondary">Tổng slot (trang hiện tại)</Text>
             <Title level={3} className="mb-0! mt-1!">
               {summary.totalSlots}
             </Title>
@@ -486,11 +486,11 @@ export function AdminFlashSalesPage() {
         <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
           <Space wrap>
             <Space>
-              <Text>Chá»‰ Ä‘ang diá»…n ra</Text>
+              <Text>Chỉ đang diễn ra</Text>
               <Switch
                 checked={currentOnly}
-                checkedChildren="Báº­t"
-                unCheckedChildren="Táº¯t"
+                checkedChildren="Bật"
+                unCheckedChildren="Tắt"
                 onChange={(checked) => void handleToggleCurrentOnly(checked)}
                 disabled={loading || saving}
               />
@@ -504,7 +504,7 @@ export function AdminFlashSalesPage() {
             />
           </Space>
           <Button type="primary" onClick={openCreateModal}>
-            Táº¡o chÆ°Æ¡ng trÃ¬nh má»›i
+            Tạo chương trình mới
           </Button>
         </div>
 
@@ -519,7 +519,7 @@ export function AdminFlashSalesPage() {
             pageSize,
             total,
             showSizeChanger: true,
-            showTotal: (value) => `Tá»•ng ${value} chiáº¿n dá»‹ch giáº£m giÃ¡ chá»›p nhoÃ¡ng`,
+            showTotal: (value) => `Tổng ${value} chiến dịch giảm giá chớp nhoáng`,
           }}
           onChange={(pagination: TablePaginationConfig) => {
             const nextPage = pagination.current ?? page;
@@ -537,7 +537,7 @@ export function AdminFlashSalesPage() {
       </Card>
 
       <Modal
-        title={editingFlashSale ? "Cáº­p nháº­t chÆ°Æ¡ng trÃ¬nh giáº£m giÃ¡ chá»›p nhoÃ¡ng" : "Táº¡o chÆ°Æ¡ng trÃ¬nh giáº£m giÃ¡ chá»›p nhoÃ¡ng"}
+        title={editingFlashSale ? "Cập nhật chương trình giảm giá chớp nhoáng" : "Tạo chương trình giảm giá chớp nhoáng"}
         open={isModalOpen}
         onCancel={() => {
           setIsModalOpen(false);
@@ -545,24 +545,24 @@ export function AdminFlashSalesPage() {
           form.resetFields();
         }}
         onOk={() => void handleSubmitModal()}
-        okText={editingFlashSale ? "LÆ°u thay Ä‘á»•i" : "Táº¡o má»›i"}
-        cancelText="Há»§y"
+        okText={editingFlashSale ? "Lưu thay đổi" : "Tạo mới"}
+        cancelText="Hủy"
         confirmLoading={saving}
         width={780}
       >
         <Form form={form} layout="vertical">
           <Form.Item
-            label="TÃªn chÆ°Æ¡ng trÃ¬nh"
+            label="Tên chương trình"
             name="name"
             rules={[
-              { required: true, message: "Vui lÃ²ng nháº­p tÃªn chÆ°Æ¡ng trÃ¬nh." },
-              { min: 2, message: "TÃªn chÆ°Æ¡ng trÃ¬nh tá»‘i thiá»ƒu 2 kÃ½ tá»±." },
+              { required: true, message: "Vui lòng nhập tên chương trình." },
+              { min: 2, message: "Tên chương trình tối thiểu 2 ký tự." },
             ]}
           >
-            <Input placeholder="VÃ­ dá»¥: Flash Sale Cuá»‘i Tuáº§n" />
+            <Input placeholder="Ví dụ: Flash Sale Cuối Tuần" />
           </Form.Item>
 
-          <Form.Item label="Banner chÆ°Æ¡ng trÃ¬nh">
+          <Form.Item label="Banner chương trình">
             <Space direction="vertical" className="w-full">
               <Upload
                 accept="image/*"
@@ -572,7 +572,7 @@ export function AdminFlashSalesPage() {
                   return false;
                 }}
               >
-                <Button loading={bannerUploading}>Táº£i áº£nh banner</Button>
+                <Button loading={bannerUploading}>Tải ảnh banner</Button>
               </Upload>
 
               {bannerValue ? (
@@ -580,7 +580,7 @@ export function AdminFlashSalesPage() {
                   <img src={bannerValue} alt="Banner flash sale" className="h-44 w-full object-cover" />
                 </div>
               ) : (
-                <Text type="secondary">ChÆ°a cÃ³ banner. Báº¡n cÃ³ thá»ƒ táº£i áº£nh lÃªn tá»« mÃ¡y tÃ­nh.</Text>
+                <Text type="secondary">Chưa có banner. Bạn có thể tải ảnh lên từ máy tính.</Text>
               )}
 
               {bannerValue ? (
@@ -590,7 +590,7 @@ export function AdminFlashSalesPage() {
                   className="w-fit"
                   onClick={() => form.setFieldValue("banner", "")}
                 >
-                  Gá»¡ banner
+                  Gỡ banner
                 </Button>
               ) : null}
             </Space>
@@ -602,26 +602,26 @@ export function AdminFlashSalesPage() {
           <Row gutter={12}>
             <Col xs={24} md={12}>
               <Form.Item
-                label="Báº¯t Ä‘áº§u"
+                label="Bắt đầu"
                 name="startsAt"
-                rules={[{ required: true, message: "Vui lÃ²ng nháº­p thá»i gian báº¯t Ä‘áº§u." }]}
+                rules={[{ required: true, message: "Vui lòng nhập thời gian bắt đầu." }]}
               >
                 <Input type="datetime-local" />
               </Form.Item>
             </Col>
             <Col xs={24} md={12}>
               <Form.Item
-                label="Káº¿t thÃºc"
+                label="Kết thúc"
                 name="endsAt"
-                rules={[{ required: true, message: "Vui lÃ²ng nháº­p thá»i gian káº¿t thÃºc." }]}
+                rules={[{ required: true, message: "Vui lòng nhập thời gian kết thúc." }]}
               >
                 <Input type="datetime-local" />
               </Form.Item>
             </Col>
           </Row>
 
-          <Form.Item label="KÃ­ch hoáº¡t ngay" name="isActive" valuePropName="checked">
-            <Switch checkedChildren="Báº­t" unCheckedChildren="Táº¯t" />
+          <Form.Item label="Kích hoạt ngay" name="isActive" valuePropName="checked">
+            <Switch checkedChildren="Bật" unCheckedChildren="Tắt" />
           </Form.Item>
 
           <AdminFlashSaleSlotsField
@@ -637,6 +637,7 @@ export function AdminFlashSalesPage() {
     </div>
   );
 }
+
 
 
 

@@ -103,13 +103,13 @@ export function StoreHomeHeroSection({
           </div>
 
           {heroSlides.length > 1 ? (
-            <div className="store-home-v3-hero-dots" aria-label="Chá»n áº£nh ná»•i báº­t">
+            <div className="store-home-v3-hero-dots" aria-label="Chọn ảnh nổi bật">
               {heroSlides.map((slide, index) => (
                 <button
                   key={`hero-dot-${slide.id}`}
                   type="button"
                   className={`store-home-v3-hero-dot ${index === normalizedHeroIndex ? "is-active" : ""}`}
-                  aria-label={`Hiá»ƒn thá»‹ áº£nh ná»•i báº­t ${index + 1}`}
+                  aria-label={`Hiển thị ảnh nổi bật ${index + 1}`}
                   onClick={() => onSelectSlide(index)}
                 />
               ))}
@@ -140,4 +140,5 @@ export function StoreHomeHeroSection({
     </section>
   );
 }
+
 

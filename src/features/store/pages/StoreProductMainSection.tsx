@@ -102,7 +102,7 @@ export function StoreProductMainSection({
       </div>
 
       <div className="pdpv2-buy-panel">
-        <p className="product-info-category">{product.category?.name ?? "Sáº£n pháº©m má»›i"}</p>
+        <p className="product-info-category">{product.category?.name ?? "Sản phẩm mới"}</p>
         <Title level={2} className="mb-2! mt-1! text-3xl! text-slate-900! md:text-[34px]!">
           {product.name}
         </Title>
@@ -112,7 +112,7 @@ export function StoreProductMainSection({
             <StarFilled />
             {ratingValue.toFixed(1)}
           </span>
-          <span>({ratingCount} Ä‘Ã¡nh giÃ¡)</span>
+          <span>({ratingCount} đánh giá)</span>
           <span>{soldText}</span>
         </div>
 
@@ -136,24 +136,24 @@ export function StoreProductMainSection({
         <div className="pdpv2-policy-grid">
           <div className="pdpv2-policy-item">
             <TruckOutlined />
-            Giao nhanh 2h ná»™i thÃ nh
+            Giao nhanh 2h nội thành
           </div>
           <div className="pdpv2-policy-item">
             <SafetyCertificateOutlined />
-            ChÃ­nh hÃ£ng 100%
+            Chính hãng 100%
           </div>
           <div className="pdpv2-policy-item">
             <CheckCircleOutlined />
-            Äá»•i tráº£ 60 ngÃ y
+            Đổi trả 60 ngày
           </div>
           <div className="pdpv2-policy-item">
             <HeartOutlined />
-            TÆ° váº¥n size 24/7
+            Tư vấn size 24/7
           </div>
         </div>
 
         <div className="mt-5">
-          <p className="mb-2 text-sm font-semibold uppercase tracking-[0.12em] text-slate-500">MÃ u sáº¯c</p>
+          <p className="mb-2 text-sm font-semibold uppercase tracking-[0.12em] text-slate-500">Màu sắc</p>
           <div className="flex flex-wrap gap-2">
             {colorOptions.map((color) => (
               <button
@@ -170,7 +170,7 @@ export function StoreProductMainSection({
         </div>
 
         <div className="mt-5">
-          <p className="mb-2 text-sm font-semibold uppercase tracking-[0.12em] text-slate-500">KÃ­ch thÆ°á»›c</p>
+          <p className="mb-2 text-sm font-semibold uppercase tracking-[0.12em] text-slate-500">Kích thước</p>
           <div className="flex flex-wrap gap-2">
             {sizeOptions.map((size) => (
               <button
@@ -186,7 +186,7 @@ export function StoreProductMainSection({
         </div>
 
         <div className="mt-5 flex flex-wrap items-center gap-3">
-          <p className="m-0 text-sm font-semibold uppercase tracking-[0.12em] text-slate-500">Sá»‘ lÆ°á»£ng</p>
+          <p className="m-0 text-sm font-semibold uppercase tracking-[0.12em] text-slate-500">Số lượng</p>
           <InputNumber
             min={1}
             max={selectedVariantStock}
@@ -206,7 +206,7 @@ export function StoreProductMainSection({
             disabled={isSelectedVariantOutOfStock}
             onClick={onAddToCart}
           >
-            {isSelectedVariantOutOfStock ? "Háº¿t hÃ ng" : "ThÃªm vÃ o giá»"}
+            {isSelectedVariantOutOfStock ? "Hết hàng" : "Thêm vào giỏ"}
           </Button>
           <Button
             size="large"
@@ -214,7 +214,7 @@ export function StoreProductMainSection({
             icon={<HeartOutlined />}
             onClick={onToggleWishlist}
           >
-            {isInWishlist ? "ÄÃ£ lÆ°u" : "YÃªu thÃ­ch"}
+            {isInWishlist ? "Đã lưu" : "Yêu thích"}
           </Button>
           <Link to="/cart">
             <Button size="large" className="h-11! rounded-full! border-slate-300! px-7! font-semibold!">
@@ -225,15 +225,16 @@ export function StoreProductMainSection({
 
         <div className="product-note-list">
           <p>
-            <strong>Cháº¥t liá»‡u:</strong> {(product.material ?? ["Cotton cao cáº¥p"]).join(" | ")}
+            <strong>Chất liệu:</strong> {(product.material ?? ["Cotton cao cấp"]).join(" | ")}
           </p>
           <p>
-            <strong>Báº£o quáº£n:</strong> {(product.care ?? ["Giáº·t nháº¹, trÃ¡nh nhiá»‡t cao"]).join(" | ")}
+            <strong>Bảo quản:</strong> {(product.care ?? ["Giặt nhẹ, tránh nhiệt cao"]).join(" | ")}
           </p>
         </div>
       </div>
     </section>
   );
 }
+
 
 

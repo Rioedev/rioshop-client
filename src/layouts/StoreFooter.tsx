@@ -1,4 +1,4 @@
-import {
+﻿import {
   DownOutlined,
   EnvironmentOutlined,
   FacebookOutlined,
@@ -147,3 +147,4 @@ export function StoreFooter({ footerSocialLinks }: StoreFooterProps) {
     </footer>
   );
 }
+

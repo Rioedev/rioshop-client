@@ -35,7 +35,7 @@ export const normalizeColorValue = (value?: string) =>
 
 export const getVariantColorName = (variant: ProductVariant) =>
   variant.color?.name?.trim() ||
-  (variant.color?.hex?.trim() ? `MÃ u ${variant.color.hex.trim()}` : "Máº·c Ä‘á»‹nh");
+  (variant.color?.hex?.trim() ? `Màu ${variant.color.hex.trim()}` : "Mặc định");
 
 export const getVariantSizeLabel = (variant: ProductVariant) =>
   variant.sizeLabel?.trim() || variant.size?.trim() || "";
@@ -92,12 +92,12 @@ export const generateReviewPercents = (
 
 export const formatReviewDate = (value?: string) => {
   if (!value) {
-    return "Vá»«a xong";
+    return "Vừa xong";
   }
 
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) {
-    return "Vá»«a xong";
+    return "Vừa xong";
   }
 
   return new Intl.DateTimeFormat("vi-VN", {
@@ -107,15 +107,15 @@ export const formatReviewDate = (value?: string) => {
 
 export const formatDetailCouponValue = (coupon: Coupon) => {
   if (coupon.type === "percent") {
-    return `Giáº£m ${coupon.value}%`;
+    return `Giảm ${coupon.value}%`;
   }
 
   if (coupon.type === "fixed") {
-    return `Giáº£m ${formatCurrency(coupon.value)}`;
+    return `Giảm ${formatCurrency(coupon.value)}`;
   }
 
   if (coupon.type === "free_ship") {
-    return "Miá»…n phÃ­ váº­n chuyá»ƒn";
+    return "Miễn phí vận chuyển";
   }
 
   return coupon.name;
@@ -123,12 +123,12 @@ export const formatDetailCouponValue = (coupon: Coupon) => {
 
 export const formatDetailCouponExpiry = (value?: string) => {
   if (!value) {
-    return "KhÃ´ng giá»›i háº¡n";
+    return "Không giới hạn";
   }
 
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) {
-    return "KhÃ´ng giá»›i háº¡n";
+    return "Không giới hạn";
   }
 
   return new Intl.DateTimeFormat("vi-VN", { dateStyle: "short" }).format(date);
@@ -191,4 +191,5 @@ export const sanitizeProductHtml = (html?: string) => {
     return html;
   }
 };
+
 

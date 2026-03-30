@@ -57,8 +57,8 @@ type CouponFormValues = {
 const COUPON_TYPE_LABEL: Record<CouponType, string> = {
   percent: "Gi?m theo ph?n tram",
   fixed: "Gi?m ti?n c? d?nh",
-  free_ship: "Mi?n phí v?n chuy?n",
-  gift: "Quà t?ng",
+  free_ship: "Mi?n phï¿½ v?n chuy?n",
+  gift: "Quï¿½ t?ng",
 };
 
 const COUPON_TYPE_OPTIONS: { value: CouponType | "all"; label: string }[] = [
@@ -84,9 +84,9 @@ const SOURCE_OPTIONS: { value: CouponSource; label: string }[] = [
 ];
 
 const ACTIVE_FILTER_OPTIONS: { value: "all" | "active" | "inactive"; label: string }[] = [
-  { value: "all", label: "T?t c? tr?ng thái" },
-  { value: "active", label: "Ðang b?t" },
-  { value: "inactive", label: "Ðang t?t" },
+  { value: "all", label: "T?t c? tr?ng thï¿½i" },
+  { value: "active", label: "ï¿½ang b?t" },
+  { value: "inactive", label: "ï¿½ang t?t" },
 ];
 
 const formatDateTime = (value?: string) => {
@@ -151,11 +151,11 @@ const getCouponStatus = (coupon: Coupon) => {
   const expiresAt = new Date(coupon.expiresAt).getTime();
 
   if (Number.isNaN(startsAt) || Number.isNaN(expiresAt)) {
-    return { label: "Không xác d?nh", color: "default" as const };
+    return { label: "Khï¿½ng xï¿½c d?nh", color: "default" as const };
   }
 
   if (!coupon.isActive) {
-    return { label: "Ðang t?t", color: "default" as const };
+    return { label: "ï¿½ang t?t", color: "default" as const };
   }
 
   if (startsAt > now) {
@@ -163,10 +163,10 @@ const getCouponStatus = (coupon: Coupon) => {
   }
 
   if (expiresAt < now) {
-    return { label: "Ðã h?t h?n", color: "red" as const };
+    return { label: "ï¿½ï¿½ h?t h?n", color: "red" as const };
   }
 
-  return { label: "Ðang hi?u l?c", color: "green" as const };
+  return { label: "ï¿½ang hi?u l?c", color: "green" as const };
 };
 
 const renderCouponValue = (coupon: Coupon) => {
@@ -222,7 +222,7 @@ export function AdminCouponsPage() {
 
   const activeCount = useMemo(() => coupons.filter((coupon) => coupon.isActive).length, [coupons]);
   const expiredCount = useMemo(
-    () => coupons.filter((coupon) => getCouponStatus(coupon).label === "Ðã h?t h?n").length,
+    () => coupons.filter((coupon) => getCouponStatus(coupon).label === "ï¿½ï¿½ h?t h?n").length,
     [coupons],
   );
 
@@ -309,21 +309,21 @@ export function AdminCouponsPage() {
       const payload = buildCouponPayload(values);
 
       if (!payload.startsAt || !payload.expiresAt) {
-        messageApi.error("Vui lòng nh?p th?i gian b?t d?u và k?t thúc h?p l?.");
+        messageApi.error("Vui lï¿½ng nh?p th?i gian b?t d?u vï¿½ k?t thï¿½c h?p l?.");
         return;
       }
 
       if (new Date(payload.startsAt).getTime() >= new Date(payload.expiresAt).getTime()) {
-        messageApi.error("Th?i gian b?t d?u ph?i tru?c th?i gian k?t thúc.");
+        messageApi.error("Th?i gian b?t d?u ph?i tru?c th?i gian k?t thï¿½c.");
         return;
       }
 
       if (editingCoupon) {
         await updateCoupon(editingCoupon.id, payload);
-        messageApi.success("C?p nh?t coupon thành công.");
+        messageApi.success("C?p nh?t coupon thï¿½nh cï¿½ng.");
       } else {
         await createCoupon(payload);
-        messageApi.success("T?o coupon thành công.");
+        messageApi.success("T?o coupon thï¿½nh cï¿½ng.");
       }
 
       closeModal();
@@ -338,7 +338,7 @@ export function AdminCouponsPage() {
   const handleDeleteCoupon = async (coupon: Coupon) => {
     try {
       await removeCoupon(coupon.id);
-      messageApi.success(`Ðã xóa coupon ${coupon.code}.`);
+      messageApi.success(`ï¿½ï¿½ xï¿½a coupon ${coupon.code}.`);
     } catch (error) {
       messageApi.error(getErrorMessage(error));
     }
@@ -347,7 +347,7 @@ export function AdminCouponsPage() {
   const handleLookupCoupon = async () => {
     const code = lookupCode.trim();
     if (!code) {
-      messageApi.warning("Vui lòng nh?p mã gi?m giá d? tra c?u.");
+      messageApi.warning("Vui lï¿½ng nh?p mï¿½ gi?m giï¿½ d? tra c?u.");
       return;
     }
 
@@ -382,14 +382,14 @@ export function AdminCouponsPage() {
 
   const columns: ColumnsType<Coupon> = [
     {
-      title: "Mã",
+      title: "Mï¿½",
       dataIndex: "code",
       key: "code",
       width: 130,
       render: (code: string) => <Text strong>{code}</Text>,
     },
     {
-      title: "Tên chuong trình",
+      title: "Tï¿½n chuong trï¿½nh",
       dataIndex: "name",
       key: "name",
       width: 220,
@@ -402,30 +402,30 @@ export function AdminCouponsPage() {
       render: (type: CouponType) => COUPON_TYPE_LABEL[type],
     },
     {
-      title: "Giá tr?",
+      title: "Giï¿½ tr?",
       key: "value",
       width: 140,
       render: (_, record) => renderCouponValue(record),
     },
     {
-      title: "Ðon t?i thi?u",
+      title: "ï¿½on t?i thi?u",
       dataIndex: "minOrderValue",
       key: "minOrderValue",
       width: 140,
       render: (value?: number) => (value ? `${formatCurrency.format(value)} VND` : "-"),
     },
     {
-      title: "Lu?t dùng",
+      title: "Lu?t dï¿½ng",
       key: "usage",
       width: 130,
       render: (_, record) => (
         <Text>
-          {record.usageCount}/{record.usageLimit ?? "Không gi?i h?n"}
+          {record.usageCount}/{record.usageLimit ?? "Khï¿½ng gi?i h?n"}
         </Text>
       ),
     },
     {
-      title: "Tr?ng thái",
+      title: "Tr?ng thï¿½i",
       key: "status",
       width: 130,
       render: (_, record) => {
@@ -441,7 +441,7 @@ export function AdminCouponsPage() {
       render: (value: string) => formatDateTime(value),
     },
     {
-      title: "Thao tác",
+      title: "Thao tï¿½c",
       key: "actions",
       width: 170,
       render: (_, record) => (
@@ -450,15 +450,15 @@ export function AdminCouponsPage() {
             S?a
           </Button>
           <Popconfirm
-            title={`Xóa coupon ${record.code}?`}
-            description="Hành d?ng này không th? hoàn tác."
-            okText="Xóa"
+            title={`Xï¿½a coupon ${record.code}?`}
+            description="Hï¿½nh d?ng nï¿½y khï¿½ng th? hoï¿½n tï¿½c."
+            okText="Xï¿½a"
             cancelText="H?y"
             onConfirm={() => void handleDeleteCoupon(record)}
             disabled={saving}
           >
             <Button size="small" danger disabled={saving}>
-              Xóa
+              Xï¿½a
             </Button>
           </Popconfirm>
         </Space>
@@ -472,10 +472,10 @@ export function AdminCouponsPage() {
 
       <div>
         <Title level={3} className="mb-1! mt-0!">
-          Qu?n lý mã gi?m giá
+          Qu?n lï¿½ mï¿½ gi?m giï¿½
         </Title>
         <Paragraph className="mb-0!" type="secondary">
-          Qu?n tr? coupon theo CRUD d?y d?: t?o m?i, c?p nh?t, xóa và ki?m tra di?u ki?n áp d?ng.
+          Qu?n tr? coupon theo CRUD d?y d?: t?o m?i, c?p nh?t, xï¿½a vï¿½ ki?m tra di?u ki?n ï¿½p d?ng.
         </Paragraph>
       </div>
 
@@ -498,7 +498,7 @@ export function AdminCouponsPage() {
         </Col>
         <Col xs={24} md={8}>
           <Card>
-            <Text type="secondary">Coupon dã h?t h?n</Text>
+            <Text type="secondary">Coupon dï¿½ h?t h?n</Text>
             <Title level={3} className="mb-0! mt-1! text-red-500!">
               {expiredCount}
             </Title>
@@ -512,8 +512,8 @@ export function AdminCouponsPage() {
             value={keywordInput}
             onChange={(event) => setKeywordInput(event.target.value)}
             onPressEnter={() => void handleApplyFilters()}
-            placeholder="Tìm theo mã ho?c tên chuong trình"
-            className="min-w-[260px]"
+            placeholder="Tï¿½m theo mï¿½ ho?c tï¿½n chuong trï¿½nh"
+            className="min-w-65"
             allowClear
           />
           <Select<CouponType | "all">
@@ -522,7 +522,7 @@ export function AdminCouponsPage() {
             onChange={(value) => {
               void handleApplyFilters({ nextType: value });
             }}
-            className="min-w-[200px]"
+            className="min-w-50"
           />
           <Select<"all" | "active" | "inactive">
             value={activeFilter}
@@ -530,10 +530,10 @@ export function AdminCouponsPage() {
             onChange={(value) => {
               void handleApplyFilters({ nextActive: value });
             }}
-            className="min-w-[190px]"
+            className="min-w-47.5"
           />
           <Button onClick={() => void handleApplyFilters()} loading={loading}>
-            Áp d?ng l?c
+            ï¿½p d?ng l?c
           </Button>
           <Button type="primary" onClick={openCreateModal}>
             T?o coupon
@@ -571,12 +571,12 @@ export function AdminCouponsPage() {
 
       <Row gutter={[16, 16]}>
         <Col xs={24} xl={12}>
-          <Card title="Tra c?u coupon theo mã">
+          <Card title="Tra c?u coupon theo mï¿½">
             <Space.Compact className="mb-4 w-full">
               <Input
                 value={lookupCode}
                 onChange={(event) => setLookupCode(event.target.value)}
-                placeholder="Nh?p mã gi?m giá, ví d?: WELCOME10"
+                placeholder="Nh?p mï¿½ gi?m giï¿½, vï¿½ d?: WELCOME10"
                 allowClear
               />
               <Button type="primary" onClick={() => void handleLookupCoupon()} loading={findingByCode}>
@@ -588,13 +588,13 @@ export function AdminCouponsPage() {
               <div className="space-y-2">
                 <Text strong>{selectedCoupon.name}</Text>
                 <div>
-                  <Text type="secondary">Mã:</Text> <Text>{selectedCoupon.code}</Text>
+                  <Text type="secondary">Mï¿½:</Text> <Text>{selectedCoupon.code}</Text>
                 </div>
                 <div>
                   <Text type="secondary">Lo?i:</Text> <Text>{COUPON_TYPE_LABEL[selectedCoupon.type]}</Text>
                 </div>
                 <div>
-                  <Text type="secondary">Giá tr?:</Text> <Text>{renderCouponValue(selectedCoupon)}</Text>
+                  <Text type="secondary">Giï¿½ tr?:</Text> <Text>{renderCouponValue(selectedCoupon)}</Text>
                 </div>
                 <div>
                   <Text type="secondary">B?t d?u:</Text> <Text>{formatDateTime(selectedCoupon.startsAt)}</Text>
@@ -604,13 +604,13 @@ export function AdminCouponsPage() {
                 </div>
               </div>
             ) : (
-              <Text type="secondary">Chua có d? li?u tra c?u mã gi?m giá.</Text>
+              <Text type="secondary">Chua cï¿½ d? li?u tra c?u mï¿½ gi?m giï¿½.</Text>
             )}
           </Card>
         </Col>
 
         <Col xs={24} xl={12}>
-          <Card title="Ki?m tra di?u ki?n áp d?ng mã gi?m giá">
+          <Card title="Ki?m tra di?u ki?n ï¿½p d?ng mï¿½ gi?m giï¿½">
             <Form
               layout="vertical"
               form={validateForm}
@@ -622,36 +622,36 @@ export function AdminCouponsPage() {
               }}
             >
               <Form.Item
-                label="Mã gi?m giá"
+                label="Mï¿½ gi?m giï¿½"
                 name="code"
-                rules={[{ required: true, message: "Vui lòng nh?p mã gi?m giá." }]}
+                rules={[{ required: true, message: "Vui lï¿½ng nh?p mï¿½ gi?m giï¿½." }]}
               >
-                <Input placeholder="Ví d?: WELCOME10" />
+                <Input placeholder="Vï¿½ d?: WELCOME10" />
               </Form.Item>
               <Row gutter={12}>
                 <Col span={12}>
                   <Form.Item
-                    label="Giá tr? don hàng"
+                    label="Giï¿½ tr? don hï¿½ng"
                     name="orderValue"
-                    rules={[{ required: true, message: "Vui lòng nh?p giá tr? don hàng." }]}
+                    rules={[{ required: true, message: "Vui lï¿½ng nh?p giï¿½ tr? don hï¿½ng." }]}
                   >
                     <InputNumber min={0} className="w-full" />
                   </Form.Item>
                 </Col>
                 <Col span={12}>
-                  <Form.Item label="Phí v?n chuy?n" name="shippingFee">
+                  <Form.Item label="Phï¿½ v?n chuy?n" name="shippingFee">
                     <InputNumber min={0} className="w-full" />
                   </Form.Item>
                 </Col>
               </Row>
               <Form.Item
-                label="Danh sách thuong hi?u (ngan cách b?i d?u ph?y)"
+                label="Danh sï¿½ch thuong hi?u (ngan cï¿½ch b?i d?u ph?y)"
                 name="brandNamesText"
               >
-                <Input placeholder="Ví d?: RioShop, Nike" />
+                <Input placeholder="Vï¿½ d?: RioShop, Nike" />
               </Form.Item>
               <Button type="primary" onClick={() => void handleValidateCoupon()} loading={validating}>
-                Ki?m tra mã
+                Ki?m tra mï¿½
               </Button>
             </Form>
 
@@ -660,7 +660,7 @@ export function AdminCouponsPage() {
                 <Card size="small">
                   <Statistic
                     title="K?t qu?"
-                    value={validationResult.isValid ? "H?p l?" : "Không h?p l?"}
+                    value={validationResult.isValid ? "H?p l?" : "Khï¿½ng h?p l?"}
                     valueStyle={{ color: validationResult.isValid ? "#16a34a" : "#dc2626", fontSize: 20 }}
                   />
                   {validationResult.reason ? (
@@ -668,8 +668,8 @@ export function AdminCouponsPage() {
                   ) : null}
                 </Card>
                 <Card size="small">
-                  <Statistic title="Gi?m giá" value={formatCurrency.format(validationResult.discount)} suffix="VND" />
-                  <Statistic title="Thành ti?n cu?i" value={formatCurrency.format(validationResult.finalAmount)} suffix="VND" />
+                  <Statistic title="Gi?m giï¿½" value={formatCurrency.format(validationResult.discount)} suffix="VND" />
+                  <Statistic title="Thï¿½nh ti?n cu?i" value={formatCurrency.format(validationResult.finalAmount)} suffix="VND" />
                 </Card>
               </div>
             ) : null}
@@ -696,24 +696,24 @@ export function AdminCouponsPage() {
             <Col xs={24} md={12}>
               <Form.Item
                 name="code"
-                label="Mã coupon"
-                rules={[{ required: true, message: "Vui lòng nh?p mã coupon." }]}
+                label="Mï¿½ coupon"
+                rules={[{ required: true, message: "Vui lï¿½ng nh?p mï¿½ coupon." }]}
               >
-                <Input placeholder="Ví d?: WELCOME10" />
+                <Input placeholder="Vï¿½ d?: WELCOME10" />
               </Form.Item>
             </Col>
             <Col xs={24} md={12}>
               <Form.Item
                 name="name"
-                label="Tên chuong trình"
-                rules={[{ required: true, message: "Vui lòng nh?p tên chuong trình." }]}
+                label="Tï¿½n chuong trï¿½nh"
+                rules={[{ required: true, message: "Vui lï¿½ng nh?p tï¿½n chuong trï¿½nh." }]}
               >
-                <Input placeholder="Ví d?: Chào khách m?i" />
+                <Input placeholder="Vï¿½ d?: Chï¿½o khï¿½ch m?i" />
               </Form.Item>
             </Col>
           </Row>
 
-          <Form.Item name="description" label="Mô t?">
+          <Form.Item name="description" label="Mï¿½ t?">
             <Input.TextArea autoSize={{ minRows: 2, maxRows: 4 }} />
           </Form.Item>
 
@@ -722,7 +722,7 @@ export function AdminCouponsPage() {
               <Form.Item
                 name="type"
                 label="Lo?i coupon"
-                rules={[{ required: true, message: "Vui lòng ch?n lo?i coupon." }]}
+                rules={[{ required: true, message: "Vui lï¿½ng ch?n lo?i coupon." }]}
               >
                 <Select options={COUPON_FORM_TYPE_OPTIONS} />
               </Form.Item>
@@ -730,8 +730,8 @@ export function AdminCouponsPage() {
             <Col xs={24} md={8}>
               <Form.Item
                 name="value"
-                label="Giá tr?"
-                rules={[{ required: true, message: "Vui lòng nh?p giá tr? coupon." }]}
+                label="Giï¿½ tr?"
+                rules={[{ required: true, message: "Vui lï¿½ng nh?p giï¿½ tr? coupon." }]}
               >
                 <InputNumber min={0} className="w-full" />
               </Form.Item>
@@ -750,12 +750,12 @@ export function AdminCouponsPage() {
               </Form.Item>
             </Col>
             <Col xs={24} md={6}>
-              <Form.Item name="minOrderValue" label="Ðon t?i thi?u">
+              <Form.Item name="minOrderValue" label="ï¿½on t?i thi?u">
                 <InputNumber min={0} className="w-full" />
               </Form.Item>
             </Col>
             <Col xs={24} md={6}>
-              <Form.Item name="usageLimit" label="Gi?i h?n lu?t dùng">
+              <Form.Item name="usageLimit" label="Gi?i h?n lu?t dï¿½ng">
                 <InputNumber min={0} className="w-full" />
               </Form.Item>
             </Col>
@@ -771,7 +771,7 @@ export function AdminCouponsPage() {
               <Form.Item
                 name="startsAt"
                 label="B?t d?u"
-                rules={[{ required: true, message: "Vui lòng ch?n th?i gian b?t d?u." }]}
+                rules={[{ required: true, message: "Vui lï¿½ng ch?n th?i gian b?t d?u." }]}
               >
                 <Input type="datetime-local" />
               </Form.Item>
@@ -779,15 +779,15 @@ export function AdminCouponsPage() {
             <Col xs={24} md={12}>
               <Form.Item
                 name="expiresAt"
-                label="K?t thúc"
-                rules={[{ required: true, message: "Vui lòng ch?n th?i gian k?t thúc." }]}
+                label="K?t thï¿½c"
+                rules={[{ required: true, message: "Vui lï¿½ng ch?n th?i gian k?t thï¿½c." }]}
               >
                 <Input type="datetime-local" />
               </Form.Item>
             </Col>
           </Row>
 
-          <Form.Item name="isActive" label="Ðang kích ho?t" valuePropName="checked">
+          <Form.Item name="isActive" label="ï¿½ang kï¿½ch ho?t" valuePropName="checked">
             <Switch checkedChildren="B?t" unCheckedChildren="T?t" />
           </Form.Item>
         </Form>

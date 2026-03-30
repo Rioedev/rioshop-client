@@ -515,7 +515,7 @@ export function AdminBlogsPage() {
                   className="rounded-lg object-cover"
                 />
               ) : (
-                <div className="flex h-[120px] w-full items-center justify-center rounded-lg bg-slate-100 text-xs text-slate-400">
+                <div className="flex h-30 w-full items-center justify-center rounded-lg bg-slate-100 text-xs text-slate-400">
                   Chưa có ảnh bìa
                 </div>
               )}
