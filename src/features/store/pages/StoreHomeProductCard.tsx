@@ -1,4 +1,4 @@
-﻿import { StarFilled } from "@ant-design/icons";
+import { StarFilled } from "@ant-design/icons";
 import { Link } from "react-router-dom";
 import { formatStoreCurrency as formatCurrency } from "../utils/storeFormatting";
 import type { HomeProduct } from "../shared/home";

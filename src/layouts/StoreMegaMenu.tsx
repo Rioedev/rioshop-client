@@ -1,4 +1,4 @@
-﻿import { DownOutlined } from "@ant-design/icons";
+import { DownOutlined } from "@ant-design/icons";
 import type { RefObject } from "react";
 import { Link } from "react-router-dom";
 import type {

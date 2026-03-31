@@ -1,4 +1,4 @@
-﻿import {
+import {
   DownOutlined,
   EnvironmentOutlined,
   FacebookOutlined,

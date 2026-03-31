@@ -1,4 +1,4 @@
-﻿import { Button } from "antd";
+import { Button } from "antd";
 import { Link } from "react-router-dom";
 import { formatStoreCurrency as formatCurrency } from "../utils/storeFormatting";
 import type { ResolvedHomeContent } from "../shared/home";
