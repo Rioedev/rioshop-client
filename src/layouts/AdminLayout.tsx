@@ -179,93 +179,105 @@ export function AdminLayout() {
 
   return (
     <Layout
-      className={`admin-shell h-screen overflow-hidden bg-slate-100 ${isDarkMode ? "admin-shell--dark" : ""}`}
+      className={`admin-shell h-screen overflow-hidden transition-colors duration-300 ${isDarkMode ? "admin-shell--dark bg-slate-950" : "bg-slate-50"}`}
       data-admin-theme={isDarkMode ? "dark" : "light"}
     >
       <Sider
         breakpoint="lg"
-        width={248}
-        collapsedWidth={76}
-        className="admin-sider sticky! left-0 top-0 h-screen! overflow-y-auto bg-slate-950!"
+        width={264}
+        collapsedWidth={80}
+        className={`admin-sider z-20 sticky! left-0 top-0 h-screen! overflow-y-auto border-r transition-all duration-300 ${
+          isDarkMode ? "border-slate-800 bg-slate-900!" : "border-slate-200/60 bg-white!"
+        }`}
         onCollapse={(collapsed) => setIsSiderCollapsed(collapsed)}
       >
         <div
-          className={`border-b border-slate-800 transition-all ${
-            isSiderCollapsed ? "px-2 py-4 text-center" : "px-6 py-5"
+          className={`flex items-center transition-all duration-300 ${
+            isSiderCollapsed ? "h-20 justify-center" : "h-20 px-6 gap-3"
           }`}
         >
           {isSiderCollapsed ? (
-            <div className="mx-auto inline-flex h-9 w-9 items-center justify-center rounded-xl bg-slate-800 text-sm font-black text-white">
+            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-indigo-600 bg-gradient-to-br from-indigo-500 to-indigo-700 text-sm font-black text-white shadow-lg shadow-indigo-500/30">
               RS
             </div>
           ) : (
             <>
-              <Text className="text-[11px]! font-semibold! uppercase! tracking-[0.16em]! text-slate-500!">
-                Admin Console
-              </Text>
-              <Title level={4} className="mb-0! mt-1! text-white!">
-                RioShop
-              </Title>
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-indigo-600 bg-gradient-to-br from-indigo-500 to-indigo-700 text-sm font-black text-white shadow-lg shadow-indigo-500/30">
+                RS
+              </div>
+              <div className="flex flex-col">
+                <Title level={4} className={`mb-0! mt-0! leading-none tracking-tight ${isDarkMode ? "text-white!" : "text-slate-900!"}`}>
+                  RioShop
+                </Title>
+                <Text className={`text-[10px]! font-bold! uppercase! tracking-[0.2em]! ${isDarkMode ? "text-slate-400!" : "text-slate-500!"}`}>
+                  Admin Console
+                </Text>
+              </div>
             </>
           )}
         </div>
-        <Menu
-          mode="inline"
-          selectedKeys={[String(activeKey)]}
-          items={adminMenuItems}
-          theme="dark"
-          className="border-r-0! bg-transparent! px-2 pt-3"
-          onClick={({ key }) => navigate(key)}
-        />
+
+        <div className="px-3 py-2">
+          <Menu
+            mode="inline"
+            selectedKeys={[String(activeKey)]}
+            items={adminMenuItems}
+            theme={isDarkMode ? "dark" : "light"}
+            className="border-r-0! bg-transparent! admin-menu-upgrade"
+            onClick={({ key }) => navigate(key)}
+          />
+        </div>
       </Sider>
 
-      <Layout className={`h-screen overflow-hidden ${isDarkMode ? "bg-slate-950" : ""}`}>
+      <Layout className={`h-screen overflow-hidden transition-colors duration-300 ${isDarkMode ? "bg-slate-950" : "bg-slate-50"}`}>
         <Header
-          className={`admin-header h-auto! shrink-0 border-b px-6! py-3! leading-normal! ${
+          className={`admin-header z-10 h-auto! shrink-0 px-8! py-4! leading-normal! transition-all duration-300 ${
             isDarkMode
-              ? "border-slate-700 bg-slate-900! shadow-none"
-              : "border-slate-200 bg-white! shadow-sm"
+              ? "border-b border-slate-800/80! bg-slate-900/80! backdrop-blur-md shadow-none"
+              : "border-b border-slate-200/80! bg-white/90! backdrop-blur-md shadow-xs"
           }`}
         >
           {contextHolder}
-          <div className="flex min-h-13 items-center justify-between gap-4">
+          <div className="flex min-h-[40px] items-center justify-between gap-4">
             <div className="leading-tight">
-              <Text className={`text-xs! uppercase! tracking-[0.12em]! ${isDarkMode ? "text-slate-400!" : "text-slate-500!"}`}>
-                Trang đang xem
+              <Text className={`text-[11px]! font-semibold! uppercase! tracking-widest ${isDarkMode ? "text-slate-400!" : "text-slate-500!"}`}>
+                Tổng quan
               </Text>
-              <Title level={4} className={`m-0! leading-tight! ${isDarkMode ? "text-slate-100!" : "text-slate-900!"}`}>
+              <Title level={3} className={`m-0! mt-1! font-bold! tracking-tight! ${isDarkMode ? "text-slate-100!" : "text-slate-900!"}`}>
                 {activePageTitle}
               </Title>
             </div>
 
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-3">
               <Button
                 type="text"
-                className={`admin-top-icon-btn h-10! w-10! rounded-full! border p-0! ${
+                className={`flex h-10 w-10 items-center justify-center rounded-full! transition-all duration-300 hover:scale-105! ${
                   isDarkMode
-                    ? "border-slate-700! bg-slate-800! text-slate-200! hover:border-slate-600! hover:bg-slate-700!"
-                    : "border-slate-200! bg-slate-50! text-slate-500! hover:border-slate-300! hover:bg-white!"
+                    ? "bg-slate-800! text-yellow-400! hover:bg-slate-700!"
+                    : "bg-slate-100! text-slate-600! hover:bg-slate-200!"
                 }`}
                 onClick={() => setIsDarkMode((prev) => !prev)}
                 aria-label="Chuyển giao diện"
               >
-                {isDarkMode ? <SunOutlined className="text-base" /> : <MoonOutlined className="text-base" />}
+                {isDarkMode ? <SunOutlined className="text-lg" /> : <MoonOutlined className="text-lg" />}
               </Button>
 
               <Button
                 type="text"
-                className={`admin-top-icon-btn h-10! w-10! rounded-full! border p-0! ${
+                className={`flex h-10 w-10 items-center justify-center rounded-full! transition-all duration-300 hover:scale-105! ${
                   isDarkMode
-                    ? "border-slate-700! bg-slate-800! text-slate-200! hover:border-slate-600! hover:bg-slate-700!"
-                    : "border-slate-200! bg-slate-50! text-slate-600! hover:border-slate-300! hover:bg-white!"
+                    ? "bg-slate-800! text-slate-200! hover:bg-slate-700!"
+                    : "bg-slate-100! text-slate-600! hover:bg-slate-200!"
                 }`}
                 onClick={() => setIsNotificationsModalOpen(true)}
                 aria-label="Thông báo"
               >
-                <Badge count={unreadCount} overflowCount={99} size="small">
-                  <BellOutlined className="text-base" />
+                <Badge count={unreadCount} overflowCount={99} size="small" offset={[-2, 4]}>
+                  <BellOutlined className="text-lg" />
                 </Badge>
               </Button>
+
+              <div className={`ml-2 h-8 w-px ${isDarkMode ? "bg-slate-800" : "bg-slate-200"}`} />
 
               <Dropdown
                 trigger={["click"]}
@@ -273,87 +285,84 @@ export function AdminLayout() {
                 onOpenChange={setIsProfileMenuOpen}
                 placement="bottomRight"
                 dropdownRender={() => (
-                  <div className={`admin-profile-dropdown w-72 rounded-2xl border p-4 shadow-xl ${isDarkMode ? "border-slate-700 bg-slate-900 text-slate-100" : "border-slate-200 bg-white text-slate-700"}`}>
-                    <div className={`mb-3 border-b pb-3 ${isDarkMode ? "border-slate-700" : "border-slate-100"}`}>
-                      <p className={`m-0 text-xl font-bold leading-tight ${isDarkMode ? "text-slate-100" : "text-slate-700"}`}>
+                  <div className={`admin-profile-dropdown w-72 origin-top-right overflow-hidden rounded-2xl border p-2 shadow-2xl transition-all ${isDarkMode ? "border-slate-800 bg-slate-900 text-slate-100 shadow-slate-950/50" : "border-slate-100 bg-white text-slate-700 shadow-slate-200/50"}`}>
+                    <div className={`mb-2 mt-2 px-3 pb-3 ${isDarkMode ? "border-slate-800" : "border-slate-100"}`}>
+                      <p className={`m-0 text-base font-bold leading-tight tracking-tight ${isDarkMode ? "text-slate-100" : "text-slate-900"}`}>
                         {userFullName}
                       </p>
-                      <p className={`m-0 mt-1 text-sm ${isDarkMode ? "text-slate-400" : "text-slate-500"}`}>{userEmail}</p>
+                      <p className={`m-0 mt-0.5 text-xs font-medium ${isDarkMode ? "text-slate-400" : "text-slate-500"}`}>{userEmail}</p>
                     </div>
 
-                    <div className="space-y-1">
+                    <div className="space-y-0.5 p-1">
                       <Button
                         type="text"
-                        className={`w-full justify-start! rounded-lg! px-2! ${isDarkMode ? "text-slate-100! hover:bg-slate-800!" : "text-slate-700!"}`}
-                        icon={<UserOutlined />}
+                        className={`flex w-full items-center justify-start! rounded-xl! px-3! py-5! font-medium transition-colors ${isDarkMode ? "text-slate-300! hover:bg-slate-800! hover:text-white!" : "text-slate-600! hover:bg-slate-100! hover:text-slate-900!"}`}
+                        icon={<UserOutlined className="text-lg" />}
                         onClick={() => {
                           setIsProfileMenuOpen(false);
                           messageApi.info("Trang chỉnh hồ sơ sẽ được bổ sung sớm.");
                         }}
                       >
-                        Edit profile
+                        Hồ sơ cá nhân
                       </Button>
                       <Button
                         type="text"
-                        className={`w-full justify-start! rounded-lg! px-2! ${isDarkMode ? "text-slate-100! hover:bg-slate-800!" : "text-slate-700!"}`}
-                        icon={<SettingOutlined />}
+                        className={`flex w-full items-center justify-start! rounded-xl! px-3! py-5! font-medium transition-colors ${isDarkMode ? "text-slate-300! hover:bg-slate-800! hover:text-white!" : "text-slate-600! hover:bg-slate-100! hover:text-slate-900!"}`}
+                        icon={<SettingOutlined className="text-lg" />}
                         onClick={() => {
                           setIsProfileMenuOpen(false);
                           navigate("/admin/brand-config");
                         }}
                       >
-                        Account settings
+                        Cài đặt hệ thống
                       </Button>
                       <Button
                         type="text"
-                        className={`w-full justify-start! rounded-lg! px-2! ${isDarkMode ? "text-slate-100! hover:bg-slate-800!" : "text-slate-700!"}`}
-                        icon={<InfoCircleOutlined />}
+                        className={`flex w-full items-center justify-start! rounded-xl! px-3! py-5! font-medium transition-colors ${isDarkMode ? "text-slate-300! hover:bg-slate-800! hover:text-white!" : "text-slate-600! hover:bg-slate-100! hover:text-slate-900!"}`}
+                        icon={<InfoCircleOutlined className="text-lg" />}
                         onClick={() => {
                           setIsProfileMenuOpen(false);
                           messageApi.info("Mục hỗ trợ sẽ được cập nhật trong bản tới.");
                         }}
                       >
-                        Support
+                        Trung tâm hỗ trợ
                       </Button>
                     </div>
 
-                    <div className={`my-3 border-t ${isDarkMode ? "border-slate-700" : "border-slate-200"}`} />
+                    <div className={`my-2 border-t ${isDarkMode ? "border-slate-800" : "border-slate-100"}`} />
 
-                    <Button
-                      type="text"
-                      danger
-                      className="w-full justify-start! rounded-lg! px-2!"
-                      icon={<LogoutOutlined />}
-                      onClick={() => void handleLogout()}
-                    >
-                      Sign out
-                    </Button>
+                    <div className="p-1">
+                      <Button
+                        type="text"
+                        danger
+                        className={`flex w-full items-center justify-start! rounded-xl! px-3! py-5! font-medium transition-colors ${isDarkMode ? "hover:bg-red-950/30!" : "hover:bg-red-50!"}`}
+                        icon={<LogoutOutlined className="text-lg" />}
+                        onClick={() => void handleLogout()}
+                      >
+                        Đăng xuất
+                      </Button>
+                    </div>
                   </div>
                 )}
               >
                 <button
                   type="button"
-                  className={`admin-profile-trigger inline-flex items-center gap-2 rounded-full border border-transparent bg-transparent px-1 py-1 text-left transition ${isDarkMode ? "hover:border-slate-700 hover:bg-slate-800" : "hover:border-slate-200 hover:bg-slate-50"}`}
+                  className={`admin-profile-trigger group ml-2 flex items-center gap-3 rounded-full border border-transparent bg-transparent p-1 pl-3 text-left transition-all duration-300 outline-none ${isDarkMode ? "hover:bg-slate-800" : "hover:bg-slate-100"}`}
                 >
-                  <Avatar src={avatarUrl} size={38}>
-                    {userFullName.charAt(0).toUpperCase()}
-                  </Avatar>
-                  <span className={`hidden text-sm font-semibold sm:inline ${isDarkMode ? "text-slate-100" : "text-slate-800"}`}>
+                  <span className={`hidden text-sm font-semibold tracking-tight sm:block ${isDarkMode ? "text-slate-200" : "text-slate-700"}`}>
                     {userFullName}
                   </span>
-                  <DownOutlined className={`text-xs ${isDarkMode ? "text-slate-300" : "text-slate-500"}`} />
+                  <Avatar src={avatarUrl} size={40} className={`ring-2 ring-offset-2 transition-all duration-300 group-hover:scale-105 ${isDarkMode ? "ring-slate-700 ring-offset-slate-900" : "ring-slate-200 ring-offset-white"}`}>
+                    {userFullName.charAt(0).toUpperCase()}
+                  </Avatar>
                 </button>
               </Dropdown>
             </div>
           </div>
         </Header>
 
-        <Content className={`admin-content overflow-y-auto p-6 ${isDarkMode ? "bg-slate-950" : "bg-slate-100"}`}>
-          <div
-            className={`admin-main-surface min-h-full rounded-2xl border p-5 md:p-6 ${
-              isDarkMode ? "border-slate-700 bg-slate-900" : "border-slate-200 bg-white"
-            }`}
-          >
+        <Content className="admin-content relative overflow-y-auto overflow-x-hidden p-6 lg:p-8">
+          <div className="mx-auto w-full max-w-[1600px] animate-in fade-in slide-in-from-bottom-4 duration-500">
             <Outlet />
           </div>
         </Content>

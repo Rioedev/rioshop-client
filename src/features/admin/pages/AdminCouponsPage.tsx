@@ -55,14 +55,14 @@ type CouponFormValues = {
 };
 
 const COUPON_TYPE_LABEL: Record<CouponType, string> = {
-  percent: "Gi?m theo ph?n tram",
-  fixed: "Gi?m ti?n c? d?nh",
-  free_ship: "Mi?n ph� v?n chuy?n",
-  gift: "Qu� t?ng",
+  percent: "Giảm theo phần trăm",
+  fixed: "Giảm tiền cố định",
+  free_ship: "Miễn phí vận chuyển",
+  gift: "Quà tặng",
 };
 
 const COUPON_TYPE_OPTIONS: { value: CouponType | "all"; label: string }[] = [
-  { value: "all", label: "T?t c? lo?i" },
+  { value: "all", label: "Tất cả loại" },
   { value: "percent", label: COUPON_TYPE_LABEL.percent },
   { value: "fixed", label: COUPON_TYPE_LABEL.fixed },
   { value: "free_ship", label: COUPON_TYPE_LABEL.free_ship },
@@ -84,9 +84,9 @@ const SOURCE_OPTIONS: { value: CouponSource; label: string }[] = [
 ];
 
 const ACTIVE_FILTER_OPTIONS: { value: "all" | "active" | "inactive"; label: string }[] = [
-  { value: "all", label: "T?t c? tr?ng th�i" },
-  { value: "active", label: "�ang b?t" },
-  { value: "inactive", label: "�ang t?t" },
+  { value: "all", label: "Tất cả trạng thái" },
+  { value: "active", label: "Đang bật" },
+  { value: "inactive", label: "Đang tắt" },
 ];
 
 const formatDateTime = (value?: string) => {
@@ -151,22 +151,22 @@ const getCouponStatus = (coupon: Coupon) => {
   const expiresAt = new Date(coupon.expiresAt).getTime();
 
   if (Number.isNaN(startsAt) || Number.isNaN(expiresAt)) {
-    return { label: "Kh�ng x�c d?nh", color: "default" as const };
+    return { label: "Không xác định", color: "default" as const };
   }
 
   if (!coupon.isActive) {
-    return { label: "�ang t?t", color: "default" as const };
+    return { label: "Đang tắt", color: "default" as const };
   }
 
   if (startsAt > now) {
-    return { label: "Chua b?t d?u", color: "gold" as const };
+    return { label: "Chưa bắt đầu", color: "gold" as const };
   }
 
   if (expiresAt < now) {
-    return { label: "�� h?t h?n", color: "red" as const };
+    return { label: "Đã hết hạn", color: "red" as const };
   }
 
-  return { label: "�ang hi?u l?c", color: "green" as const };
+  return { label: "Đang hiệu lực", color: "green" as const };
 };
 
 const renderCouponValue = (coupon: Coupon) => {
@@ -222,7 +222,7 @@ export function AdminCouponsPage() {
 
   const activeCount = useMemo(() => coupons.filter((coupon) => coupon.isActive).length, [coupons]);
   const expiredCount = useMemo(
-    () => coupons.filter((coupon) => getCouponStatus(coupon).label === "�� h?t h?n").length,
+    () => coupons.filter((coupon) => getCouponStatus(coupon).label === "Đã hết hạn").length,
     [coupons],
   );
 
@@ -309,21 +309,21 @@ export function AdminCouponsPage() {
       const payload = buildCouponPayload(values);
 
       if (!payload.startsAt || !payload.expiresAt) {
-        messageApi.error("Vui l�ng nh?p th?i gian b?t d?u v� k?t th�c h?p l?.");
+        messageApi.error("Vui lòng nhập thời gian bắt đầu và kết thúc hợp lệ.");
         return;
       }
 
       if (new Date(payload.startsAt).getTime() >= new Date(payload.expiresAt).getTime()) {
-        messageApi.error("Th?i gian b?t d?u ph?i tru?c th?i gian k?t th�c.");
+        messageApi.error("Thời gian bắt đầu phải trước thời gian kết thúc.");
         return;
       }
 
       if (editingCoupon) {
         await updateCoupon(editingCoupon.id, payload);
-        messageApi.success("C?p nh?t coupon th�nh c�ng.");
+        messageApi.success("Cập nhật coupon thành công.");
       } else {
         await createCoupon(payload);
-        messageApi.success("T?o coupon th�nh c�ng.");
+        messageApi.success("Tạo coupon thành công.");
       }
 
       closeModal();
@@ -338,7 +338,7 @@ export function AdminCouponsPage() {
   const handleDeleteCoupon = async (coupon: Coupon) => {
     try {
       await removeCoupon(coupon.id);
-      messageApi.success(`�� x�a coupon ${coupon.code}.`);
+      messageApi.success(`Đã xóa coupon ${coupon.code}.`);
     } catch (error) {
       messageApi.error(getErrorMessage(error));
     }
@@ -347,7 +347,7 @@ export function AdminCouponsPage() {
   const handleLookupCoupon = async () => {
     const code = lookupCode.trim();
     if (!code) {
-      messageApi.warning("Vui l�ng nh?p m� gi?m gi� d? tra c?u.");
+      messageApi.warning("Vui lòng nhập mã giảm giá để tra cứu.");
       return;
     }
 
@@ -382,50 +382,50 @@ export function AdminCouponsPage() {
 
   const columns: ColumnsType<Coupon> = [
     {
-      title: "M�",
+      title: "Mã",
       dataIndex: "code",
       key: "code",
       width: 130,
       render: (code: string) => <Text strong>{code}</Text>,
     },
     {
-      title: "T�n chuong tr�nh",
+      title: "Tên chương trình",
       dataIndex: "name",
       key: "name",
       width: 220,
     },
     {
-      title: "Lo?i",
+      title: "Loại",
       dataIndex: "type",
       key: "type",
       width: 170,
       render: (type: CouponType) => COUPON_TYPE_LABEL[type],
     },
     {
-      title: "Gi� tr?",
+      title: "Giá trị",
       key: "value",
       width: 140,
       render: (_, record) => renderCouponValue(record),
     },
     {
-      title: "�on t?i thi?u",
+      title: "Đơn tối thiểu",
       dataIndex: "minOrderValue",
       key: "minOrderValue",
       width: 140,
       render: (value?: number) => (value ? `${formatCurrency.format(value)} VND` : "-"),
     },
     {
-      title: "Lu?t d�ng",
+      title: "Lượt dùng",
       key: "usage",
       width: 130,
       render: (_, record) => (
         <Text>
-          {record.usageCount}/{record.usageLimit ?? "Kh�ng gi?i h?n"}
+          {record.usageCount}/{record.usageLimit ?? "Không giới hạn"}
         </Text>
       ),
     },
     {
-      title: "Tr?ng th�i",
+      title: "Trạng thái",
       key: "status",
       width: 130,
       render: (_, record) => {
@@ -434,31 +434,31 @@ export function AdminCouponsPage() {
       },
     },
     {
-      title: "Hi?u l?c d?n",
+      title: "Hiệu lực đến",
       dataIndex: "expiresAt",
       key: "expiresAt",
       width: 160,
       render: (value: string) => formatDateTime(value),
     },
     {
-      title: "Thao t�c",
+      title: "Thao tác",
       key: "actions",
       width: 170,
       render: (_, record) => (
         <Space>
           <Button size="small" onClick={() => openEditModal(record)} disabled={saving}>
-            S?a
+            Sửa
           </Button>
           <Popconfirm
-            title={`X�a coupon ${record.code}?`}
-            description="H�nh d?ng n�y kh�ng th? ho�n t�c."
-            okText="X�a"
-            cancelText="H?y"
+            title={`Xóa coupon ${record.code}?`}
+            description="Hành động này không thể hoàn tác."
+            okText="Xóa"
+            cancelText="Hủy"
             onConfirm={() => void handleDeleteCoupon(record)}
             disabled={saving}
           >
             <Button size="small" danger disabled={saving}>
-              X�a
+              Xóa
             </Button>
           </Popconfirm>
         </Space>
@@ -472,17 +472,17 @@ export function AdminCouponsPage() {
 
       <div>
         <Title level={3} className="mb-1! mt-0!">
-          Qu?n l� m� gi?m gi�
+          Quản lý mã giảm giá
         </Title>
         <Paragraph className="mb-0!" type="secondary">
-          Qu?n tr? coupon theo CRUD d?y d?: t?o m?i, c?p nh?t, x�a v� ki?m tra di?u ki?n �p d?ng.
+          Quản trị coupon theo CRUD đầy đủ: tạo mới, cập nhật, xóa và kiểm tra điều kiện áp dụng.
         </Paragraph>
       </div>
 
       <Row gutter={[12, 12]}>
         <Col xs={24} md={8}>
           <Card>
-            <Text type="secondary">Coupon dang hi?n th?</Text>
+            <Text type="secondary">Coupon đang hiển thị</Text>
             <Title level={3} className="mb-0! mt-1!">
               {coupons.length}
             </Title>
@@ -490,7 +490,7 @@ export function AdminCouponsPage() {
         </Col>
         <Col xs={24} md={8}>
           <Card>
-            <Text type="secondary">Coupon dang b?t</Text>
+            <Text type="secondary">Coupon đang bật</Text>
             <Title level={3} className="mb-0! mt-1! text-emerald-600!">
               {activeCount}
             </Title>
@@ -498,7 +498,7 @@ export function AdminCouponsPage() {
         </Col>
         <Col xs={24} md={8}>
           <Card>
-            <Text type="secondary">Coupon d� h?t h?n</Text>
+            <Text type="secondary">Coupon đã hết hạn</Text>
             <Title level={3} className="mb-0! mt-1! text-red-500!">
               {expiredCount}
             </Title>
@@ -512,7 +512,7 @@ export function AdminCouponsPage() {
             value={keywordInput}
             onChange={(event) => setKeywordInput(event.target.value)}
             onPressEnter={() => void handleApplyFilters()}
-            placeholder="T�m theo m� ho?c t�n chuong tr�nh"
+            placeholder="Tìm theo mã hoặc tên chương trình"
             className="min-w-65"
             allowClear
           />
@@ -533,10 +533,10 @@ export function AdminCouponsPage() {
             className="min-w-47.5"
           />
           <Button onClick={() => void handleApplyFilters()} loading={loading}>
-            �p d?ng l?c
+            Áp dụng lọc
           </Button>
           <Button type="primary" onClick={openCreateModal}>
-            T?o coupon
+            Tạo coupon
           </Button>
         </div>
 
@@ -551,7 +551,7 @@ export function AdminCouponsPage() {
             pageSize,
             total,
             showSizeChanger: true,
-            showTotal: (value) => `T?ng ${value} coupon`,
+            showTotal: (value) => `Tổng ${value} coupon`,
           }}
           onChange={(pagination: TablePaginationConfig) => {
             const nextPage = pagination.current ?? page;
@@ -571,16 +571,16 @@ export function AdminCouponsPage() {
 
       <Row gutter={[16, 16]}>
         <Col xs={24} xl={12}>
-          <Card title="Tra c?u coupon theo m�">
+          <Card title="Tra cứu coupon theo mã">
             <Space.Compact className="mb-4 w-full">
               <Input
                 value={lookupCode}
                 onChange={(event) => setLookupCode(event.target.value)}
-                placeholder="Nh?p m� gi?m gi�, v� d?: WELCOME10"
+                placeholder="Nhập mã giảm giá, ví dụ: WELCOME10"
                 allowClear
               />
               <Button type="primary" onClick={() => void handleLookupCoupon()} loading={findingByCode}>
-                Tra c?u
+                Tra cứu
               </Button>
             </Space.Compact>
 
@@ -588,29 +588,29 @@ export function AdminCouponsPage() {
               <div className="space-y-2">
                 <Text strong>{selectedCoupon.name}</Text>
                 <div>
-                  <Text type="secondary">M�:</Text> <Text>{selectedCoupon.code}</Text>
+                  <Text type="secondary">Mã:</Text> <Text>{selectedCoupon.code}</Text>
                 </div>
                 <div>
-                  <Text type="secondary">Lo?i:</Text> <Text>{COUPON_TYPE_LABEL[selectedCoupon.type]}</Text>
+                  <Text type="secondary">Loại:</Text> <Text>{COUPON_TYPE_LABEL[selectedCoupon.type]}</Text>
                 </div>
                 <div>
-                  <Text type="secondary">Gi� tr?:</Text> <Text>{renderCouponValue(selectedCoupon)}</Text>
+                  <Text type="secondary">Giá trị:</Text> <Text>{renderCouponValue(selectedCoupon)}</Text>
                 </div>
                 <div>
-                  <Text type="secondary">B?t d?u:</Text> <Text>{formatDateTime(selectedCoupon.startsAt)}</Text>
+                  <Text type="secondary">Bắt đầu:</Text> <Text>{formatDateTime(selectedCoupon.startsAt)}</Text>
                 </div>
                 <div>
-                  <Text type="secondary">H?t h?n:</Text> <Text>{formatDateTime(selectedCoupon.expiresAt)}</Text>
+                  <Text type="secondary">Hết hạn:</Text> <Text>{formatDateTime(selectedCoupon.expiresAt)}</Text>
                 </div>
               </div>
             ) : (
-              <Text type="secondary">Chua c� d? li?u tra c?u m� gi?m gi�.</Text>
+              <Text type="secondary">Chưa có dữ liệu tra cứu mã giảm giá.</Text>
             )}
           </Card>
         </Col>
 
         <Col xs={24} xl={12}>
-          <Card title="Ki?m tra di?u ki?n �p d?ng m� gi?m gi�">
+          <Card title="Kiểm tra điều kiện áp dụng mã giảm giá">
             <Form
               layout="vertical"
               form={validateForm}
@@ -622,36 +622,36 @@ export function AdminCouponsPage() {
               }}
             >
               <Form.Item
-                label="M� gi?m gi�"
+                label="Mã giảm giá"
                 name="code"
-                rules={[{ required: true, message: "Vui l�ng nh?p m� gi?m gi�." }]}
+                rules={[{ required: true, message: "Vui lòng nhập mã giảm giá." }]}
               >
-                <Input placeholder="V� d?: WELCOME10" />
+                <Input placeholder="Ví dụ: WELCOME10" />
               </Form.Item>
               <Row gutter={12}>
                 <Col span={12}>
                   <Form.Item
-                    label="Gi� tr? don h�ng"
+                    label="Giá trị đơn hàng"
                     name="orderValue"
-                    rules={[{ required: true, message: "Vui l�ng nh?p gi� tr? don h�ng." }]}
+                    rules={[{ required: true, message: "Vui lòng nhập giá trị đơn hàng." }]}
                   >
                     <InputNumber min={0} className="w-full" />
                   </Form.Item>
                 </Col>
                 <Col span={12}>
-                  <Form.Item label="Ph� v?n chuy?n" name="shippingFee">
+                  <Form.Item label="Phí vận chuyển" name="shippingFee">
                     <InputNumber min={0} className="w-full" />
                   </Form.Item>
                 </Col>
               </Row>
               <Form.Item
-                label="Danh s�ch thuong hi?u (ngan c�ch b?i d?u ph?y)"
+                label="Danh sách thương hiệu (ngăn cách bởi dấu phẩy)"
                 name="brandNamesText"
               >
-                <Input placeholder="V� d?: RioShop, Nike" />
+                <Input placeholder="Ví dụ: RioShop, Nike" />
               </Form.Item>
               <Button type="primary" onClick={() => void handleValidateCoupon()} loading={validating}>
-                Ki?m tra m�
+                Kiểm tra mã
               </Button>
             </Form>
 
@@ -659,8 +659,8 @@ export function AdminCouponsPage() {
               <div className="mt-4 grid gap-3 md:grid-cols-2">
                 <Card size="small">
                   <Statistic
-                    title="K?t qu?"
-                    value={validationResult.isValid ? "H?p l?" : "Kh�ng h?p l?"}
+                    title="Kết quả"
+                    value={validationResult.isValid ? "Hợp lệ" : "Không hợp lệ"}
                     valueStyle={{ color: validationResult.isValid ? "#16a34a" : "#dc2626", fontSize: 20 }}
                   />
                   {validationResult.reason ? (
@@ -668,8 +668,8 @@ export function AdminCouponsPage() {
                   ) : null}
                 </Card>
                 <Card size="small">
-                  <Statistic title="Gi?m gi�" value={formatCurrency.format(validationResult.discount)} suffix="VND" />
-                  <Statistic title="Th�nh ti?n cu?i" value={formatCurrency.format(validationResult.finalAmount)} suffix="VND" />
+                  <Statistic title="Giảm giá" value={formatCurrency.format(validationResult.discount)} suffix="VND" />
+                  <Statistic title="Thành tiền cuối" value={formatCurrency.format(validationResult.finalAmount)} suffix="VND" />
                 </Card>
               </div>
             ) : null}
@@ -678,13 +678,13 @@ export function AdminCouponsPage() {
       </Row>
 
       <Modal
-        title={editingCoupon ? `C?p nh?t coupon ${editingCoupon.code}` : "T?o coupon m?i"}
+        title={editingCoupon ? `Cập nhật coupon ${editingCoupon.code}` : "Tạo coupon mới"}
         open={modalOpen}
         onCancel={closeModal}
         onOk={() => void handleSubmitCoupon()}
         confirmLoading={saving}
-        okText={editingCoupon ? "Luu thay d?i" : "T?o coupon"}
-        cancelText="H?y"
+        okText={editingCoupon ? "Lưu thay đổi" : "Tạo coupon"}
+        cancelText="Hủy"
         width={860}
       >
         <Form<CouponFormValues>
@@ -696,24 +696,24 @@ export function AdminCouponsPage() {
             <Col xs={24} md={12}>
               <Form.Item
                 name="code"
-                label="M� coupon"
-                rules={[{ required: true, message: "Vui l�ng nh?p m� coupon." }]}
+                label="Mã coupon"
+                rules={[{ required: true, message: "Vui lòng nhập mã coupon." }]}
               >
-                <Input placeholder="V� d?: WELCOME10" />
+                <Input placeholder="Ví dụ: WELCOME10" />
               </Form.Item>
             </Col>
             <Col xs={24} md={12}>
               <Form.Item
                 name="name"
-                label="T�n chuong tr�nh"
-                rules={[{ required: true, message: "Vui l�ng nh?p t�n chuong tr�nh." }]}
+                label="Tên chương trình"
+                rules={[{ required: true, message: "Vui lòng nhập tên chương trình." }]}
               >
-                <Input placeholder="V� d?: Ch�o kh�ch m?i" />
+                <Input placeholder="Ví dụ: Chào khách mới" />
               </Form.Item>
             </Col>
           </Row>
 
-          <Form.Item name="description" label="M� t?">
+          <Form.Item name="description" label="Mô tả">
             <Input.TextArea autoSize={{ minRows: 2, maxRows: 4 }} />
           </Form.Item>
 
@@ -721,8 +721,8 @@ export function AdminCouponsPage() {
             <Col xs={24} md={8}>
               <Form.Item
                 name="type"
-                label="Lo?i coupon"
-                rules={[{ required: true, message: "Vui l�ng ch?n lo?i coupon." }]}
+                label="Loại coupon"
+                rules={[{ required: true, message: "Vui lòng chọn loại coupon." }]}
               >
                 <Select options={COUPON_FORM_TYPE_OPTIONS} />
               </Form.Item>
@@ -730,14 +730,14 @@ export function AdminCouponsPage() {
             <Col xs={24} md={8}>
               <Form.Item
                 name="value"
-                label="Gi� tr?"
-                rules={[{ required: true, message: "Vui l�ng nh?p gi� tr? coupon." }]}
+                label="Giá trị"
+                rules={[{ required: true, message: "Vui lòng nhập giá trị coupon." }]}
               >
                 <InputNumber min={0} className="w-full" />
               </Form.Item>
             </Col>
             <Col xs={24} md={8}>
-              <Form.Item name="source" label="Ngu?n t?o">
+              <Form.Item name="source" label="Nguồn tạo">
                 <Select allowClear options={SOURCE_OPTIONS} />
               </Form.Item>
             </Col>
@@ -745,22 +745,22 @@ export function AdminCouponsPage() {
 
           <Row gutter={12}>
             <Col xs={24} md={6}>
-              <Form.Item name="maxDiscount" label="Gi?m t?i da">
+              <Form.Item name="maxDiscount" label="Giảm tối đa">
                 <InputNumber min={0} className="w-full" />
               </Form.Item>
             </Col>
             <Col xs={24} md={6}>
-              <Form.Item name="minOrderValue" label="�on t?i thi?u">
+              <Form.Item name="minOrderValue" label="Đơn tối thiểu">
                 <InputNumber min={0} className="w-full" />
               </Form.Item>
             </Col>
             <Col xs={24} md={6}>
-              <Form.Item name="usageLimit" label="Gi?i h?n lu?t d�ng">
+              <Form.Item name="usageLimit" label="Giới hạn lượt dùng">
                 <InputNumber min={0} className="w-full" />
               </Form.Item>
             </Col>
             <Col xs={24} md={6}>
-              <Form.Item name="perUserLimit" label="Gi?i h?n/user">
+              <Form.Item name="perUserLimit" label="Giới hạn/user">
                 <InputNumber min={0} className="w-full" />
               </Form.Item>
             </Col>
@@ -770,8 +770,8 @@ export function AdminCouponsPage() {
             <Col xs={24} md={12}>
               <Form.Item
                 name="startsAt"
-                label="B?t d?u"
-                rules={[{ required: true, message: "Vui l�ng ch?n th?i gian b?t d?u." }]}
+                label="Bắt đầu"
+                rules={[{ required: true, message: "Vui lòng chọn thời gian bắt đầu." }]}
               >
                 <Input type="datetime-local" />
               </Form.Item>
@@ -779,16 +779,16 @@ export function AdminCouponsPage() {
             <Col xs={24} md={12}>
               <Form.Item
                 name="expiresAt"
-                label="K?t th�c"
-                rules={[{ required: true, message: "Vui l�ng ch?n th?i gian k?t th�c." }]}
+                label="Kết thúc"
+                rules={[{ required: true, message: "Vui lòng chọn thời gian kết thúc." }]}
               >
                 <Input type="datetime-local" />
               </Form.Item>
             </Col>
           </Row>
 
-          <Form.Item name="isActive" label="�ang k�ch ho?t" valuePropName="checked">
-            <Switch checkedChildren="B?t" unCheckedChildren="T?t" />
+          <Form.Item name="isActive" label="Đang kích hoạt" valuePropName="checked">
+            <Switch checkedChildren="Bật" unCheckedChildren="Tắt" />
           </Form.Item>
         </Form>
       </Modal>

@@ -76,16 +76,16 @@ const parseJsonArray = <T extends JsonObject>(raw: string, fieldLabel: string): 
   try {
     parsed = JSON.parse(text);
   } catch {
-    throw new Error(`${fieldLabel} kh�ng d�ng d?nh d?ng JSON.`);
+    throw new Error(`${fieldLabel} không đúng định dạng JSON.`);
   }
 
   if (!Array.isArray(parsed)) {
-    throw new Error(`${fieldLabel} ph?i l� m?t m?ng JSON.`);
+    throw new Error(`${fieldLabel} phải là một mảng JSON.`);
   }
 
   return parsed.map((item, index) => {
     if (!isPlainObject(item)) {
-      throw new Error(`${fieldLabel}: ph?n t? th? ${index + 1} ph?i l� object JSON.`);
+      throw new Error(`${fieldLabel}: phần tử thứ ${index + 1} phải là object JSON.`);
     }
     return item as T;
   });
@@ -101,11 +101,11 @@ const parseJsonObject = <T extends JsonObject>(raw: string, fieldLabel: string):
   try {
     parsed = JSON.parse(text);
   } catch {
-    throw new Error(`${fieldLabel} kh�ng d�ng d?nh d?ng JSON.`);
+    throw new Error(`${fieldLabel} không đúng định dạng JSON.`);
   }
 
   if (!isPlainObject(parsed)) {
-    throw new Error(`${fieldLabel} ph?i l� object JSON.`);
+    throw new Error(`${fieldLabel} phải là object JSON.`);
   }
 
   return parsed as T;
@@ -160,13 +160,13 @@ const mapConfigToFormValues = (config: BrandConfig): BrandConfigFormValues => ({
 });
 
 const mapJsonToPaymentGateways = (raw: string): BrandConfigPaymentGateway[] => {
-  const items = parseJsonArray<JsonObject>(raw, "Danh s�ch c?ng thanh to�n");
+  const items = parseJsonArray<JsonObject>(raw, "Danh sách cổng thanh toán");
 
   return items.map((item, index) => {
     const provider = typeof item.provider === "string" ? item.provider.trim() : "";
 
     if (!provider) {
-      throw new Error(`Danh s�ch c?ng thanh to�n: ph?n t? th? ${index + 1} thi?u "provider".`);
+      throw new Error(`Danh sách cổng thanh toán: phần tử thứ ${index + 1} thiếu "provider".`);
     }
 
     return {
@@ -178,13 +178,13 @@ const mapJsonToPaymentGateways = (raw: string): BrandConfigPaymentGateway[] => {
 };
 
 const mapJsonToShippingRules = (raw: string): BrandConfigShippingRule[] => {
-  const items = parseJsonArray<JsonObject>(raw, "Danh s�ch quy t?c v?n chuy?n");
+  const items = parseJsonArray<JsonObject>(raw, "Danh sách quy tắc vận chuyển");
 
   return items.map((item, index) => {
     const method = typeof item.method === "string" ? item.method.trim() : "";
 
     if (!method) {
-      throw new Error(`Danh s�ch quy t?c v?n chuy?n: ph?n t? th? ${index + 1} thi?u "method".`);
+      throw new Error(`Danh sách quy tắc vận chuyển: phần tử thứ ${index + 1} thiếu "method".`);
     }
 
     const carriers = Array.isArray(item.carriers)
@@ -231,7 +231,7 @@ const mapFormToPayload = (values: BrandConfigFormValues): UpdateBrandConfigPaylo
   paymentGateways: mapJsonToPaymentGateways(values.paymentGatewaysJson),
   shippingRules: mapJsonToShippingRules(values.shippingRulesJson),
   storefront: {
-    home: parseJsonObject(values.storefrontHomeJson, "N?i dung Home Storefront"),
+    home: parseJsonObject(values.storefrontHomeJson, "Nội dung Home Storefront"),
   },
 });
 
@@ -269,7 +269,7 @@ export function AdminBrandConfigPage() {
 
       if (latest.notFound || !latest.config) {
         applyDefaultForm(brandKey);
-        messageApi.info("Chua c� c?u h�nh cho thuong hi?u n�y. B?n c� th? nh?p th�ng tin v� b?m Luu d? t?o m?i.");
+        messageApi.info("Chưa có cấu hình cho thương hiệu này. Bạn có thể nhập thông tin và bấm Lưu để tạo mới.");
         return;
       }
 
@@ -283,7 +283,7 @@ export function AdminBrandConfigPage() {
     const brandKey = (rawBrandKey ?? form.getFieldValue("brandKey") ?? "").trim();
 
     if (!brandKey) {
-      messageApi.warning("Vui l�ng nh?p m� thuong hi?u (brandKey).");
+      messageApi.warning("Vui lòng nhập mã thương hiệu (brandKey).");
       return;
     }
 
@@ -303,7 +303,7 @@ export function AdminBrandConfigPage() {
       const brandKey = values.brandKey.trim();
 
       if (!brandKey) {
-        messageApi.warning("Vui l�ng nh?p m� thuong hi?u (brandKey).");
+        messageApi.warning("Vui lòng nhập mã thương hiệu (brandKey).");
         return;
       }
 
@@ -316,7 +316,7 @@ export function AdminBrandConfigPage() {
         setActiveBrandKey(latestConfig.brandKey);
       }
 
-      messageApi.success("Luu c?u h�nh thuong hi?u th�nh c�ng.");
+      messageApi.success("Lưu cấu hình thương hiệu thành công.");
     } catch (error) {
       if (error instanceof Error && "errorFields" in error) {
         return;
@@ -331,10 +331,10 @@ export function AdminBrandConfigPage() {
 
       <div>
         <Title level={3} className="mb-1! mt-0!">
-          C?u h�nh thuong hi?u
+          Cấu hình thương hiệu
         </Title>
         <Paragraph className="mb-0!" type="secondary">
-          Qu?n l� th�ng tin hi?n th?, ch? d?, h? tr? kh�ch h�ng v� c�c c? t�nh nang cho t?ng thuong hi?u.
+          Quản lý thông tin hiển thị, chủ đề, hỗ trợ khách hàng và các cờ tính năng cho từng thương hiệu.
         </Paragraph>
       </div>
 
@@ -343,23 +343,23 @@ export function AdminBrandConfigPage() {
           <Row gutter={16}>
             <Col xs={24} md={14} lg={10}>
               <Form.Item
-                label="M� thuong hi?u (brandKey)"
+                label="Mã thương hiệu (brandKey)"
                 name="brandKey"
-                rules={[{ required: true, message: "Vui l�ng nh?p m� thuong hi?u." }]}
+                rules={[{ required: true, message: "Vui lòng nhập mã thương hiệu." }]}
               >
-                <Input placeholder="V� d?: rioshop-default" />
+                <Input placeholder="Ví dụ: rioshop-default" />
               </Form.Item>
             </Col>
             <Col xs={24} md={10} lg={14}>
               <Form.Item label=" ">
                 <Space wrap>
                   <Button onClick={() => void handleLoadConfig()} loading={loading}>
-                    T?i c?u h�nh
+                    Tải cấu hình
                   </Button>
                   <Button type="primary" onClick={() => void handleSave()} loading={saving}>
-                    Luu c?u h�nh
+                    Lưu cấu hình
                   </Button>
-                  <Text type="secondary">�ang thao t�c v?i: {activeBrandKey}</Text>
+                  <Text type="secondary">Đang thao tác với: {activeBrandKey}</Text>
                 </Space>
               </Form.Item>
             </Col>
@@ -370,62 +370,62 @@ export function AdminBrandConfigPage() {
               showIcon
               type="info"
               className="mb-4"
-              message="Chua c� d? li?u c?u h�nh"
-              description="B?n ghi chua t?n t?i tr�n h? th?ng. Khi b?m Luu c?u h�nh, h? th?ng s? t? t?o m?i."
+              message="Chưa có dữ liệu cấu hình"
+              description="Bản ghi chưa tồn tại trên hệ thống. Khi bấm Lưu cấu hình, hệ thống sẽ tự tạo mới."
             />
           ) : null}
 
           <Row gutter={16}>
             <Col xs={24} lg={12}>
-              <Card size="small" title="Th�ng tin co b?n">
+              <Card size="small" title="Thông tin cơ bản">
                 <Form.Item
-                  label="T�n hi?n th?"
+                  label="Tên hiển thị"
                   name="displayName"
                   rules={[
-                    { required: true, message: "Vui l�ng nh?p t�n hi?n th?." },
-                    { min: 2, message: "T�n hi?n th? ph?i c� �t nh?t 2 k� t?." },
+                    { required: true, message: "Vui lòng nhập tên hiển thị." },
+                    { min: 2, message: "Tên hiển thị phải có ít nhất 2 ký tự." },
                   ]}
                 >
-                  <Input placeholder="V� d?: RioShop" />
+                  <Input placeholder="Ví dụ: RioShop" />
                 </Form.Item>
 
-                <Form.Item label="Thu? su?t" name="taxRate" tooltip="Nh?p d?ng th?p ph�n, v� d? 0.1 nghia l� 10%">
+                <Form.Item label="Thuế suất" name="taxRate" tooltip="Nhập dạng thập phân, ví dụ 0.1 nghĩa là 10%">
                   <InputNumber
                     min={0}
                     step={0.01}
                     precision={4}
                     className="w-full"
-                    placeholder="V� d?: 0.1"
+                    placeholder="Ví dụ: 0.1"
                   />
                 </Form.Item>
 
                 <Form.Item
-                  label="B?o tr� h? th?ng"
+                  label="Bảo trì hệ thống"
                   name="maintenanceMode"
                   valuePropName="checked"
                   className="mb-0!"
                 >
-                  <Switch checkedChildren="B?t" unCheckedChildren="T?t" />
+                  <Switch checkedChildren="Bật" unCheckedChildren="Tắt" />
                 </Form.Item>
               </Card>
             </Col>
 
             <Col xs={24} lg={12}>
-              <Card size="small" title="Logo v� ch? d?">
-                <Form.Item label="Logo s�ng (URL)" name="logoLight">
+              <Card size="small" title="Logo và chủ đề">
+                <Form.Item label="Logo sáng (URL)" name="logoLight">
                   <Input placeholder="https://..." />
                 </Form.Item>
-                <Form.Item label="Logo t?i (URL)" name="logoDark">
+                <Form.Item label="Logo tối (URL)" name="logoDark">
                   <Input placeholder="https://..." />
                 </Form.Item>
-                <Form.Item label="M�u ch�nh" name="primaryColor">
+                <Form.Item label="Màu chính" name="primaryColor">
                   <Input placeholder="#0f172a" />
                 </Form.Item>
-                <Form.Item label="M�u ph?" name="secondaryColor">
+                <Form.Item label="Màu phụ" name="secondaryColor">
                   <Input placeholder="#f97316" />
                 </Form.Item>
-                <Form.Item label="Ph�ng ch?" name="fontFamily" className="mb-0!">
-                  <Input placeholder="V� d?: Poppins, sans-serif" />
+                <Form.Item label="Phông chữ" name="fontFamily" className="mb-0!">
+                  <Input placeholder="Ví dụ: Poppins, sans-serif" />
                 </Form.Item>
               </Card>
             </Col>
@@ -433,18 +433,18 @@ export function AdminBrandConfigPage() {
 
           <Row gutter={16} className="mt-4">
             <Col xs={24} lg={12}>
-              <Card size="small" title="Li�n h? h? tr?">
-                <Form.Item label="Email h? tr?" name="supportEmail">
+              <Card size="small" title="Liên hệ hỗ trợ">
+                <Form.Item label="Email hỗ trợ" name="supportEmail">
                   <Input placeholder="support@tenmien.com" />
                 </Form.Item>
-                <Form.Item label="S? di?n tho?i h? tr?" name="supportPhone" className="mb-0!">
+                <Form.Item label="Số điện thoại hỗ trợ" name="supportPhone" className="mb-0!">
                   <Input placeholder="1900xxxx" />
                 </Form.Item>
               </Card>
             </Col>
 
             <Col xs={24} lg={12}>
-              <Card size="small" title="M?ng x� h?i">
+              <Card size="small" title="Mạng xã hội">
                 <Form.Item label="Facebook" name="facebook">
                   <Input placeholder="https://facebook.com/..." />
                 </Form.Item>
@@ -463,16 +463,16 @@ export function AdminBrandConfigPage() {
 
           <Row gutter={16} className="mt-4">
             <Col xs={24}>
-              <Card size="small" title="C? t�nh nang">
+              <Card size="small" title="Cờ tính năng">
                 <div className="grid gap-4 md:grid-cols-3">
-                  <Form.Item label="�i?m thu?ng" name="loyalty" valuePropName="checked" className="mb-0!">
-                    <Switch checkedChildren="B?t" unCheckedChildren="T?t" />
+                  <Form.Item label="Điểm thưởng" name="loyalty" valuePropName="checked" className="mb-0!">
+                    <Switch checkedChildren="Bật" unCheckedChildren="Tắt" />
                   </Form.Item>
                   <Form.Item label="Flash Sale" name="flashSale" valuePropName="checked" className="mb-0!">
-                    <Switch checkedChildren="B?t" unCheckedChildren="T?t" />
+                    <Switch checkedChildren="Bật" unCheckedChildren="Tắt" />
                   </Form.Item>
-                  <Form.Item label="��nh gi� s?n ph?m" name="review" valuePropName="checked" className="mb-0!">
-                    <Switch checkedChildren="B?t" unCheckedChildren="T?t" />
+                  <Form.Item label="Đánh giá sản phẩm" name="review" valuePropName="checked" className="mb-0!">
+                    <Switch checkedChildren="Bật" unCheckedChildren="Tắt" />
                   </Form.Item>
                 </div>
               </Card>
@@ -483,13 +483,13 @@ export function AdminBrandConfigPage() {
             <Col xs={24} lg={12}>
               <Card
                 size="small"
-                title="C?u h�nh c?ng thanh to�n (JSON)"
-                extra={<Text type="secondary">M?ng JSON</Text>}
+                title="Cấu hình cổng thanh toán (JSON)"
+                extra={<Text type="secondary">Mảng JSON</Text>}
               >
                 <Form.Item
                   name="paymentGatewaysJson"
                   className="mb-0!"
-                  rules={[{ required: true, message: "Vui l�ng nh?p JSON c?ng thanh to�n." }]}
+                  rules={[{ required: true, message: "Vui lòng nhập JSON cổng thanh toán." }]}
                 >
                   <Input.TextArea
                     rows={12}
@@ -503,13 +503,13 @@ export function AdminBrandConfigPage() {
             <Col xs={24} lg={12}>
               <Card
                 size="small"
-                title="Quy t?c v?n chuy?n (JSON)"
-                extra={<Text type="secondary">M?ng JSON</Text>}
+                title="Quy tắc vận chuyển (JSON)"
+                extra={<Text type="secondary">Mảng JSON</Text>}
               >
                 <Form.Item
                   name="shippingRulesJson"
                   className="mb-0!"
-                  rules={[{ required: true, message: "Vui l�ng nh?p JSON quy t?c v?n chuy?n." }]}
+                  rules={[{ required: true, message: "Vui lòng nhập JSON quy tắc vận chuyển." }]}
                 >
                   <Input.TextArea
                     rows={12}
@@ -525,18 +525,18 @@ export function AdminBrandConfigPage() {
             <Col xs={24}>
               <Card
                 size="small"
-                title="N?i dung Home Storefront (JSON)"
+                title="Nội dung Home Storefront (JSON)"
                 extra={<Text type="secondary">Object JSON</Text>}
               >
                 <Form.Item
                   name="storefrontHomeJson"
                   className="mb-0!"
-                  rules={[{ required: true, message: "Vui l�ng nh?p JSON n?i dung Home Storefront." }]}
+                  rules={[{ required: true, message: "Vui lòng nhập JSON nội dung Home Storefront." }]}
                 >
                   <Input.TextArea
                     rows={18}
                     className="font-mono"
-                    placeholder='{"hero":{"kicker":"B? suu t?p m?i"},"sections":{"couponTitle":"Luu m� gi?m gi�"}}'
+                    placeholder='{"hero":{"kicker":"Bộ sưu tập mới"},"sections":{"couponTitle":"Lưu mã giảm giá"}}'
                   />
                 </Form.Item>
               </Card>
@@ -546,10 +546,9 @@ export function AdminBrandConfigPage() {
       </Card>
 
       <Text type="secondary">
-        C?p nh?t g?n nh?t: {formatDateTime(config?.updatedAt)}
+        Cập nhật gần nhất: {formatDateTime(config?.updatedAt)}
       </Text>
     </div>
   );
 }
-
 

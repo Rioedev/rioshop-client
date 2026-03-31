@@ -41,15 +41,15 @@ const RANGE_PRESETS = {
 } as const;
 
 const STATUS_LABEL_MAP: Record<string, string> = {
-  pending: "Ch? x�c nh?n",
-  confirmed: "�� x�c nh?n",
-  packing: "�ang d�ng g�i",
-  ready_to_ship: "Ch? l?y h�ng",
-  shipping: "�ang giao",
-  delivered: "�� giao",
-  completed: "Ho�n th�nh",
-  cancelled: "�� h?y",
-  returned: "�� ho�n",
+  pending: "Chờ xác nhận",
+  confirmed: "Đã xác nhận",
+  packing: "Đang đóng gói",
+  ready_to_ship: "Chờ lấy hàng",
+  shipping: "Đang giao",
+  delivered: "Đã giao",
+  completed: "Hoàn thành",
+  cancelled: "Đã hủy",
+  returned: "Đã hoàn",
 };
 
 const STATUS_COLOR_MAP: Record<string, string> = {
@@ -69,9 +69,9 @@ const PAYMENT_LABEL_MAP: Record<string, string> = {
   momo: "MoMo",
   vnpay: "VNPay",
   zalopay: "ZaloPay",
-  card: "Th?",
-  bank_transfer: "Chuy?n kho?n",
-  unknown: "Kh�c",
+  card: "Thẻ",
+  bank_transfer: "Chuyển khoản",
+  unknown: "Khác",
 };
 
 const PAYMENT_COLOR_MAP: Record<string, string> = {
@@ -106,11 +106,11 @@ const formatCurrencyCompact = (value: number) => {
   const safeValue = Math.max(0, Number(value || 0));
 
   if (safeValue >= 1_000_000_000) {
-    return `${(safeValue / 1_000_000_000).toFixed(2)} ty`;
+    return `${(safeValue / 1_000_000_000).toFixed(2)} tỷ`;
   }
 
   if (safeValue >= 1_000_000) {
-    return `${(safeValue / 1_000_000).toFixed(1)} trieu`;
+    return `${(safeValue / 1_000_000).toFixed(1)} triệu`;
   }
 
   return `${formatNumber.format(safeValue)} VND`;
@@ -197,7 +197,7 @@ const mapOrderStatus = (order: OrderRecord): OrderItem["status"] => {
 const normalizeOrderItem = (order: OrderRecord): OrderItem => ({
   key: order.id || order.orderNumber,
   orderCode: `#${order.orderNumber}`,
-  customer: order.customerName || "Khach hang",
+  customer: order.customerName || "Khách hàng",
   total: `${formatNumber.format(order.pricing.total)} ${order.pricing.currency || "VND"}`,
   status: mapOrderStatus(order),
   createdAt: formatDateTime(order.createdAt),
@@ -205,7 +205,7 @@ const normalizeOrderItem = (order: OrderRecord): OrderItem => ({
 
 const normalizeLowStockItem = (item: InventoryRecord): StockItem => ({
   sku: item.variantSku || "-",
-  name: item.product?.name || item.variantSku || "San pham",
+  name: item.product?.name || item.variantSku || "Sản phẩm",
   quantity: Math.max(0, Number(item.available || 0)),
 });
 
@@ -234,25 +234,25 @@ const buildDashboardKpis = (payload: {
 
   return [
     {
-      title: "Doanh thu thuan",
+      title: "Doanh thu thuần",
       value: formatCurrencyCompact(currentNetRevenue),
       change: formatGrowth(revenueGrowth),
       positive: revenueGrowth >= 0,
     },
     {
-      title: "Don hang",
+      title: "Đơn hàng",
       value: formatNumber.format(currentMetrics.totals.orders),
       change: formatGrowth(orderGrowth),
       positive: orderGrowth >= 0,
     },
     {
-      title: "Ty le mua/xem",
+      title: "Tỷ lệ mua/xem",
       value: `${currentMetrics.conversion.purchaseToViewRate.toFixed(2)}%`,
       change: formatGrowth(conversionGrowth),
       positive: conversionGrowth >= 0,
     },
     {
-      title: "Khach mua hang",
+      title: "Khách mua hàng",
       value: formatNumber.format(currentCustomers),
       change: formatGrowth(customerGrowth),
       positive: customerGrowth >= 0,
@@ -378,9 +378,9 @@ export function AdminDashboardPage() {
       setAdminKpis([
         ...kpis,
         {
-          title: "San pham dang ban",
+          title: "Sản phẩm đang bán",
           value: formatNumber.format(activeProducts),
-          change: `${stockStability}% on dinh ton kho`,
+          change: `${stockStability}% ổn định tồn kho`,
           positive: Number(stockStability) >= 70,
         },
       ]);
@@ -445,9 +445,9 @@ export function AdminDashboardPage() {
   }, [scheduleRealtimeRefresh]);
 
   const quickActions = [
-    { label: "�on h�ng", icon: <ShoppingCartOutlined />, href: "/admin/orders" },
-    { label: "S?n ph?m", icon: <AppstoreOutlined />, href: "/admin/products" },
-    { label: "M� gi?m gi�", icon: <GiftOutlined />, href: "/admin/coupons" },
+    { label: "Đơn hàng", icon: <ShoppingCartOutlined />, href: "/admin/orders" },
+    { label: "Sản phẩm", icon: <AppstoreOutlined />, href: "/admin/products" },
+    { label: "Mã giảm giá", icon: <GiftOutlined />, href: "/admin/coupons" },
   ];
 
   const revenueLineData = useMemo(
@@ -496,9 +496,9 @@ export function AdminDashboardPage() {
   const topProductsBars = useMemo(
     () =>
       (dashboardMetrics?.topProductsByRevenue || []).slice(0, 8).map((item) => ({
-        label: item.name || "S?n ph?m",
+        label: item.name || "Sản phẩm",
         value: item.revenue,
-        helper: `${formatNumber.format(item.quantity)} sp | ${formatNumber.format(item.orders)} don`,
+        helper: `${formatNumber.format(item.quantity)} sp | ${formatNumber.format(item.orders)} đơn`,
       })),
     [dashboardMetrics?.topProductsByRevenue],
   );
@@ -508,7 +508,7 @@ export function AdminDashboardPage() {
       (dashboardMetrics?.topCategoriesByRevenue || []).slice(0, 8).map((item) => ({
         label: item.name,
         value: item.revenue,
-        helper: `${formatNumber.format(item.quantity)} sp | ${formatNumber.format(item.orders)} don`,
+        helper: `${formatNumber.format(item.quantity)} sp | ${formatNumber.format(item.orders)} đơn`,
       })),
     [dashboardMetrics?.topCategoriesByRevenue],
   );
@@ -521,7 +521,7 @@ export function AdminDashboardPage() {
   const returningCustomers = dashboardMetrics?.summary?.returningCustomers ?? 0;
 
   const activeRangeLabel =
-    rangePreset === "7d" ? "7 ng�y" : rangePreset === "90d" ? "90 ng�y" : "30 ng�y";
+    rangePreset === "7d" ? "7 ngày" : rangePreset === "90d" ? "90 ngày" : "30 ngày";
 
   return (
     <Spin spinning={loading}>
@@ -535,13 +535,13 @@ export function AdminDashboardPage() {
           <div className="relative flex flex-wrap items-start justify-between gap-4">
             <div>
               <p className="mb-2 text-xs font-bold uppercase tracking-[0.16em] text-slate-300">
-                Trung t�m di?u ph?i RioShop
+                Trung tâm điều phối RioShop
               </p>
               <Title level={3} className="mb-1! mt-0! text-white!">
-                T?ng quan v?n h�nh h�m nay
+                Tổng quan vận hành hôm nay
               </Title>
               <Text className="text-slate-200!">
-                S? li?u th?i gian th?c theo d�i doanh thu, don h�ng, t?n kho v� chuy?n d?i d? ra quy?t d?nh nhanh.
+                Số liệu thời gian thực theo dõi doanh thu, đơn hàng, tồn kho và chuyển đổi để ra quyết định nhanh.
               </Text>
               <div className="mt-3 inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/10 px-3 py-1 text-xs text-slate-100">
                 <CalendarOutlined />
@@ -571,7 +571,7 @@ export function AdminDashboardPage() {
                     className={rangePreset === preset ? "rounded-full!" : "rounded-full! text-slate-200!"}
                     onClick={() => setRangePreset(preset)}
                   >
-                    {preset === "7d" ? "7 ng�y" : preset === "90d" ? "90 ng�y" : "30 ng�y"}
+                    {preset === "7d" ? "7 ngày" : preset === "90d" ? "90 ngày" : "30 ngày"}
                   </Button>
                 ))}
               </div>
@@ -582,7 +582,7 @@ export function AdminDashboardPage() {
             <Col xs={24} sm={8}>
               <div className="rounded-2xl border border-slate-600/60 bg-slate-800/55 p-4">
                 <p className="mb-1 text-xs font-semibold uppercase tracking-[0.12em] text-slate-300">
-                  Doanh thu thu?n h�m nay
+                  Doanh thu thuần hôm nay
                 </p>
                 <p className="m-0 text-xl font-black text-white">
                   {formatNumber.format(estimatedRevenueValue)} VND
@@ -592,7 +592,7 @@ export function AdminDashboardPage() {
             <Col xs={24} sm={8}>
               <div className="rounded-2xl border border-slate-600/60 bg-slate-800/55 p-4">
                 <p className="mb-1 text-xs font-semibold uppercase tracking-[0.12em] text-slate-300">
-                  �on c?n x? l�
+                  Đơn cần xử lý
                 </p>
                 <p className="m-0 text-xl font-black text-amber-200">
                   {pendingOrderCount} / {todayOrderCount}
@@ -602,9 +602,9 @@ export function AdminDashboardPage() {
             <Col xs={24} sm={8}>
               <div className="rounded-2xl border border-slate-600/60 bg-slate-800/55 p-4">
                 <p className="mb-1 text-xs font-semibold uppercase tracking-[0.12em] text-slate-300">
-                  C?nh b�o t?n kho
+                  Cảnh báo tồn kho
                 </p>
-                <p className="m-0 text-xl font-black text-rose-200">{urgentLowStockCount} SKU kh?n</p>
+                <p className="m-0 text-xl font-black text-rose-200">{urgentLowStockCount} SKU khẩn</p>
               </div>
             </Col>
           </Row>
@@ -629,7 +629,7 @@ export function AdminDashboardPage() {
           </Col>
           <Col xs={24} sm={12} xl={4}>
             <Card className="h-full border-slate-200! shadow-sm!">
-              <Text type="secondary">T? l? h?y</Text>
+              <Text type="secondary">Tỷ lệ hủy</Text>
               <Title level={4} className="mb-0! mt-1! text-rose-600!">
                 {cancellationRate.toFixed(2)}%
               </Title>
@@ -637,7 +637,7 @@ export function AdminDashboardPage() {
           </Col>
           <Col xs={24} sm={12} xl={4}>
             <Card className="h-full border-slate-200! shadow-sm!">
-              <Text type="secondary">T? l? ho�n</Text>
+              <Text type="secondary">Tỷ lệ hoàn</Text>
               <Title level={4} className="mb-0! mt-1! text-orange-600!">
                 {returnRate.toFixed(2)}%
               </Title>
@@ -645,7 +645,7 @@ export function AdminDashboardPage() {
           </Col>
           <Col xs={24} sm={12} xl={4}>
             <Card className="h-full border-slate-200! shadow-sm!">
-              <Text type="secondary">�on ch? {'>'}24h</Text>
+              <Text type="secondary">Đơn chờ {'>'}24h</Text>
               <Title level={4} className="mb-0! mt-1! text-amber-600!">
                 {formatNumber.format(overduePendingOrders)}
               </Title>
@@ -653,7 +653,7 @@ export function AdminDashboardPage() {
           </Col>
           <Col xs={24} sm={12} xl={4}>
             <Card className="h-full border-slate-200! shadow-sm!">
-              <Text type="secondary">Kh�ch m?i ({activeRangeLabel})</Text>
+              <Text type="secondary">Khách mới ({activeRangeLabel})</Text>
               <Title level={4} className="mb-0! mt-1! text-blue-600!">
                 {formatNumber.format(newCustomers)}
               </Title>
@@ -661,7 +661,7 @@ export function AdminDashboardPage() {
           </Col>
           <Col xs={24} sm={12} xl={4}>
             <Card className="h-full border-slate-200! shadow-sm!">
-              <Text type="secondary">Kh�ch quay l?i ({activeRangeLabel})</Text>
+              <Text type="secondary">Khách quay lại ({activeRangeLabel})</Text>
               <Title level={4} className="mb-0! mt-1! text-emerald-600!">
                 {formatNumber.format(returningCustomers)}
               </Title>
@@ -672,18 +672,18 @@ export function AdminDashboardPage() {
         <Row gutter={[16, 16]}>
           <Col xs={24} xl={16}>
             <DashboardLineChartCard
-              title={`Bi?u d? du?ng: Doanh thu theo ng�y (${activeRangeLabel})`}
-              subtitle="Theo d�i xu hu?ng doanh thu d? ph�t hi?n bi?n d?ng b?t thu?ng."
+              title={`Biểu đồ đường: Doanh thu theo ngày (${activeRangeLabel})`}
+              subtitle="Theo dõi xu hướng doanh thu để phát hiện biến động bất thường."
               data={revenueLineData}
               valueFormatter={(value) => `${formatNumber.format(value)} VND`}
             />
           </Col>
           <Col xs={24} xl={8}>
             <DashboardDonutCard
-              title="Bi?u d? tr�n: Co c?u tr?ng th�i don"
-              subtitle="Ph�n b? don theo tr?ng th�i hi?n t?i"
+              title="Biểu đồ tròn: Cơ cấu trạng thái đơn"
+              subtitle="Phân bổ đơn theo trạng thái hiện tại"
               data={statusDonutData}
-              centerLabel="T?ng don"
+              centerLabel="Tổng đơn"
               centerValue={formatNumber.format(dashboardMetrics?.totals.orders || 0)}
             />
           </Col>
@@ -692,17 +692,17 @@ export function AdminDashboardPage() {
         <Row gutter={[16, 16]}>
           <Col xs={24} xl={16}>
             <DashboardOrdersColumnCard
-              title={`Bi?u d? c?t: �on h�ng theo ng�y (${activeRangeLabel})`}
-              subtitle="14 ng�y g?n nh?t: ho�n th�nh, ch? x? l� v� h?y/ho�n"
+              title={`Biểu đồ cột: Đơn hàng theo ngày (${activeRangeLabel})`}
+              subtitle="14 ngày gần nhất: hoàn thành, chờ xử lý và hủy/hoàn"
               data={ordersColumnData}
             />
           </Col>
           <Col xs={24} xl={8}>
             <DashboardDonutCard
-              title="Bi?u d? tr�n: Co c?u phuong th?c thanh to�n"
-              subtitle="T? tr?ng don theo k�nh thanh to�n"
+              title="Biểu đồ tròn: Cơ cấu phương thức thanh toán"
+              subtitle="Tỷ trọng đơn theo kênh thanh toán"
               data={paymentDonutData}
-              centerLabel="T?ng giao d?ch"
+              centerLabel="Tổng giao dịch"
               centerValue={formatNumber.format(paymentDonutData.reduce((sum, item) => sum + item.value, 0))}
             />
           </Col>
@@ -711,16 +711,16 @@ export function AdminDashboardPage() {
         <Row gutter={[16, 16]}>
           <Col xs={24} xl={12}>
             <DashboardRankBarCard
-              title="Top s?n ph?m theo doanh thu"
-              subtitle={`Trong ${activeRangeLabel} g?n nh?t`}
+              title="Top sản phẩm theo doanh thu"
+              subtitle={`Trong ${activeRangeLabel} gần nhất`}
               data={topProductsBars}
               valueFormatter={(value) => `${formatNumber.format(value)} VND`}
             />
           </Col>
           <Col xs={24} xl={12}>
             <DashboardRankBarCard
-              title="Top danh m?c theo doanh thu"
-              subtitle={`Trong ${activeRangeLabel} g?n nh?t`}
+              title="Top danh mục theo doanh thu"
+              subtitle={`Trong ${activeRangeLabel} gần nhất`}
               data={topCategoriesBars}
               valueFormatter={(value) => `${formatNumber.format(value)} VND`}
             />
@@ -736,33 +736,33 @@ export function AdminDashboardPage() {
               <div className="flex items-center justify-between">
                 <div>
                   <p className="mb-1 text-xs font-bold uppercase tracking-[0.12em] text-slate-400">
-                    S?c kh?e v?n h�nh
+                    Sức khỏe vận hành
                   </p>
-                  <h3 className="m-0 text-lg font-black text-slate-900">T�n hi?u th?i gian th?c</h3>
+                  <h3 className="m-0 text-lg font-black text-slate-900">Tín hiệu thời gian thực</h3>
                 </div>
                 <ThunderboltOutlined className="text-xl text-cyan-600" />
               </div>
               <div className="mt-4 space-y-3">
                 <div className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2">
-                  <p className="m-0 text-xs text-slate-500">�on h�ng ch? duy?t</p>
-                  <p className="m-0 mt-1 text-base font-bold text-slate-900">{pendingOrderCount} don</p>
+                  <p className="m-0 text-xs text-slate-500">Đơn hàng chờ duyệt</p>
+                  <p className="m-0 mt-1 text-base font-bold text-slate-900">{pendingOrderCount} đơn</p>
                 </div>
                 <div className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2">
-                  <p className="m-0 text-xs text-slate-500">SKU s?p h?t h�ng</p>
-                  <p className="m-0 mt-1 text-base font-bold text-rose-600">{lowStockProducts.length} s?n ph?m</p>
+                  <p className="m-0 text-xs text-slate-500">SKU sắp hết hàng</p>
+                  <p className="m-0 mt-1 text-base font-bold text-rose-600">{lowStockProducts.length} sản phẩm</p>
                 </div>
                 <div className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2">
-                  <p className="m-0 text-xs text-slate-500">S? ki?n analytics ({activeRangeLabel})</p>
+                  <p className="m-0 text-xs text-slate-500">Sự kiện analytics ({activeRangeLabel})</p>
                   <p className="m-0 mt-1 text-base font-bold text-blue-600">{formatNumber.format(analyticsEventsCount)}</p>
                 </div>
                 <div className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2">
-                  <p className="m-0 text-xs text-slate-500">T? l? th�m gi? / xem s?n ph?m</p>
+                  <p className="m-0 text-xs text-slate-500">Tỷ lệ thêm giỏ / xem sản phẩm</p>
                   <p className="m-0 mt-1 text-base font-bold text-cyan-700">
                     {(dashboardMetrics?.conversion.addToCartRate ?? 0).toFixed(2)}%
                   </p>
                 </div>
                 <div className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2">
-                  <p className="m-0 text-xs text-slate-500">T? l? mua / th�m gi?</p>
+                  <p className="m-0 text-xs text-slate-500">Tỷ lệ mua / thêm giỏ</p>
                   <p className="m-0 mt-1 text-base font-bold text-emerald-700">
                     {(dashboardMetrics?.conversion.cartToPurchaseRate ?? 0).toFixed(2)}%
                   </p>
