@@ -8,6 +8,7 @@ import {
   type UserProfile,
 } from "../../../services/userProfileService";
 import { useAuthStore } from "../../../stores/authStore";
+import { getErrorMessage } from "../../../utils/errorMessage";
 import {
   StoreEmptyState,
   StoreHeroSection,
@@ -106,7 +107,7 @@ export function StoreAccountPage() {
         if (!active) {
           return;
         }
-        setProfileLoadError(error instanceof Error ? error.message : "Không tải được thông tin tài khoản");
+        setProfileLoadError(getErrorMessage(error, "Không tải được thông tin tài khoản"));
       } finally {
         if (active) {
           setIsProfileLoading(false);
@@ -187,7 +188,7 @@ export function StoreAccountPage() {
       await refreshUser();
       messageApi.success("Đã cập nhật thông tin cá nhân");
     } catch (error) {
-      messageApi.error(error instanceof Error ? error.message : "Cập nhật thông tin thất bại");
+      messageApi.error(getErrorMessage(error, "Cập nhật thông tin thất bại"));
     } finally {
       setIsSavingProfile(false);
     }
@@ -230,7 +231,7 @@ export function StoreAccountPage() {
       addressForm.resetFields();
       messageApi.success("Đã thêm địa chỉ mới");
     } catch (error) {
-      messageApi.error(error instanceof Error ? error.message : "Thêm địa chỉ thất bại");
+      messageApi.error(getErrorMessage(error, "Thêm địa chỉ thất bại"));
     } finally {
       setIsSavingAddress(false);
     }
@@ -259,7 +260,7 @@ export function StoreAccountPage() {
       setProfile(updatedProfile);
       messageApi.success("Đã đặt địa chỉ mặc định");
     } catch (error) {
-      messageApi.error(error instanceof Error ? error.message : "Không đặt được địa chỉ mặc định");
+      messageApi.error(getErrorMessage(error, "Không đặt được địa chỉ mặc định"));
     } finally {
       setIsSavingAddress(false);
     }
@@ -277,7 +278,7 @@ export function StoreAccountPage() {
       passwordForm.resetFields();
       messageApi.success("Đã đổi mật khẩu thành công");
     } catch (error) {
-      messageApi.error(error instanceof Error ? error.message : "Đổi mật khẩu thất bại");
+      messageApi.error(getErrorMessage(error, "Đổi mật khẩu thất bại"));
     } finally {
       setIsChangingPassword(false);
     }
@@ -295,7 +296,7 @@ export function StoreAccountPage() {
       await authService.forgotPassword({ email });
       messageApi.success("Đã gửi hướng dẫn đặt lại mật khẩu qua email");
     } catch (error) {
-      messageApi.error(error instanceof Error ? error.message : "Không gửi được email đặt lại mật khẩu");
+      messageApi.error(getErrorMessage(error, "Không gửi được email đặt lại mật khẩu"));
     } finally {
       setIsSendingReset(false);
     }

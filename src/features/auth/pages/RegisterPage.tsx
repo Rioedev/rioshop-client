@@ -2,6 +2,7 @@ import { Alert, Button, Form, Input, Typography } from "antd";
 import { useState } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { useAuthStore } from "../../../stores/authStore";
+import { getErrorMessage } from "../../../utils/errorMessage";
 import { AuthShell } from "../components/AuthShell";
 
 type RegisterFormValues = {
@@ -28,7 +29,7 @@ export function RegisterPage() {
       await register(values);
       navigate(searchParams.get("redirect") ?? "/", { replace: true });
     } catch (error) {
-      setErrorMessage(error instanceof Error ? error.message : "Đăng ký thất bại");
+      setErrorMessage(getErrorMessage(error, "Đăng ký thất bại"));
     }
   };
 

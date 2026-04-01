@@ -68,12 +68,47 @@ type UnreadCountApiData = {
   unreadCount?: number;
 };
 
+const MOJIBAKE_PATTERN = /(Ã.|Â.|Ä.|Å.|Æ.|áº|á»|â€|â€œ|â€|â€“|â€”|â€¦)/;
+const VIETNAMESE_CHAR_PATTERN =
+  /[àáạảãâầấậẩẫăằắặẳẵèéẹẻẽêềếệểễìíịỉĩòóọỏõôồốộổỗơờớợởỡùúụủũưừứựửữỳýỵỷỹđÀÁẠẢÃÂẦẤẬẨẪĂẰẮẶẲẴÈÉẸẺẼÊỀẾỆỂỄÌÍỊỈĨÒÓỌỎÕÔỒỐỘỔỖƠỜỚỢỞỠÙÚỤỦŨƯỪỨỰỬỮỲÝỴỶỸĐ]/g;
+
+const countVietnameseChars = (value: string): number => (value.match(VIETNAMESE_CHAR_PATTERN) || []).length;
+
+const repairMojibakeText = (value?: string): string => {
+  const input = value?.toString() || "";
+  if (!input || !MOJIBAKE_PATTERN.test(input)) {
+    return input;
+  }
+
+  try {
+    const bytes = new Uint8Array(input.length);
+    for (let index = 0; index < input.length; index += 1) {
+      bytes[index] = input.charCodeAt(index) & 0xff;
+    }
+
+    const decoded = new TextDecoder("utf-8").decode(bytes);
+    if (!decoded || decoded.includes("�")) {
+      return input;
+    }
+
+    const inputVnCount = countVietnameseChars(input);
+    const decodedVnCount = countVietnameseChars(decoded);
+    if (decodedVnCount < inputVnCount) {
+      return input;
+    }
+
+    return decoded;
+  } catch {
+    return input;
+  }
+};
+
 const normalizeNotification = (item: NotificationApiItem): NotificationItem => ({
   id: item.id ?? item._id ?? "",
   userId: item.userId,
   type: item.type,
-  title: item.title,
-  body: item.body,
+  title: repairMojibakeText(item.title),
+  body: repairMojibakeText(item.body),
   imageUrl: item.imageUrl,
   link: item.link,
   isRead: Boolean(item.isRead),

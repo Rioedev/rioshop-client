@@ -2,6 +2,7 @@
 import { useMemo, useState } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { authService } from "../../../services/authService";
+import { getErrorMessage } from "../../../utils/errorMessage";
 import { AuthShell } from "../components/AuthShell";
 
 type ForgotFormValues = {
@@ -41,7 +42,7 @@ export function ForgotPasswordPage() {
       await authService.forgotPassword({ email: values.email.trim() });
       setSuccessMessage("Nếu email tồn tại, hệ thống đã gửi hướng dẫn đặt lại mật khẩu.");
     } catch (error) {
-      setErrorMessage(error instanceof Error ? error.message : "Không gửi được yêu cầu quên mật khẩu");
+      setErrorMessage(getErrorMessage(error, "Không gửi được yêu cầu quên mật khẩu"));
     } finally {
       setRequestLoading(false);
     }
@@ -61,7 +62,7 @@ export function ForgotPasswordPage() {
       setSuccessMessage("Đặt lại mật khẩu thành công. Bạn có thể đăng nhập ngay.");
       navigate("/login", { replace: true });
     } catch (error) {
-      setErrorMessage(error instanceof Error ? error.message : "Đặt lại mật khẩu thất bại");
+      setErrorMessage(getErrorMessage(error, "Đặt lại mật khẩu thất bại"));
     } finally {
       setResetLoading(false);
     }

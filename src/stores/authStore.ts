@@ -78,7 +78,7 @@ const clearAuthStorage = () => {
   localStorage.removeItem(AUTH_STORAGE_KEY);
 };
 
-const getErrorMessage = (error: unknown) => resolveErrorMessage(error, "Something went wrong");
+const getErrorMessage = (error: unknown) => resolveErrorMessage(error, "Đã xảy ra lỗi. Vui lòng thử lại.");
 
 const applyAuthState = (user: AuthUser, token: string) => ({
   user,

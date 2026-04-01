@@ -19,6 +19,7 @@ import { toWishlistStoreItems, wishlistService } from "../../../services/wishlis
 import { useAuthStore } from "../../../stores/authStore";
 import { useCartStore } from "../../../stores/cartStore";
 import { useWishlistStore } from "../../../stores/wishlistStore";
+import { getErrorMessage } from "../../../utils/errorMessage";
 
 const sortOptions = [
   { value: "featured", label: "Nổi bật" },
@@ -454,7 +455,7 @@ export function StoreProductsPage() {
         });
         message.success("Đã thêm vào giỏ hàng");
       } catch (error) {
-        const messageText = error instanceof Error ? error.message : "Không thể thêm vào giỏ hàng";
+        const messageText = getErrorMessage(error, "Không thể thêm vào giỏ hàng");
         message.error(messageText);
       }
       return;
@@ -504,7 +505,7 @@ export function StoreProductsPage() {
         setWishlistItems(toWishlistStoreItems(wishlist), userId);
         message.success(inWishlist ? "\u0110\u00e3 x\u00f3a kh\u1ecfi y\u00eau th\u00edch" : "\u0110\u00e3 th\u00eam v\u00e0o y\u00eau th\u00edch");
       } catch (error) {
-        const messageText = error instanceof Error ? error.message : "Kh\u00f4ng th\u1ec3 c\u1eadp nh\u1eadt y\u00eau th\u00edch";
+        const messageText = getErrorMessage(error, "Không thể cập nhật yêu thích");
         message.error(messageText);
       }
       return;

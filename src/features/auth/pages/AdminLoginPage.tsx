@@ -2,6 +2,7 @@ import { Alert, Button, Form, Input, Typography } from "antd";
 import { useState } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { useAuthStore } from "../../../stores/authStore";
+import { getErrorMessage } from "../../../utils/errorMessage";
 import { AuthShell } from "../components/AuthShell";
 
 type AdminLoginFormValues = {
@@ -25,7 +26,7 @@ export function AdminLoginPage() {
       await loginAdmin(values);
       navigate(searchParams.get("redirect") ?? "/admin/dashboard", { replace: true });
     } catch (error) {
-      setErrorMessage(error instanceof Error ? error.message : "Đăng nhập quản trị thất bại");
+      setErrorMessage(getErrorMessage(error, "Đăng nhập quản trị thất bại"));
     }
   };
 

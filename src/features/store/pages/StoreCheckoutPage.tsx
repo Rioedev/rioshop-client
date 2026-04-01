@@ -24,6 +24,7 @@ import {
 } from "../../../services/shippingService";
 import { useAuthStore } from "../../../stores/authStore";
 import { useCartStore } from "../../../stores/cartStore";
+import { getErrorMessage } from "../../../utils/errorMessage";
 
 const objectIdPattern = /^[0-9a-fA-F]{24}$/;
 
@@ -110,7 +111,7 @@ export function StoreCheckoutPage() {
         const preferred = provinceList.find((item) => item.ProvinceID === 201);
         setProvinceId((prev) => prev ?? preferred?.ProvinceID ?? provinceList[0]?.ProvinceID);
       } catch (error) {
-        const text = error instanceof Error ? error.message : "Không tải được danh sách tỉnh/thành GHN";
+        const text = getErrorMessage(error, "Không tải được danh sách tỉnh/thành GHN");
         messageApi.error(text);
       } finally {
         if (mounted) {
@@ -155,7 +156,7 @@ export function StoreCheckoutPage() {
           return preferred?.DistrictID ?? districtList[0]?.DistrictID;
         });
       } catch (error) {
-        const text = error instanceof Error ? error.message : "Không tải được danh sách quận/huyện GHN";
+        const text = getErrorMessage(error, "Không tải được danh sách quận/huyện GHN");
         messageApi.error(text);
       } finally {
         if (mounted) {
@@ -201,7 +202,7 @@ export function StoreCheckoutPage() {
           return preferred?.WardCode ?? wardList[0]?.WardCode;
         });
       } catch (error) {
-        const text = error instanceof Error ? error.message : "Không tải được danh sách phường/xã GHN";
+        const text = getErrorMessage(error, "Không tải được danh sách phường/xã GHN");
         messageApi.error(text);
       } finally {
         if (mounted) {
@@ -257,7 +258,7 @@ export function StoreCheckoutPage() {
         }
         const fallbackFee = shippingMethod === "express" ? 30000 : 20000;
         setShippingFee(fallbackFee);
-        const text = error instanceof Error ? error.message : "Không tính được phí GHN, tạm dùng phí mặc định.";
+        const text = getErrorMessage(error, "Không tính được phí GHN, tạm dùng phí mặc định.");
         messageApi.warning(text);
       } finally {
         if (mounted) {
@@ -432,7 +433,7 @@ export function StoreCheckoutPage() {
           navigate("/orders", { state: { orderId: created.id } });
           return;
         } catch (error) {
-          const paymentMessage = error instanceof Error ? error.message : "Không tạo được giao dịch MoMo test";
+          const paymentMessage = getErrorMessage(error, "Không tạo được giao dịch MoMo");
           messageApi.warning(`Đơn đã tạo nhưng lỗi MoMo: ${paymentMessage}`);
           navigate("/orders", { state: { orderId: created.id } });
           return;
@@ -442,7 +443,7 @@ export function StoreCheckoutPage() {
       messageApi.success("Đặt hàng thành công");
       navigate("/orders", { state: { orderId: created.id } });
     } catch (error) {
-      const messageText = error instanceof Error ? error.message : "Đặt hàng thất bại";
+      const messageText = getErrorMessage(error, "Đặt hàng thất bại");
       messageApi.error(messageText);
     } finally {
       setSubmitting(false);

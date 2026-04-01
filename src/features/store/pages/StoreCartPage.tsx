@@ -25,6 +25,7 @@ import { cartService, toCartCouponMeta, toCartStoreItems } from "../../../servic
 import { productService, type Product } from "../../../services/productService";
 import { buildCartItemId, type CartItem, useCartStore } from "../../../stores/cartStore";
 import { useAuthStore } from "../../../stores/authStore";
+import { getErrorMessage } from "../../../utils/errorMessage";
 
 export function StoreCartPage() {
   const [messageApi, contextHolder] = message.useMessage();
@@ -102,9 +103,6 @@ export function StoreCartPage() {
     item.itemId || buildCartItemId({ productId: item.productId, variantSku: item.variantSku });
   const resolveItemMaxQuantity = (item: CartItem) =>
     getSafeMaxQuantity(item.availableStock, getSafeMaxQuantity(item.quantity, 1));
-
-  const getErrorMessage = (error: unknown) =>
-    error instanceof Error ? error.message : "Không thể xử lý giỏ hàng";
 
   const syncCartFromServer = (cart: Awaited<ReturnType<typeof cartService.getCart>>) => {
     const couponMeta = toCartCouponMeta(cart);

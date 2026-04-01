@@ -17,6 +17,7 @@ import { toWishlistStoreItems, wishlistService } from "../../../services/wishlis
 import { useAuthStore } from "../../../stores/authStore";
 import { useCartStore } from "../../../stores/cartStore";
 import { useWishlistStore } from "../../../stores/wishlistStore";
+import { getErrorMessage } from "../../../utils/errorMessage";
 
 export function StoreWishlistPage() {
   const [messageApi, contextHolder] = message.useMessage();
@@ -69,7 +70,7 @@ export function StoreWishlistPage() {
       setWishlistItems(toWishlistStoreItems(wishlist), userId);
       messageApi.success("Đã xóa khỏi danh sách yêu thích");
     } catch (error) {
-      const messageText = error instanceof Error ? error.message : "Không thể xóa sản phẩm yêu thích";
+      const messageText = getErrorMessage(error, "Không thể xóa sản phẩm yêu thích");
       messageApi.error(messageText);
     } finally {
       setProcessingProductId(null);
@@ -89,7 +90,7 @@ export function StoreWishlistPage() {
       setWishlistItems(toWishlistStoreItems(wishlist), userId);
       messageApi.success("Đã xóa toàn bộ danh sách yêu thích");
     } catch (error) {
-      const messageText = error instanceof Error ? error.message : "Không thể xóa toàn bộ yêu thích";
+      const messageText = getErrorMessage(error, "Không thể xóa toàn bộ yêu thích");
       messageApi.error(messageText);
     } finally {
       setClearing(false);

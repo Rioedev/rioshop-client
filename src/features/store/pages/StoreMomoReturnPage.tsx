@@ -3,6 +3,7 @@ import { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { StorePageShell, StorePanelFrame, storeButtonClassNames } from "../components/StorePageChrome";
 import { paymentService } from "../../../services/paymentService";
+import { getErrorMessage } from "../../../utils/errorMessage";
 
 type ReturnState = {
   status: "loading" | "success" | "failed";
@@ -94,7 +95,7 @@ export function StoreMomoReturnPage() {
           return;
         }
 
-        const messageText = error instanceof Error ? error.message : "Không thể xử lý kết quả thanh toán";
+        const messageText = getErrorMessage(error, "Không thể xử lý kết quả thanh toán");
         setState({
           status: "failed",
           title: "Không xử lý được kết quả MoMo",

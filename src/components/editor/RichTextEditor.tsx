@@ -7,6 +7,7 @@ import Link from "@tiptap/extension-link";
 import TextAlign from "@tiptap/extension-text-align";
 import Placeholder from "@tiptap/extension-placeholder";
 import Image from "@tiptap/extension-image";
+import { getErrorMessage } from "../../utils/errorMessage";
 
 type RichTextEditorProps = {
   value?: string;
@@ -63,7 +64,7 @@ export function RichTextEditor({
       const imageUrl = await onUploadImage(file);
       editor.chain().focus().setImage({ src: imageUrl }).run();
     } catch (error) {
-      messageApi.error(error instanceof Error ? error.message : "Không thể tải ảnh lên");
+      messageApi.error(getErrorMessage(error, "Không thể tải ảnh lên"));
     } finally {
       setUploading(false);
       event.target.value = "";

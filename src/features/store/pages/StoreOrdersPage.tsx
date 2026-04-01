@@ -15,6 +15,7 @@ import { formatStoreCurrency } from "../utils/storeFormatting";
 import { orderService, type OrderRecord, type PaymentStatus } from "../../../services/orderService";
 import { paymentService } from "../../../services/paymentService";
 import { useAuthStore } from "../../../stores/authStore";
+import { getErrorMessage } from "../../../utils/errorMessage";
 
 const statusLabelMap: Record<string, string> = {
   pending: "Chờ xác nhận",
@@ -98,7 +99,7 @@ export function StoreOrdersPage() {
       setPage(result.page);
       setTotalPages(result.totalPages);
     } catch (error) {
-      const msg = error instanceof Error ? error.message : "Không thể tải danh sách đơn hàng";
+      const msg = getErrorMessage(error, "Không thể tải danh sách đơn hàng");
       messageApi.error(msg);
       setOrders([]);
       setTotalPages(1);
@@ -123,7 +124,7 @@ export function StoreOrdersPage() {
       messageApi.success("Đã hủy đơn hàng");
       await loadOrders(page);
     } catch (error) {
-      const msg = error instanceof Error ? error.message : "Không thể hủy đơn";
+      const msg = getErrorMessage(error, "Không thể hủy đơn");
       messageApi.error(msg);
     }
   };
@@ -151,7 +152,7 @@ export function StoreOrdersPage() {
 
       window.location.href = payUrl;
     } catch (error) {
-      const msg = error instanceof Error ? error.message : "Không thể tạo lại giao dịch MoMo";
+      const msg = getErrorMessage(error, "Không thể tạo lại giao dịch MoMo");
       messageApi.error(msg);
     } finally {
       setPayingOrderId(null);

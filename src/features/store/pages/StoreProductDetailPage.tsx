@@ -10,6 +10,7 @@ import { toWishlistStoreItems, wishlistService } from "../../../services/wishlis
 import { useAuthStore } from "../../../stores/authStore";
 import { useCartStore } from "../../../stores/cartStore";
 import { useWishlistStore } from "../../../stores/wishlistStore";
+import { getErrorMessage } from "../../../utils/errorMessage";
 import {
   formatStoreCurrency as formatCurrency,
   resolveStoreImageUrl as resolveImageUrl,
@@ -520,7 +521,7 @@ export function StoreProductDetailPage() {
       message.success("Đã gửi bình luận. Admin sẽ duyệt trước khi hiển thị công khai.");
       await loadReviewData(product._id, product);
     } catch (error) {
-      const messageText = error instanceof Error ? error.message : "Không thể gửi bình luận";
+      const messageText = getErrorMessage(error, "Không thể gửi bình luận");
       message.error(messageText);
     } finally {
       setReviewSubmitting(false);
@@ -573,7 +574,7 @@ export function StoreProductDetailPage() {
 
         message.success("Đã thêm sản phẩm vào giỏ hàng");
       } catch (error) {
-        const messageText = error instanceof Error ? error.message : "Không thể thêm vào giỏ hàng";
+        const messageText = getErrorMessage(error, "Không thể thêm vào giỏ hàng");
         message.error(messageText);
       }
       return;
@@ -625,7 +626,7 @@ export function StoreProductDetailPage() {
         setWishlistItems(toWishlistStoreItems(wishlist), userId);
         message.success(isInWishlist ? "Đã xóa khỏi yêu thích" : "Đã thêm vào yêu thích");
       } catch (error) {
-        const messageText = error instanceof Error ? error.message : "Không thể cập nhật yêu thích";
+        const messageText = getErrorMessage(error, "Không thể cập nhật yêu thích");
         message.error(messageText);
       }
       return;

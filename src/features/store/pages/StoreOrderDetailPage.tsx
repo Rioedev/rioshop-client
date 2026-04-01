@@ -20,6 +20,7 @@ import {
   type PaymentStatus,
 } from "../../../services/orderService";
 import { useAuthStore } from "../../../stores/authStore";
+import { getErrorMessage } from "../../../utils/errorMessage";
 
 const orderStatusLabelMap: Record<string, string> = {
   pending: "Chờ xác nhận",
@@ -139,7 +140,7 @@ export function StoreOrderDetailPage() {
       const result = await orderService.getOrderById(id);
       setOrder(result);
     } catch (error) {
-      const messageText = error instanceof Error ? error.message : "Không thể tải chi tiết đơn hàng";
+      const messageText = getErrorMessage(error, "Không thể tải chi tiết đơn hàng");
       messageApi.error(messageText);
       setOrder(null);
     } finally {
@@ -220,7 +221,7 @@ export function StoreOrderDetailPage() {
 
       window.location.href = payUrl;
     } catch (error) {
-      const messageText = error instanceof Error ? error.message : "Không thể tạo lại giao dịch MoMo";
+      const messageText = getErrorMessage(error, "Không thể tạo lại giao dịch MoMo");
       messageApi.error(messageText);
     } finally {
       setRetryingPayment(false);
