@@ -29,10 +29,10 @@
 }
 
 .pdpv2-spec-list li {
-  display: flex;
+  display: grid;
+  grid-template-columns: minmax(120px, 180px) minmax(0, 1fr);
   align-items: center;
-  justify-content: space-between;
-  gap: 8px;
+  gap: 12px;
   font-size: 13px;
   color: #334155;
   border-bottom: 1px dashed #dbe3ef;
@@ -41,6 +41,8 @@
 
 .pdpv2-spec-list li strong {
   color: #0f172a;
+  justify-self: start;
+  text-align: left;
 }
 
 .pdpv2-rich-text {
@@ -49,6 +51,48 @@
   line-height: 1.8;
   color: #334155;
   word-break: break-word;
+}
+
+.pdpv2-description-layout {
+  margin-top: 16px;
+  display: grid;
+  gap: 16px;
+}
+
+.pdpv2-description-layout.has-media {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+@media (min-width: 992px) {
+  .pdpv2-description-layout.has-media {
+    grid-template-columns: minmax(0, 1fr) clamp(260px, 28vw, 420px);
+    align-items: start;
+  }
+}
+
+.pdpv2-description-text {
+  margin-top: 0;
+}
+
+.pdpv2-description-media {
+  border-radius: 12px;
+  overflow: hidden;
+  background: #e2e8f0;
+}
+
+.pdpv2-description-media-stack {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  align-content: start;
+}
+
+.pdpv2-description-media > img {
+  display: block;
+  width: 100%;
+  height: auto;
+  object-fit: cover;
+  object-position: center;
 }
 
 .pdpv2-rich-text p {
@@ -71,10 +115,10 @@
 
 .pdpv2-rich-text img {
   display: block;
-  width: 100%;
+  width: min(100%, 680px);
   max-width: 100%;
   height: auto;
-  margin: 12px 0;
+  margin: 12px auto;
   border-radius: 12px;
 }
 

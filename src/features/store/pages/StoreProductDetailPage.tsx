@@ -376,6 +376,35 @@ export function StoreProductDetailPage() {
     [product?.description],
   );
 
+  const descriptionImageList = useMemo(() => {
+    if (!sanitizedDescriptionHtml) {
+      return [] as string[];
+    }
+
+    const imageMatches = [...sanitizedDescriptionHtml.matchAll(/<img[^>]*src=["']([^"']+)["'][^>]*>/gi)];
+    const urls = imageMatches
+      .map((match) => match[1]?.trim() || "")
+      .filter((url): url is string => Boolean(url));
+
+    return Array.from(new Set(urls));
+  }, [sanitizedDescriptionHtml]);
+
+  const descriptionTextHtml = useMemo(() => {
+    if (!sanitizedDescriptionHtml) {
+      return "";
+    }
+
+    return sanitizedDescriptionHtml
+      .replace(/<img[^>]*>/gi, "")
+      .replace(/<figure[^>]*>\s*<\/figure>/gi, "")
+      .trim();
+  }, [sanitizedDescriptionHtml]);
+
+  const hasDescriptionText = useMemo(
+    () => stripHtmlToText(descriptionTextHtml).trim().length > 0,
+    [descriptionTextHtml],
+  );
+
   useEffect(() => {
     setSelectedImage(imageList[0] ?? mediaFallbackImages[0]);
   }, [imageList, mediaFallbackImages]);
@@ -687,10 +716,24 @@ export function StoreProductDetailPage() {
             </ul>
 
             {sanitizedDescriptionHtml ? (
-              <div
-                className="pdpv2-rich-text"
-                dangerouslySetInnerHTML={{ __html: sanitizedDescriptionHtml }}
-              />
+              <div className={`pdpv2-description-layout ${descriptionImageList.length > 0 ? "has-media" : ""}`}>
+                {hasDescriptionText ? (
+                  <div
+                    className="pdpv2-rich-text pdpv2-description-text"
+                    dangerouslySetInnerHTML={{ __html: descriptionTextHtml }}
+                  />
+                ) : null}
+
+                {descriptionImageList.length > 0 ? (
+                  <div className="pdpv2-description-media-stack">
+                    {descriptionImageList.map((imageUrl, index) => (
+                      <div key={`${imageUrl}-${index}`} className="pdpv2-description-media">
+                        <img src={imageUrl} alt={`${product.name} ${index + 1}`} loading="lazy" />
+                      </div>
+                    ))}
+                  </div>
+                ) : null}
+              </div>
             ) : (
               <Paragraph className="mb-0! mt-4! text-sm! leading-7! text-slate-600!">
                 Sản phẩm được phát triển theo hướng tối giản, dễ mặc, dễ phối và dễ bảo quản.
