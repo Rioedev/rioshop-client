@@ -35,6 +35,13 @@ export type ProductMedia = {
   position?: number;
 };
 
+export type ProductCollection = {
+  _id: string;
+  name: string;
+  slug?: string;
+  image?: string;
+};
+
 export type Product = {
   _id: string;
   sku: string;
@@ -48,6 +55,7 @@ export type Product = {
     name: string;
     slug?: string;
   } | null;
+  collections?: ProductCollection[];
   gender?: ProductGender;
   pricing: {
     basePrice: number;
@@ -90,6 +98,7 @@ export type ProductPayload = {
     name: string;
     slug?: string;
   };
+  collections?: ProductCollection[];
   pricing: {
     basePrice: number;
     salePrice: number;
@@ -133,6 +142,7 @@ export type ProductQueryParams = {
   limit?: number;
   q?: string;
   category?: string;
+  collection?: string;
   gender?: ProductGender;
   minPrice?: number;
   maxPrice?: number;

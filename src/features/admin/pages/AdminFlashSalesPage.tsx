@@ -122,7 +122,7 @@ export function AdminFlashSalesPage() {
       try {
         const result = await productService.getProducts({
           page: 1,
-          limit: 200,
+          limit: 100,
           status: "active",
           sort: { createdAt: -1 },
         });

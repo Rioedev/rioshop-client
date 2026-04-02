@@ -57,6 +57,7 @@ export type ProductFormValues = {
   name: string;
   brand: string;
   categoryId: string;
+  collectionIds?: string[];
   gender?: ProductGender;
   ageGroup?: "adult" | "teen" | "kids" | "baby";
   basePrice: number;

@@ -83,20 +83,26 @@ export function AdminProductsPage() {
   const {
     products,
     categoryOptions,
+    collectionOptions,
     categoryLookup,
+    collectionLookup,
     loading,
     categoryLoading,
+    collectionLoading,
     saving,
     page,
     pageSize,
     total,
     keyword,
     categoryId,
+    collectionId,
     statusFilter,
     loadProducts,
     loadCategoryOptions,
+    loadCollectionOptions,
     setKeyword,
     setCategoryId,
+    setCollectionId,
     setStatusFilter,
     createProduct,
     updateProduct,
@@ -110,9 +116,17 @@ export function AdminProductsPage() {
   useEffect(() => {
     void Promise.all([
       loadCategoryOptions(),
-      loadProducts({ page: 1, pageSize: 10, keyword: "", categoryId: undefined, statusFilter: "all" }),
+      loadCollectionOptions(),
+      loadProducts({
+        page: 1,
+        pageSize: 10,
+        keyword: "",
+        categoryId: undefined,
+        collectionId: undefined,
+        statusFilter: "all",
+      }),
     ]).catch((error) => messageApi.error(getErrorMessage(error)));
-  }, [loadCategoryOptions, loadProducts, messageApi]);
+  }, [loadCategoryOptions, loadCollectionOptions, loadProducts, messageApi]);
 
   useEffect(() => {
     if (skipFirstSearch.current) {
@@ -123,17 +137,40 @@ export function AdminProductsPage() {
       const q = searchText.trim();
       setKeyword(q);
       const nextCategory = q ? undefined : categoryId;
+      const nextCollection = q ? undefined : collectionId;
       if (q && categoryId) setCategoryId(undefined);
-      void loadProducts({ page: 1, pageSize, keyword: q, categoryId: nextCategory, statusFilter }).catch(
-        (error) => messageApi.error(getErrorMessage(error)),
-      );
+      if (q && collectionId) setCollectionId(undefined);
+      void loadProducts({
+        page: 1,
+        pageSize,
+        keyword: q,
+        categoryId: nextCategory,
+        collectionId: nextCollection,
+        statusFilter,
+      }).catch((error) => messageApi.error(getErrorMessage(error)));
     }, 350);
     return () => clearTimeout(timer);
-  }, [categoryId, loadProducts, messageApi, pageSize, searchText, setCategoryId, setKeyword, statusFilter]);
+  }, [
+    categoryId,
+    collectionId,
+    loadProducts,
+    messageApi,
+    pageSize,
+    searchText,
+    setCategoryId,
+    setCollectionId,
+    setKeyword,
+    statusFilter,
+  ]);
 
   const categoryFilterOptions = useMemo(
     () => [{ value: "all", label: "Tất cả danh mục" }, ...categoryOptions],
     [categoryOptions],
+  );
+
+  const collectionFilterOptions = useMemo(
+    () => [{ value: "all", label: "Tất cả bộ sưu tập" }, ...collectionOptions],
+    [collectionOptions],
   );
 
   const getSuggestedProductSku = useCallback(
@@ -284,6 +321,25 @@ export function AdminProductsPage() {
         pageSize,
         keyword,
         categoryId: nextCategoryId,
+        collectionId,
+        statusFilter,
+      });
+    } catch (error) {
+      messageApi.error(getErrorMessage(error));
+    }
+  };
+
+  const handleCollectionChange = async (value: string) => {
+    const nextCollectionId = value === "all" ? undefined : value;
+    setCollectionId(nextCollectionId);
+
+    try {
+      await loadProducts({
+        page: 1,
+        pageSize,
+        keyword,
+        categoryId,
+        collectionId: nextCollectionId,
         statusFilter,
       });
     } catch (error) {
@@ -300,6 +356,7 @@ export function AdminProductsPage() {
         pageSize,
         keyword,
         categoryId,
+        collectionId,
         statusFilter: value,
       });
     } catch (error) {
@@ -315,6 +372,7 @@ export function AdminProductsPage() {
     form.setFieldsValue({
       status: "active",
       sku: "",
+      collectionIds: [],
       variantGroups: [defaultVariantGroup()],
       gender: "unisex",
       ageGroup: "adult",
@@ -331,6 +389,7 @@ export function AdminProductsPage() {
       name: product.name,
       brand: product.brand,
       categoryId: product.category?._id,
+      collectionIds: (product.collections ?? []).map((item) => item._id),
       basePrice: product.pricing.basePrice,
       salePrice: product.pricing.salePrice,
       status: product.status,
@@ -354,6 +413,9 @@ export function AdminProductsPage() {
       const values = form.getFieldsValue(true) as ProductFormValues;
       const category = categoryLookup[values.categoryId];
       if (!category) return messageApi.error("Không tìm thấy danh mục");
+      const selectedCollections = (values.collectionIds ?? [])
+        .map((collectionItemId) => collectionLookup[collectionItemId])
+        .filter((item): item is NonNullable<typeof item> => Boolean(item));
 
       const slug = toSlug(values.name);
       if (!slug) return messageApi.error("Tên sản phẩm không hợp lệ");
@@ -427,6 +489,12 @@ export function AdminProductsPage() {
         description: values.description?.trim() || "",
         shortDescription: values.shortDescription?.trim() || "",
         category,
+        collections: selectedCollections.map((item) => ({
+          _id: item._id,
+          name: item.name,
+          slug: item.slug,
+          image: item.image,
+        })),
         pricing: { basePrice: values.basePrice, salePrice: values.salePrice, currency: "VND" },
         status: values.status,
         gender: values.gender,
@@ -510,6 +578,15 @@ export function AdminProductsPage() {
     { title: "Tên", dataIndex: "name", key: "name", width: 220 },
     { title: "Biến thể", key: "variants", width: 90, render: (_, r) => r.variants?.length ?? 0 },
     { title: "Danh mục", key: "category", width: 150, render: (_, r) => r.category?.name ?? "-" },
+    {
+      title: "Bộ sưu tập",
+      key: "collections",
+      width: 220,
+      render: (_, record) =>
+        (record.collections ?? []).length > 0
+          ? (record.collections ?? []).map((item) => item.name).join(", ")
+          : "-",
+    },
     { title: "Giá bán", key: "price", width: 140, render: (_, r) => `${formatCurrency.format(r.pricing.salePrice)} VND` },
     { title: "Tồn kho", key: "stock", width: 90, render: (_, r) => getStock(r) },
     { title: "Trạng thái", dataIndex: "status", key: "status", width: 120, render: (status: ProductStatus) => <Tag color={STATUS_COLORS[status]}>{STATUS_LABELS[status]}</Tag> },
@@ -553,9 +630,10 @@ export function AdminProductsPage() {
       </Row>
 
       <Card>
-        <div className="mb-4 grid gap-3 md:grid-cols-[1fr_220px_180px]">
+        <div className="mb-4 grid gap-3 md:grid-cols-[1fr_220px_220px_180px]">
           <Input value={searchText} onChange={(e) => setSearchText(e.target.value)} allowClear placeholder="Tìm theo tên, SKU, thương hiệu hoặc SKU biến thể" />
           <Select value={categoryId ?? "all"} options={categoryFilterOptions} onChange={(value) => void handleCategoryChange(value)} loading={categoryLoading} disabled={keyword.trim().length > 0} />
+          <Select value={collectionId ?? "all"} options={collectionFilterOptions} onChange={(value) => void handleCollectionChange(value)} loading={collectionLoading} disabled={keyword.trim().length > 0} />
           <Select<ProductStatusFilter> value={statusFilter} options={STATUS_FILTER_OPTIONS} onChange={(value) => void handleStatusFilterChange(value)} />
         </div>
         <Table<Product>
@@ -566,7 +644,7 @@ export function AdminProductsPage() {
           scroll={{ x: 1400 }}
           pagination={{ current: page, pageSize, total, showSizeChanger: true, showTotal: (value) => `Tổng ${value} sản phẩm` }}
           onChange={(pagination: TablePaginationConfig) =>
-            void loadProducts({ page: pagination.current ?? 1, pageSize: pagination.pageSize ?? pageSize, keyword, categoryId, statusFilter }).catch((e) => messageApi.error(getErrorMessage(e)))
+            void loadProducts({ page: pagination.current ?? 1, pageSize: pagination.pageSize ?? pageSize, keyword, categoryId, collectionId, statusFilter }).catch((e) => messageApi.error(getErrorMessage(e)))
           }
         />
       </Card>
@@ -620,6 +698,16 @@ export function AdminProductsPage() {
                 <Text strong className="text-base">Chi tiết nhanh</Text>
                 <Form.Item label="Danh mục" name="categoryId" rules={REQUIRED_RULE} className="mb-3! mt-3!">
                   <Select options={categoryOptions} optionFilterProp="label" showSearch placeholder="Chọn danh mục" />
+                </Form.Item>
+                <Form.Item label="Bộ sưu tập" name="collectionIds" className="mb-3!">
+                  <Select
+                    mode="multiple"
+                    options={collectionOptions}
+                    optionFilterProp="label"
+                    showSearch
+                    allowClear
+                    placeholder="Chọn bộ sưu tập"
+                  />
                 </Form.Item>
                 <Form.Item label="Giới tính" name="gender" className="mb-3!">
                   <Select options={GENDER_OPTIONS} placeholder="Chọn giới tính" />

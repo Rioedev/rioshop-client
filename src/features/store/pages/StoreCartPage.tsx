@@ -23,9 +23,19 @@ import {
 } from "../utils/quantityInputGuards";
 import { cartService, toCartCouponMeta, toCartStoreItems } from "../../../services/cartService";
 import { productService, type Product } from "../../../services/productService";
+import { shippingService, type ShippingPolicy } from "../../../services/shippingService";
 import { buildCartItemId, type CartItem, useCartStore } from "../../../stores/cartStore";
 import { useAuthStore } from "../../../stores/authStore";
 import { getErrorMessage } from "../../../utils/errorMessage";
+
+const DEFAULT_SHIPPING_POLICY: ShippingPolicy = {
+  freeShipEnabled: true,
+  freeShipThreshold: 299000,
+  freeShipEligibleMethods: ["standard", "express"],
+  sameDayFlatFee: 45000,
+  ghnFallbackStandardFee: 20000,
+  ghnFallbackExpressFee: 30000,
+};
 
 export function StoreCartPage() {
   const [messageApi, contextHolder] = message.useMessage();
@@ -43,29 +53,72 @@ export function StoreCartPage() {
   const [couponInput, setCouponInput] = useState("");
   const [applyingCoupon, setApplyingCoupon] = useState(false);
   const [clearingCoupon, setClearingCoupon] = useState(false);
+  const [shippingPolicy, setShippingPolicy] = useState<ShippingPolicy>(DEFAULT_SHIPPING_POLICY);
+  const [shippingPolicyLoading, setShippingPolicyLoading] = useState(true);
 
   useEffect(() => {
     setCouponInput(couponCode ?? "");
   }, [couponCode]);
 
-  const { subtotal, shippingFee, discountValue, total, freeShipProgress, amountToFreeShip, totalItems } = useMemo(() => {
+  useEffect(() => {
+    let active = true;
+
+    const loadShippingPolicy = async () => {
+      try {
+        const policy = await shippingService.getShippingPolicy();
+        if (!active) {
+          return;
+        }
+        setShippingPolicy({
+          ...DEFAULT_SHIPPING_POLICY,
+          ...policy,
+        });
+      } catch {
+        if (active) {
+          setShippingPolicy(DEFAULT_SHIPPING_POLICY);
+        }
+      } finally {
+        if (active) {
+          setShippingPolicyLoading(false);
+        }
+      }
+    };
+
+    void loadShippingPolicy();
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  const {
+    subtotal,
+    discountValue,
+    total,
+    freeShipProgress,
+    amountToFreeShip,
+    totalItems,
+    isFreeShipTracked,
+    isEligibleForFreeShip,
+  } = useMemo(() => {
     const subtotalValue = items.reduce((sum, item) => sum + item.price * item.quantity, 0);
     const quantityValue = items.reduce((sum, item) => sum + item.quantity, 0);
-    const threshold = 299000;
-    const shipping = items.length === 0 || subtotalValue >= threshold ? 0 : 30000;
-    const discount = Math.max(0, Math.min(Number(couponDiscount || 0), subtotalValue + shipping));
-    const progress = Math.min(100, Math.round((subtotalValue / threshold) * 100));
+    const threshold = Math.max(0, Number(shippingPolicy.freeShipThreshold || 0));
+    const trackFreeShip = shippingPolicy.freeShipEnabled && threshold > 0;
+    const eligible = trackFreeShip && subtotalValue >= threshold;
+    const progress = trackFreeShip ? Math.min(100, Math.round((subtotalValue / threshold) * 100)) : 0;
+    const discount = Math.max(0, Math.min(Number(couponDiscount || 0), subtotalValue));
 
     return {
       subtotal: subtotalValue,
-      shippingFee: shipping,
       discountValue: discount,
-      total: Math.max(0, subtotalValue + shipping - discount),
+      total: Math.max(0, subtotalValue - discount),
       freeShipProgress: progress,
-      amountToFreeShip: Math.max(0, threshold - subtotalValue),
+      amountToFreeShip: trackFreeShip ? Math.max(0, threshold - subtotalValue) : 0,
       totalItems: quantityValue,
+      isFreeShipTracked: trackFreeShip,
+      isEligibleForFreeShip: eligible,
     };
-  }, [couponDiscount, items]);
+  }, [couponDiscount, items, shippingPolicy]);
 
   useEffect(() => {
     let active = true;
@@ -285,10 +338,12 @@ export function StoreCartPage() {
     },
     {
       label: "Freeship",
-      value: amountToFreeShip > 0 ? formatStoreCurrency(amountToFreeShip) : "Đã đạt",
-      description: amountToFreeShip > 0
-        ? "Giá trị còn thiếu để đạt ngưỡng miễn phí giao hàng."
-        : "Đơn hàng hiện tại đã đủ điều kiện freeship.",
+      value: !isFreeShipTracked ? "Theo chính sách" : amountToFreeShip > 0 ? formatStoreCurrency(amountToFreeShip) : "Đã đạt",
+      description: !isFreeShipTracked
+        ? "Chính sách freeship được áp ở bước thanh toán theo phương thức giao."
+        : amountToFreeShip > 0
+          ? "Giá trị còn thiếu để đạt ngưỡng miễn phí giao hàng."
+          : "Đơn hàng hiện tại đã đủ điều kiện freeship.",
     },
   ];
 
@@ -313,13 +368,22 @@ export function StoreCartPage() {
           <div className="cart-free-ship-box">
             <div className="flex flex-wrap items-center justify-between gap-3">
               <p className="m-0 text-sm font-semibold text-slate-700">Tiến độ nhận freeship</p>
-              {amountToFreeShip > 0 ? (
+              {shippingPolicyLoading ? (
+                <span className="text-sm text-slate-500">Đang tải chính sách freeship...</span>
+              ) : !isFreeShipTracked ? (
+                <span className="text-sm text-slate-500">Freeship được áp ở bước checkout theo phương thức giao.</span>
+              ) : amountToFreeShip > 0 ? (
                 <span className="text-sm text-slate-500">Thêm {formatStoreCurrency(amountToFreeShip)} để được miễn phí vận chuyển</span>
               ) : (
                 <span className="text-sm font-semibold text-emerald-600">Bạn đã đủ điều kiện freeship</span>
               )}
             </div>
-            <Progress percent={freeShipProgress} showInfo={false} strokeColor="#0f172a" trailColor="#e2e8f0" />
+            <Progress
+              percent={isFreeShipTracked ? freeShipProgress : 0}
+              showInfo={false}
+              strokeColor="#0f172a"
+              trailColor="#e2e8f0"
+            />
           </div>
 
           <StoreSectionHeader
@@ -435,7 +499,11 @@ export function StoreCartPage() {
           </div>
           <div className="cart-summary-row">
             <span>Phí vận chuyển</span>
-            <strong>{shippingFee === 0 ? "Miễn phí" : formatStoreCurrency(shippingFee)}</strong>
+            <strong>
+              {isFreeShipTracked && isEligibleForFreeShip
+                ? "Đủ điều kiện freeship"
+                : "Tính theo GHN ở bước thanh toán"}
+            </strong>
           </div>
           {discountValue > 0 ? (
             <div className="cart-summary-row cart-summary-row-discount">
@@ -444,9 +512,10 @@ export function StoreCartPage() {
             </div>
           ) : null}
           <div className="cart-summary-row is-total">
-            <span>Tổng cộng</span>
+            <span>Tổng tạm tính</span>
             <strong>{formatStoreCurrency(total)}</strong>
           </div>
+          <p className="mt-2 text-xs text-slate-500">Phí vận chuyển chính xác sẽ được tính theo GHN ở bước thanh toán.</p>
 
           <div className="mt-5">
             <p className="mb-2 text-xs font-bold uppercase tracking-[0.12em] text-slate-500">Mã giảm giá</p>

@@ -2,7 +2,6 @@
   AppstoreOutlined,
   BellOutlined,
   BgColorsOutlined,
-  DownOutlined,
   GiftOutlined,
   HomeOutlined,
   InfoCircleOutlined,
@@ -38,6 +37,7 @@ const ADMIN_THEME_STORAGE_KEY = "rioshop_admin_theme";
 const baseAdminMenuItems: ItemType[] = [
   { key: "/admin/dashboard", icon: <HomeOutlined />, label: "Tổng quan" },
   { key: "/admin/categories", icon: <TagsOutlined />, label: "Danh mục" },
+  { key: "/admin/collections", icon: <TagsOutlined />, label: "Bộ sưu tập" },
   { key: "/admin/products", icon: <AppstoreOutlined />, label: "Sản phẩm" },
   { key: "/admin/inventories", icon: <InboxOutlined />, label: "Tồn kho" },
   { key: "/admin/orders", icon: <ShoppingCartOutlined />, label: "Đơn hàng" },
@@ -65,6 +65,7 @@ const baseAdminMenuItems: ItemType[] = [
 const pageTitleMap: Record<string, string> = {
   "/admin/dashboard": "Tổng quan",
   "/admin/categories": "Danh mục",
+  "/admin/collections": "Bộ sưu tập",
   "/admin/products": "Sản phẩm",
   "/admin/inventories": "Tồn kho",
   "/admin/orders": "Đơn hàng",
@@ -375,4 +376,3 @@ export function AdminLayout() {
     </Layout>
   );
 }
-

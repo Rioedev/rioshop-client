@@ -20,6 +20,8 @@ import {
   shippingService,
   type GhnDistrict,
   type GhnProvince,
+  type ShippingMethod,
+  type ShippingPolicy,
   type GhnWard,
 } from "../../../services/shippingService";
 import { useAuthStore } from "../../../stores/authStore";
@@ -27,6 +29,43 @@ import { useCartStore } from "../../../stores/cartStore";
 import { getErrorMessage } from "../../../utils/errorMessage";
 
 const objectIdPattern = /^[0-9a-fA-F]{24}$/;
+const DEFAULT_SHIPPING_POLICY: ShippingPolicy = {
+  freeShipEnabled: true,
+  freeShipThreshold: 299000,
+  freeShipEligibleMethods: ["standard", "express"],
+  sameDayFlatFee: 45000,
+  ghnFallbackStandardFee: 20000,
+  ghnFallbackExpressFee: 30000,
+};
+
+const toSafeMoney = (value: unknown, fallback = 0) => {
+  const parsed = Number(value);
+  if (!Number.isFinite(parsed)) {
+    return Math.max(0, Math.round(fallback));
+  }
+  return Math.max(0, Math.round(parsed));
+};
+
+const applyShippingPolicyLocally = (
+  subtotal: number,
+  shippingMethod: ShippingMethod,
+  baseShippingFee: number,
+  policy: ShippingPolicy,
+) => {
+  const safeBaseShippingFee = toSafeMoney(baseShippingFee, 0);
+  const safeThreshold = toSafeMoney(policy.freeShipThreshold, DEFAULT_SHIPPING_POLICY.freeShipThreshold);
+  const isMethodEligible = policy.freeShipEnabled && policy.freeShipEligibleMethods.includes(shippingMethod);
+  const isEligibleForFreeShip = isMethodEligible && subtotal >= safeThreshold;
+  const freeShipDiscount = isEligibleForFreeShip ? safeBaseShippingFee : 0;
+
+  return {
+    rawShippingFee: safeBaseShippingFee,
+    shippingFeePayable: Math.max(0, safeBaseShippingFee - freeShipDiscount),
+    freeShipDiscount,
+    isEligibleForFreeShip,
+    remainingToFreeShip: isMethodEligible ? Math.max(0, safeThreshold - subtotal) : 0,
+  };
+};
 
 export function StoreCheckoutPage() {
   const navigate = useNavigate();
@@ -44,17 +83,22 @@ export function StoreCheckoutPage() {
   const [email, setEmail] = useState(user?.email ?? "");
   const [address, setAddress] = useState("");
   const [note, setNote] = useState("");
-  const [shippingMethod, setShippingMethod] = useState<"standard" | "express" | "same_day">("standard");
+  const [shippingMethod, setShippingMethod] = useState<ShippingMethod>("standard");
   const [paymentMethod, setPaymentMethod] = useState<"cod" | "momo" | "vnpay" | "bank_transfer">("cod");
   const [submitting, setSubmitting] = useState(false);
   const [locationLoading, setLocationLoading] = useState(false);
   const [shippingFeeLoading, setShippingFeeLoading] = useState(false);
+  const [shippingPolicy, setShippingPolicy] = useState<ShippingPolicy>(DEFAULT_SHIPPING_POLICY);
   const [provinces, setProvinces] = useState<GhnProvince[]>([]);
   const [districts, setDistricts] = useState<GhnDistrict[]>([]);
   const [wards, setWards] = useState<GhnWard[]>([]);
   const [provinceId, setProvinceId] = useState<number | undefined>(undefined);
   const [districtId, setDistrictId] = useState<number | undefined>(undefined);
   const [wardCode, setWardCode] = useState<string | undefined>(undefined);
+  const [rawShippingFee, setRawShippingFee] = useState(0);
+  const [freeShipDiscount, setFreeShipDiscount] = useState(0);
+  const [isEligibleForFreeShip, setIsEligibleForFreeShip] = useState(false);
+  const [remainingToFreeShip, setRemainingToFreeShip] = useState(0);
   const [shippingFee, setShippingFee] = useState(0);
 
   const selectedProvince = useMemo(
@@ -92,6 +136,32 @@ export function StoreCheckoutPage() {
       total: Math.max(0, subtotal + shippingFee - discount),
     };
   }, [couponDiscount, shippingFee, subtotal]);
+
+  useEffect(() => {
+    let mounted = true;
+
+    const loadShippingPolicy = async () => {
+      try {
+        const policy = await shippingService.getShippingPolicy();
+        if (!mounted) {
+          return;
+        }
+        setShippingPolicy({
+          ...DEFAULT_SHIPPING_POLICY,
+          ...policy,
+        });
+      } catch {
+        if (mounted) {
+          setShippingPolicy(DEFAULT_SHIPPING_POLICY);
+        }
+      }
+    };
+
+    void loadShippingPolicy();
+    return () => {
+      mounted = false;
+    };
+  }, []);
 
   useEffect(() => {
     if (!isAuthenticated) {
@@ -223,17 +293,36 @@ export function StoreCheckoutPage() {
     }
 
     if (subtotal <= 0) {
+      setRawShippingFee(0);
+      setFreeShipDiscount(0);
+      setIsEligibleForFreeShip(false);
+      setRemainingToFreeShip(0);
       setShippingFee(0);
       return;
     }
 
     if (shippingMethod === "same_day") {
-      setShippingFee(45000);
+      const localQuote = applyShippingPolicyLocally(
+        subtotal,
+        shippingMethod,
+        shippingPolicy.sameDayFlatFee,
+        shippingPolicy,
+      );
+      setRawShippingFee(localQuote.rawShippingFee);
+      setShippingFee(localQuote.shippingFeePayable);
+      setFreeShipDiscount(localQuote.freeShipDiscount);
+      setIsEligibleForFreeShip(localQuote.isEligibleForFreeShip);
+      setRemainingToFreeShip(localQuote.remainingToFreeShip);
       return;
     }
 
     if (!districtId || !wardCode) {
+      const localQuote = applyShippingPolicyLocally(subtotal, shippingMethod, 0, shippingPolicy);
+      setRawShippingFee(localQuote.rawShippingFee);
       setShippingFee(0);
+      setFreeShipDiscount(localQuote.freeShipDiscount);
+      setIsEligibleForFreeShip(localQuote.isEligibleForFreeShip);
+      setRemainingToFreeShip(localQuote.remainingToFreeShip);
       return;
     }
 
@@ -245,20 +334,44 @@ export function StoreCheckoutPage() {
           toDistrictId: districtId,
           toWardCode: wardCode,
           shippingMethod,
+          subtotal,
           insuranceValue: subtotal,
           packageProfile,
         });
         if (!mounted) {
           return;
         }
-        setShippingFee(Math.max(0, Number(result.totalFee || 0)));
+        const nextRawShippingFee = toSafeMoney(result.rawShippingFee ?? result.totalFee, 0);
+        const nextShippingFee = toSafeMoney(result.shippingFeePayable ?? result.totalFee, 0);
+        const nextFreeShipDiscount = toSafeMoney(
+          result.freeShipDiscount ?? nextRawShippingFee - nextShippingFee,
+          0,
+        );
+        setRawShippingFee(nextRawShippingFee);
+        setShippingFee(nextShippingFee);
+        setFreeShipDiscount(nextFreeShipDiscount);
+        setIsEligibleForFreeShip(Boolean(result.isEligibleForFreeShip));
+        setRemainingToFreeShip(toSafeMoney(result.remainingToFreeShip, 0));
       } catch (error) {
         if (!mounted) {
           return;
         }
-        const fallbackFee = shippingMethod === "express" ? 30000 : 20000;
-        setShippingFee(fallbackFee);
-        const text = getErrorMessage(error, "Không tính được phí GHN, tạm dùng phí mặc định.");
+        const fallbackFee =
+          shippingMethod === "express"
+            ? shippingPolicy.ghnFallbackExpressFee
+            : shippingPolicy.ghnFallbackStandardFee;
+        const localQuote = applyShippingPolicyLocally(
+          subtotal,
+          shippingMethod,
+          fallbackFee,
+          shippingPolicy,
+        );
+        setRawShippingFee(localQuote.rawShippingFee);
+        setShippingFee(localQuote.shippingFeePayable);
+        setFreeShipDiscount(localQuote.freeShipDiscount);
+        setIsEligibleForFreeShip(localQuote.isEligibleForFreeShip);
+        setRemainingToFreeShip(localQuote.remainingToFreeShip);
+        const text = getErrorMessage(error, "Không tính được phí GHN, tạm dùng phí dự phòng.");
         messageApi.warning(text);
       } finally {
         if (mounted) {
@@ -271,7 +384,16 @@ export function StoreCheckoutPage() {
     return () => {
       mounted = false;
     };
-  }, [districtId, isAuthenticated, messageApi, packageProfile, shippingMethod, subtotal, wardCode]);
+  }, [
+    districtId,
+    isAuthenticated,
+    messageApi,
+    packageProfile,
+    shippingMethod,
+    shippingPolicy,
+    subtotal,
+    wardCode,
+  ]);
 
   const invalidProductIds = cartItems.filter((item) => !objectIdPattern.test(item.productId));
   const itemsMissingVariant = cartItems.filter((item) => !item.variantSku?.trim());
@@ -459,7 +581,7 @@ export function StoreCheckoutPage() {
     {
       label: "Vận chuyển",
       value: formatStoreCurrency(shippingFee),
-      description: "Phí tạm tính dựa trên cách giao hàng bạn đang chọn.",
+      description: "Phí tính theo GHN và được trừ freeship tự động nếu đủ điều kiện.",
     },
     {
       label: "Thanh toán",
@@ -577,7 +699,7 @@ export function StoreCheckoutPage() {
                   { value: "express", label: "Nhanh (1-2 ngày)" },
                   { value: "same_day", label: "Trong ngày (nội thành)" },
                 ]}
-                onChange={(value) => setShippingMethod(value)}
+                onChange={(value) => setShippingMethod(value as ShippingMethod)}
                 className="w-full"
               />
             </div>
@@ -598,7 +720,17 @@ export function StoreCheckoutPage() {
           </div>
 
           {shippingMethod !== "same_day" && shippingFeeLoading ? (
-            <p className="m-0 text-xs text-slate-500">Đang tính phí vận chuyển GHN...</p>
+            <p className="m-0 text-xs text-slate-500">Đang tính phí vận chuyển GHN và ưu đãi freeship...</p>
+          ) : null}
+
+          {shippingMethod !== "same_day" && shippingPolicy.freeShipEnabled ? (
+            <p className="m-0 text-xs text-slate-500">
+              {isEligibleForFreeShip
+                ? "Đơn hàng hiện tại đã đạt freeship cho phương thức giao này."
+                : `Còn ${formatStoreCurrency(remainingToFreeShip)} để đạt freeship từ ${formatStoreCurrency(
+                    shippingPolicy.freeShipThreshold,
+                  )}.`}
+            </p>
           ) : null}
 
           <div>
@@ -635,8 +767,23 @@ export function StoreCheckoutPage() {
           </div>
           <div className="cart-summary-row">
             <span>Phí vận chuyển</span>
-            <strong>{formatStoreCurrency(shippingFee)}</strong>
+            <strong>
+              {freeShipDiscount > 0 ? (
+                <>
+                  <span className="mr-2 text-slate-400 line-through">{formatStoreCurrency(rawShippingFee)}</span>
+                  {formatStoreCurrency(shippingFee)}
+                </>
+              ) : (
+                formatStoreCurrency(shippingFee)
+              )}
+            </strong>
           </div>
+          {freeShipDiscount > 0 ? (
+            <div className="cart-summary-row cart-summary-row-discount">
+              <span>Ưu đãi freeship</span>
+              <strong>-{formatStoreCurrency(freeShipDiscount)}</strong>
+            </div>
+          ) : null}
           {discountValue > 0 ? (
             <div className="cart-summary-row cart-summary-row-discount">
               <span>Giảm giá{couponCode ? ` (${couponCode})` : ""}</span>

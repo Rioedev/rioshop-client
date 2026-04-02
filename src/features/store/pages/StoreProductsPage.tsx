@@ -13,6 +13,7 @@ import {
 import { formatStoreCurrency, resolveStoreProductThumbnail } from "../utils/storeFormatting";
 import { analyticsTracker } from "../../../services/analyticsTracker";
 import { categoryService, type Category } from "../../../services/categoryService";
+import { collectionService, type Collection } from "../../../services/collectionService";
 import { cartService, toCartCouponMeta, toCartStoreItems } from "../../../services/cartService";
 import { productService, type Product } from "../../../services/productService";
 import { toWishlistStoreItems, wishlistService } from "../../../services/wishlistService";
@@ -77,6 +78,7 @@ export function StoreProductsPage() {
   const setWishlistItems = useWishlistStore((state) => state.setItems);
 
   const [categories, setCategories] = useState<Category[]>([]);
+  const [collections, setCollections] = useState<Collection[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
   const [totalDocs, setTotalDocs] = useState(0);
   const [totalPages, setTotalPages] = useState(1);
@@ -84,6 +86,7 @@ export function StoreProductsPage() {
 
   const q = searchParams.get("q")?.trim() ?? "";
   const categorySlug = searchParams.get("category") ?? "";
+  const collectionSlug = searchParams.get("collection") ?? "";
   const sort = searchParams.get("sort") ?? "featured";
   const page = Math.max(1, Number(searchParams.get("page") ?? 1));
   const minPriceParam = parseNumberParam(searchParams.get("minPrice"));
@@ -111,9 +114,19 @@ export function StoreProductsPage() {
     [categories],
   );
 
+  const collectionOptions = useMemo(
+    () => [{ label: "Tất cả bộ sưu tập", value: "" }, ...collections.map((item) => ({ label: item.name, value: item.slug }))],
+    [collections],
+  );
+
   const selectedCategory = useMemo(
     () => categories.find((item) => item.slug === categorySlug),
     [categories, categorySlug],
+  );
+
+  const selectedCollection = useMemo(
+    () => collections.find((item) => item.slug === collectionSlug),
+    [collections, collectionSlug],
   );
 
   const colorOptions = useMemo(() => {
@@ -234,20 +247,26 @@ export function StoreProductsPage() {
   useEffect(() => {
     let active = true;
 
-    const loadCategories = async () => {
+    const loadLookups = async () => {
       try {
-        const result = await categoryService.getCategories({ page: 1, limit: 100, isActive: true });
+        const [categoryResult, collectionResult] = await Promise.all([
+          categoryService.getCategories({ page: 1, limit: 100, isActive: true }),
+          collectionService.getCollections({ page: 1, limit: 100, isActive: true }),
+        ]);
+
         if (active) {
-          setCategories(result.docs);
+          setCategories(categoryResult.docs);
+          setCollections(collectionResult.docs);
         }
       } catch {
         if (active) {
           setCategories([]);
+          setCollections([]);
         }
       }
     };
 
-    void loadCategories();
+    void loadLookups();
 
     return () => {
       active = false;
@@ -263,6 +282,9 @@ export function StoreProductsPage() {
           page: 1,
           limit: 100,
           status: "active",
+          q: q || undefined,
+          category: selectedCategory?._id,
+          collection: selectedCollection?._id,
           sort: sortMap.featured,
         });
 
@@ -277,6 +299,9 @@ export function StoreProductsPage() {
                 page: pageIndex,
                 limit: 100,
                 status: "active",
+                q: q || undefined,
+                category: selectedCategory?._id,
+                collection: selectedCollection?._id,
                 sort: sortMap.featured,
               }),
             );
@@ -305,7 +330,7 @@ export function StoreProductsPage() {
     return () => {
       active = false;
     };
-  }, []);
+  }, [q, selectedCategory?._id, selectedCollection?._id]);
 
   useEffect(() => {
     let active = true;
@@ -319,6 +344,7 @@ export function StoreProductsPage() {
           status: "active",
           q: q || undefined,
           category: selectedCategory?._id,
+          collection: selectedCollection?._id,
           minPrice: Number.isFinite(minPriceParam) ? minPriceParam : undefined,
           maxPrice: Number.isFinite(maxPriceParam) ? maxPriceParam : undefined,
           color: selectedColorValues.length > 0 ? selectedColorValues.join(",") : undefined,
@@ -359,6 +385,7 @@ export function StoreProductsPage() {
     page,
     q,
     selectedCategory?._id,
+    selectedCollection?._id,
     selectedColorValues,
     selectedSizeValues,
     sort,
@@ -533,11 +560,11 @@ export function StoreProductsPage() {
         <StoreSectionHeader
           kicker="Bộ lọc nhanh"
           title="Tìm nhanh sản phẩm"
-          description="Lọc theo danh mục, từ khóa, giá, màu sắc, size và kiểu sắp xếp để tìm món đồ phù hợp nhanh hơn."
+          description="Lọc theo bộ sưu tập, danh mục, từ khóa, giá, màu sắc, size và kiểu sắp xếp để tìm món đồ phù hợp nhanh hơn."
         />
 
         <div className="grid gap-3 lg:grid-cols-12">
-          <div className="lg:col-span-6">
+          <div className="lg:col-span-4">
             <p className="m-0 mb-1 text-xs font-bold uppercase tracking-[0.14em] text-slate-500">Tìm kiếm</p>
             <Input
               value={keywordInput}
@@ -545,6 +572,16 @@ export function StoreProductsPage() {
               onPressEnter={onApplyFilters}
               allowClear
               placeholder="Nhập tên sản phẩm, thương hiệu..."
+            />
+          </div>
+
+          <div className="lg:col-span-3">
+            <p className="m-0 mb-1 text-xs font-bold uppercase tracking-[0.14em] text-slate-500">Bộ sưu tập</p>
+            <Select
+              value={collectionSlug}
+              options={collectionOptions}
+              onChange={(value) => onParamChange({ collection: value || null, page: "1" })}
+              className="w-full"
             />
           </div>
 
@@ -558,7 +595,7 @@ export function StoreProductsPage() {
             />
           </div>
 
-          <div className="lg:col-span-3">
+          <div className="lg:col-span-2">
             <p className="m-0 mb-1 text-xs font-bold uppercase tracking-[0.14em] text-slate-500">Sắp xếp</p>
             <Select
               value={sort}

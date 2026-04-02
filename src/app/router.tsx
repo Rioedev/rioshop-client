@@ -57,6 +57,11 @@ const AdminCategoriesPage = lazy(() =>
     default: module.AdminCategoriesPage,
   })),
 );
+const AdminCollectionsPage = lazy(() =>
+  import("../features/admin/pages/AdminCollectionsPage").then((module) => ({
+    default: module.AdminCollectionsPage,
+  })),
+);
 const AdminUsersPage = lazy(() =>
   import("../features/admin/pages/AdminUsersPage").then((module) => ({
     default: module.AdminUsersPage,
@@ -223,6 +228,7 @@ export const appRouter = createBrowserRouter([
           { path: "inventories", element: <AdminInventoriesPage /> },
           { path: "coupons", element: <AdminCouponsPage /> },
           { path: "categories", element: <AdminCategoriesPage /> },
+          { path: "collections", element: <AdminCollectionsPage /> },
           { path: "users", element: <AdminUsersPage /> },
           { path: "admin-accounts", element: <AdminAccountsPage /> },
           { path: "brand-config", element: <AdminBrandConfigPage /> },

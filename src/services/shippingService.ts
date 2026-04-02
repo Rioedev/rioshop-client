@@ -26,10 +26,22 @@ export type GhnWard = {
   NameExtension?: string[];
 };
 
+export type ShippingMethod = "standard" | "express" | "same_day";
+
+export type ShippingPolicy = {
+  freeShipEnabled: boolean;
+  freeShipThreshold: number;
+  freeShipEligibleMethods: ShippingMethod[];
+  sameDayFlatFee: number;
+  ghnFallbackStandardFee: number;
+  ghnFallbackExpressFee: number;
+};
+
 export type GhnFeePayload = {
   toDistrictId: number;
   toWardCode: string;
-  shippingMethod?: "standard" | "express" | "same_day";
+  shippingMethod?: ShippingMethod;
+  subtotal?: number;
   insuranceValue?: number;
   packageProfile?: {
     weight?: number;
@@ -41,11 +53,31 @@ export type GhnFeePayload = {
 
 export type GhnFeeResult = {
   totalFee: number;
+  shippingMethod?: ShippingMethod;
+  subtotal?: number;
+  rawShippingFee?: number;
+  shippingFeePayable?: number;
+  freeShipDiscount?: number;
+  isEligibleForFreeShip?: boolean;
+  remainingToFreeShip?: number;
+  freeShipProgress?: number;
+  freeShipApplicableMethod?: boolean;
+  freeShipEnabled?: boolean;
+  freeShipThreshold?: number;
+  freeShipEligibleMethods?: ShippingMethod[];
+  sameDayFlatFee?: number;
+  ghnFallbackStandardFee?: number;
+  ghnFallbackExpressFee?: number;
   data: Record<string, unknown>;
   raw: Record<string, unknown>;
 };
 
 export const shippingService = {
+  async getShippingPolicy(): Promise<ShippingPolicy> {
+    const response = await apiClient.get<ApiResponse<ShippingPolicy>>("/api/shipments/policy");
+    return response.data.data;
+  },
+
   async getGhnProvinces(): Promise<GhnProvince[]> {
     const response = await apiClient.get<ApiResponse<GhnProvince[]>>(
       "/api/shipments/ghn/provinces",
@@ -78,4 +110,3 @@ export const shippingService = {
     return response.data.data;
   },
 };
-
