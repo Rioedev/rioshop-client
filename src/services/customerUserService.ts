@@ -17,6 +17,17 @@ type CustomerApiItem = {
   deletedAt?: string | null;
   totalOrders?: number;
   totalSpend?: number;
+  loyalty?: {
+    tier?: "bronze" | "silver" | "gold" | "platinum";
+    points?: number;
+    lifetimePoints?: number;
+    summary?: {
+      currentTier?: "bronze" | "silver" | "gold" | "platinum";
+      nextTier?: "bronze" | "silver" | "gold" | "platinum" | null;
+      pointsToNextTier?: number;
+      progressToNextTier?: number;
+    };
+  };
   lastLoginAt?: string;
   createdAt?: string;
   updatedAt?: string;
@@ -34,6 +45,8 @@ type PaginatedCustomerApiData = {
 
 export type CustomerStatus = "active" | "banned" | "inactive";
 export type CustomerStatusFilter = CustomerStatus | "all";
+export type CustomerLoyaltyTier = "bronze" | "silver" | "gold" | "platinum";
+export type CustomerLoyaltyTierFilter = CustomerLoyaltyTier | "all";
 
 export type CustomerUser = {
   id: string;
@@ -45,6 +58,17 @@ export type CustomerUser = {
   deletedAt?: string;
   totalOrders: number;
   totalSpend: number;
+  loyalty: {
+    tier: "bronze" | "silver" | "gold" | "platinum";
+    points: number;
+    lifetimePoints: number;
+    summary?: {
+      currentTier: "bronze" | "silver" | "gold" | "platinum";
+      nextTier?: "bronze" | "silver" | "gold" | "platinum" | null;
+      pointsToNextTier: number;
+      progressToNextTier: number;
+    };
+  };
   lastLoginAt?: string;
   createdAt?: string;
   updatedAt?: string;
@@ -65,6 +89,7 @@ export type CustomerQueryParams = {
   limit?: number;
   search?: string;
   status?: CustomerStatusFilter;
+  loyaltyTier?: CustomerLoyaltyTierFilter;
   isDeleted?: boolean;
 };
 
@@ -92,6 +117,19 @@ const normalizeCustomer = (item: CustomerApiItem): CustomerUser => ({
   deletedAt: item.deletedAt ?? undefined,
   totalOrders: item.totalOrders ?? 0,
   totalSpend: item.totalSpend ?? 0,
+  loyalty: {
+    tier: item.loyalty?.tier ?? "bronze",
+    points: Number(item.loyalty?.points ?? 0),
+    lifetimePoints: Number(item.loyalty?.lifetimePoints ?? 0),
+    summary: item.loyalty?.summary
+      ? {
+          currentTier: item.loyalty.summary.currentTier ?? item.loyalty.tier ?? "bronze",
+          nextTier: item.loyalty.summary.nextTier ?? null,
+          pointsToNextTier: Number(item.loyalty.summary.pointsToNextTier ?? 0),
+          progressToNextTier: Number(item.loyalty.summary.progressToNextTier ?? 0),
+        }
+      : undefined,
+  },
   lastLoginAt: item.lastLoginAt,
   createdAt: item.createdAt,
   updatedAt: item.updatedAt,
@@ -105,6 +143,8 @@ export const customerUserService = {
         limit: params.limit,
         search: params.search?.trim() || undefined,
         status: params.status && params.status !== "all" ? params.status : undefined,
+        loyaltyTier:
+          params.loyaltyTier && params.loyaltyTier !== "all" ? params.loyaltyTier : undefined,
         isDeleted: params.isDeleted,
       },
     });

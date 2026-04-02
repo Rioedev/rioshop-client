@@ -16,15 +16,14 @@ import {
 import type { ColumnsType, TablePaginationConfig } from "antd/es/table";
 import { useEffect, useMemo, useState } from "react";
 import {
+  type CustomerLoyaltyTierFilter,
   type CreateCustomerPayload,
   type CustomerStatus,
   type CustomerStatusFilter,
   type CustomerUser,
   type UpdateCustomerPayload,
 } from "../../../services/customerUserService";
-import {
-  useCustomerUserStore,
-} from "../../../stores/customerUserStore";
+import { useCustomerUserStore } from "../../../stores/customerUserStore";
 import { getErrorMessage } from "../../../utils/errorMessage";
 
 const { Paragraph, Title, Text } = Typography;
@@ -44,16 +43,39 @@ const STATUS_OPTIONS: { value: CustomerStatusFilter; label: string }[] = [
   { value: "banned", label: "Đã khóa" },
 ];
 
+const LOYALTY_TIER_OPTIONS: { value: CustomerLoyaltyTierFilter; label: string }[] = [
+  { value: "all", label: "Tất cả hạng" },
+  { value: "bronze", label: "Bronze" },
+  { value: "silver", label: "Silver" },
+  { value: "gold", label: "Gold" },
+  { value: "platinum", label: "Platinum" },
+];
+
 const STATUS_COLOR_MAP: Record<CustomerStatus, string> = {
   active: "green",
   inactive: "default",
   banned: "red",
 };
+
 const STATUS_LABEL_MAP: Record<CustomerStatus, string> = {
   active: "Đang hoạt động",
   inactive: "Ngừng hoạt động",
   banned: "Đã khóa",
 };
+
+const LOYALTY_TIER_LABEL_MAP = {
+  bronze: "Bronze",
+  silver: "Silver",
+  gold: "Gold",
+  platinum: "Platinum",
+} as const;
+
+const LOYALTY_TIER_COLOR_MAP = {
+  bronze: "default",
+  silver: "cyan",
+  gold: "gold",
+  platinum: "purple",
+} as const;
 
 const formatDateTime = (value?: string) => {
   if (!value) return "-";
@@ -75,6 +97,7 @@ export function AdminUsersPage() {
   const [searchText, setSearchText] = useState("");
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingCustomer, setEditingCustomer] = useState<CustomerUser | null>(null);
+
   const customers = useCustomerUserStore((state) => state.customers);
   const loading = useCustomerUserStore((state) => state.loading);
   const saving = useCustomerUserStore((state) => state.saving);
@@ -84,9 +107,11 @@ export function AdminUsersPage() {
   const total = useCustomerUserStore((state) => state.total);
   const keyword = useCustomerUserStore((state) => state.keyword);
   const statusFilter = useCustomerUserStore((state) => state.statusFilter);
+  const loyaltyTierFilter = useCustomerUserStore((state) => state.loyaltyTierFilter);
   const loadCustomers = useCustomerUserStore((state) => state.loadCustomers);
   const setKeyword = useCustomerUserStore((state) => state.setKeyword);
   const setStatusFilter = useCustomerUserStore((state) => state.setStatusFilter);
+  const setLoyaltyTierFilter = useCustomerUserStore((state) => state.setLoyaltyTierFilter);
   const setPage = useCustomerUserStore((state) => state.setPage);
   const setPageSize = useCustomerUserStore((state) => state.setPageSize);
   const createCustomer = useCustomerUserStore((state) => state.createCustomer);
@@ -116,11 +141,12 @@ export function AdminUsersPage() {
       pageSize,
       keyword,
       statusFilter,
+      loyaltyTierFilter,
       deletedFilter: "active_only",
     }).catch((error) => {
       messageApi.error(getErrorMessage(error));
     });
-  }, [keyword, loadCustomers, messageApi, page, pageSize, statusFilter]);
+  }, [keyword, loadCustomers, loyaltyTierFilter, messageApi, page, pageSize, statusFilter]);
 
   const stats = useMemo(() => {
     const active = customers.filter((item) => item.status === "active").length;
@@ -220,6 +246,11 @@ export function AdminUsersPage() {
     setStatusFilter(value);
   };
 
+  const handleLoyaltyTierFilterChange = (value: CustomerLoyaltyTierFilter) => {
+    setPage(1);
+    setLoyaltyTierFilter(value);
+  };
+
   const columns: ColumnsType<CustomerUser> = [
     {
       title: "Họ tên",
@@ -265,7 +296,25 @@ export function AdminUsersPage() {
       title: "Hiển thị",
       key: "statusTag",
       width: 130,
-      render: (_, record) => <Tag color={STATUS_COLOR_MAP[record.status]}>{STATUS_LABEL_MAP[record.status]}</Tag>,
+      render: (_, record) => (
+        <Tag color={STATUS_COLOR_MAP[record.status]}>{STATUS_LABEL_MAP[record.status]}</Tag>
+      ),
+    },
+    {
+      title: "Hạng",
+      key: "loyaltyTier",
+      width: 110,
+      render: (_, record) => (
+        <Tag color={LOYALTY_TIER_COLOR_MAP[record.loyalty.tier]}>
+          {LOYALTY_TIER_LABEL_MAP[record.loyalty.tier]}
+        </Tag>
+      ),
+    },
+    {
+      title: "Điểm",
+      key: "loyaltyPoints",
+      width: 110,
+      render: (_, record) => formatCurrency.format(record.loyalty.points),
     },
     {
       title: "Số đơn",
@@ -372,7 +421,7 @@ export function AdminUsersPage() {
       </div>
 
       <Card>
-        <div className="mb-4 grid gap-3 md:grid-cols-[1fr_180px]">
+        <div className="mb-4 grid gap-3 md:grid-cols-[1fr_180px_180px]">
           <Input
             value={searchText}
             allowClear
@@ -383,6 +432,11 @@ export function AdminUsersPage() {
             value={statusFilter}
             options={STATUS_OPTIONS}
             onChange={handleStatusFilterChange}
+          />
+          <Select
+            value={loyaltyTierFilter}
+            options={LOYALTY_TIER_OPTIONS}
+            onChange={handleLoyaltyTierFilterChange}
           />
         </div>
 
@@ -483,5 +537,3 @@ export function AdminUsersPage() {
     </div>
   );
 }
-
-

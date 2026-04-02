@@ -4,6 +4,7 @@ import { getErrorMessage } from "../utils/errorMessage";
 import {
   customerUserService,
   type CreateCustomerPayload,
+  type CustomerLoyaltyTierFilter,
   type CustomerStatus,
   type CustomerStatusFilter,
   type CustomerUser,
@@ -22,16 +23,19 @@ type CustomerUserState = {
   total: number;
   keyword: string;
   statusFilter: CustomerStatusFilter;
+  loyaltyTierFilter: CustomerLoyaltyTierFilter;
   deletedFilter: CustomerDeletedFilter;
   loadCustomers: (params?: {
     page?: number;
     pageSize?: number;
     keyword?: string;
     statusFilter?: CustomerStatusFilter;
+    loyaltyTierFilter?: CustomerLoyaltyTierFilter;
     deletedFilter?: CustomerDeletedFilter;
   }) => Promise<void>;
   setKeyword: (keyword: string) => void;
   setStatusFilter: (statusFilter: CustomerStatusFilter) => void;
+  setLoyaltyTierFilter: (loyaltyTierFilter: CustomerLoyaltyTierFilter) => void;
   setDeletedFilter: (deletedFilter: CustomerDeletedFilter) => void;
   setPage: (page: number) => void;
   setPageSize: (pageSize: number) => void;
@@ -51,6 +55,7 @@ export const useCustomerUserStore = create<CustomerUserState>((set, get) => ({
   total: 0,
   keyword: "",
   statusFilter: "all",
+  loyaltyTierFilter: "all",
   deletedFilter: "active_only",
 
   loadCustomers: async (params) => {
@@ -59,6 +64,7 @@ export const useCustomerUserStore = create<CustomerUserState>((set, get) => ({
     const nextPageSize = params?.pageSize ?? state.pageSize;
     const nextKeyword = params?.keyword ?? state.keyword;
     const nextStatusFilter = params?.statusFilter ?? state.statusFilter;
+    const nextLoyaltyTierFilter = params?.loyaltyTierFilter ?? state.loyaltyTierFilter;
     const nextDeletedFilter = params?.deletedFilter ?? state.deletedFilter;
 
     set({ loading: true });
@@ -68,6 +74,7 @@ export const useCustomerUserStore = create<CustomerUserState>((set, get) => ({
         limit: nextPageSize,
         search: nextKeyword,
         status: nextStatusFilter,
+        loyaltyTier: nextLoyaltyTierFilter,
         isDeleted: nextDeletedFilter === "deleted_only" ? true : undefined,
       });
 
@@ -78,6 +85,7 @@ export const useCustomerUserStore = create<CustomerUserState>((set, get) => ({
         pageSize: result.limit,
         keyword: nextKeyword,
         statusFilter: nextStatusFilter,
+        loyaltyTierFilter: nextLoyaltyTierFilter,
         deletedFilter: nextDeletedFilter,
         isForbidden: false,
       });
@@ -92,6 +100,7 @@ export const useCustomerUserStore = create<CustomerUserState>((set, get) => ({
           pageSize: nextPageSize,
           keyword: nextKeyword,
           statusFilter: nextStatusFilter,
+          loyaltyTierFilter: nextLoyaltyTierFilter,
           deletedFilter: nextDeletedFilter,
         });
         return;
@@ -105,6 +114,7 @@ export const useCustomerUserStore = create<CustomerUserState>((set, get) => ({
 
   setKeyword: (keyword) => set({ keyword }),
   setStatusFilter: (statusFilter) => set({ statusFilter }),
+  setLoyaltyTierFilter: (loyaltyTierFilter) => set({ loyaltyTierFilter }),
   setDeletedFilter: (deletedFilter) => set({ deletedFilter }),
   setPage: (page) => set({ page }),
   setPageSize: (pageSize) => set({ pageSize }),

@@ -62,6 +62,28 @@ const formatAddressSummary = (address: UserAddress) => {
   return chunks.length > 0 ? chunks.join(", ") : "Đang cập nhật";
 };
 
+const TIER_LABEL_MAP = {
+  bronze: "Bronze",
+  silver: "Silver",
+  gold: "Gold",
+  platinum: "Platinum",
+} as const;
+
+const DEFAULT_LOYALTY: NonNullable<UserProfile["loyalty"]> = {
+  tier: "bronze",
+  points: 0,
+  lifetimePoints: 0,
+  tierExpiresAt: null,
+  summary: {
+    currentTier: "bronze",
+    currentTierMinPoints: 0,
+    nextTier: "silver",
+    nextTierMinPoints: 1000,
+    pointsToNextTier: 1000,
+    progressToNextTier: 0,
+  },
+};
+
 export function StoreAccountPage() {
   const [messageApi, contextHolder] = message.useMessage();
   const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
@@ -139,13 +161,20 @@ export function StoreAccountPage() {
     );
   }
 
-  const accountProfile = profile ?? {
+  const accountProfile: UserProfile = profile ?? {
     id: user.id,
     email: user.email,
     fullName: user.fullName,
     phone: user.phone,
     addresses: [],
+    defaultAddressId: "",
+    loyalty: DEFAULT_LOYALTY,
   };
+  const loyalty = accountProfile.loyalty ?? DEFAULT_LOYALTY;
+  const tierLabel = TIER_LABEL_MAP[loyalty.tier] ?? "Bronze";
+  const nextTierLabel = loyalty.summary?.nextTier
+    ? TIER_LABEL_MAP[loyalty.summary.nextTier] ?? loyalty.summary.nextTier
+    : null;
 
   const currentDefaultAddressId =
     cleanText(accountProfile.defaultAddressId) ||
@@ -172,6 +201,23 @@ export function StoreAccountPage() {
       label: "Loại tài khoản",
       value: user.accountType,
       description: "Trạng thái hiện tại của tài khoản trên hệ thống RioShop.",
+    },
+    {
+      label: "Hạng thành viên",
+      value: tierLabel,
+      description: nextTierLabel
+        ? `Còn ${loyalty.summary?.pointsToNextTier ?? 0} điểm để lên ${nextTierLabel}.`
+        : "Bạn đang ở hạng cao nhất.",
+    },
+    {
+      label: "Điểm hiện có",
+      value: `${Number(loyalty.points || 0).toLocaleString("vi-VN")} điểm`,
+      description: "Điểm có thể dùng cho các chương trình loyalty trong tương lai.",
+    },
+    {
+      label: "Điểm tích lũy",
+      value: `${Number(loyalty.lifetimePoints || 0).toLocaleString("vi-VN")} điểm`,
+      description: "Điểm trọn đời dùng để xét hạng thành viên.",
     },
   ];
 
