@@ -1,7 +1,13 @@
-﻿import { Alert, Button, Checkbox, Form, Input, message } from "antd";
+import { Alert, Button, Checkbox, Form, Input, Select, message } from "antd";
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { authService } from "../../../services/authService";
+import {
+  shippingService,
+  type GhnDistrict,
+  type GhnProvince,
+  type GhnWard,
+} from "../../../services/shippingService";
 import {
   userProfileService,
   type UserAddress,
@@ -29,9 +35,9 @@ type AddressFormValues = {
   label?: string;
   fullName: string;
   phone: string;
-  province?: string;
-  district?: string;
-  ward?: string;
+  provinceId?: number;
+  districtId?: number;
+  wardCode?: string;
   street: string;
   isDefault?: boolean;
 };
@@ -102,6 +108,13 @@ export function StoreAccountPage() {
   const [isSavingAddress, setIsSavingAddress] = useState(false);
   const [isChangingPassword, setIsChangingPassword] = useState(false);
   const [isSendingReset, setIsSendingReset] = useState(false);
+  const [locationLoading, setLocationLoading] = useState(false);
+  const [provinces, setProvinces] = useState<GhnProvince[]>([]);
+  const [districts, setDistricts] = useState<GhnDistrict[]>([]);
+  const [wards, setWards] = useState<GhnWard[]>([]);
+
+  const selectedProvinceId = Form.useWatch("provinceId", addressForm) as number | undefined;
+  const selectedDistrictId = Form.useWatch("districtId", addressForm) as number | undefined;
 
   useEffect(() => {
     if (!isAuthenticated || !user) {
@@ -143,6 +156,114 @@ export function StoreAccountPage() {
       active = false;
     };
   }, [isAuthenticated, profileForm, user]);
+
+  useEffect(() => {
+    if (!isAuthenticated) {
+      return;
+    }
+
+    let mounted = true;
+    const loadProvinces = async () => {
+      setLocationLoading(true);
+      try {
+        const provinceList = await shippingService.getGhnProvinces();
+        if (!mounted) {
+          return;
+        }
+        setProvinces(provinceList);
+      } catch (error) {
+        if (mounted) {
+          messageApi.error(getErrorMessage(error, "Không tải được danh sách tỉnh/thành"));
+        }
+      } finally {
+        if (mounted) {
+          setLocationLoading(false);
+        }
+      }
+    };
+
+    void loadProvinces();
+
+    return () => {
+      mounted = false;
+    };
+  }, [isAuthenticated, messageApi]);
+
+  useEffect(() => {
+    if (!selectedProvinceId) {
+      setDistricts([]);
+      setWards([]);
+      addressForm.setFieldsValue({ districtId: undefined, wardCode: undefined });
+      return;
+    }
+
+    let mounted = true;
+    const loadDistricts = async () => {
+      setLocationLoading(true);
+      try {
+        const districtList = await shippingService.getGhnDistricts(selectedProvinceId);
+        if (!mounted) {
+          return;
+        }
+        setDistricts(districtList);
+      } catch (error) {
+        if (mounted) {
+          setDistricts([]);
+          addressForm.setFieldsValue({ districtId: undefined, wardCode: undefined });
+          messageApi.error(getErrorMessage(error, "Không tải được danh sách quận/huyện"));
+        }
+      } finally {
+        if (mounted) {
+          setLocationLoading(false);
+        }
+      }
+    };
+
+    setWards([]);
+    addressForm.setFieldsValue({ districtId: undefined, wardCode: undefined });
+    void loadDistricts();
+
+    return () => {
+      mounted = false;
+    };
+  }, [addressForm, messageApi, selectedProvinceId]);
+
+  useEffect(() => {
+    if (!selectedDistrictId) {
+      setWards([]);
+      addressForm.setFieldsValue({ wardCode: undefined });
+      return;
+    }
+
+    let mounted = true;
+    const loadWards = async () => {
+      setLocationLoading(true);
+      try {
+        const wardList = await shippingService.getGhnWards(selectedDistrictId);
+        if (!mounted) {
+          return;
+        }
+        setWards(wardList);
+      } catch (error) {
+        if (mounted) {
+          setWards([]);
+          addressForm.setFieldsValue({ wardCode: undefined });
+          messageApi.error(getErrorMessage(error, "Không tải được danh sách phường/xã"));
+        }
+      } finally {
+        if (mounted) {
+          setLocationLoading(false);
+        }
+      }
+    };
+
+    addressForm.setFieldsValue({ wardCode: undefined });
+    void loadWards();
+
+    return () => {
+      mounted = false;
+    };
+  }, [addressForm, messageApi, selectedDistrictId]);
 
   if (!isAuthenticated || !user) {
     return (
@@ -246,6 +367,15 @@ export function StoreAccountPage() {
       return;
     }
 
+    const selectedProvince = provinces.find((item) => item.ProvinceID === values.provinceId);
+    const selectedDistrict = districts.find((item) => item.DistrictID === values.districtId);
+    const selectedWard = wards.find((item) => item.WardCode === values.wardCode);
+
+    if (!selectedProvince || !selectedDistrict || !selectedWard) {
+      messageApi.warning("Vui lòng chọn đầy đủ Tỉnh/Thành, Quận/Huyện và Phường/Xã.");
+      return;
+    }
+
     setIsSavingAddress(true);
     try {
       const existing = profile.addresses.map(ensureAddressId);
@@ -255,9 +385,18 @@ export function StoreAccountPage() {
         label: cleanText(values.label) || undefined,
         fullName: cleanText(values.fullName),
         phone: cleanText(values.phone),
-        province: cleanText(values.province) ? { name: cleanText(values.province) } : undefined,
-        district: cleanText(values.district) ? { name: cleanText(values.district) } : undefined,
-        ward: cleanText(values.ward) ? { name: cleanText(values.ward) } : undefined,
+        province: {
+          code: String(selectedProvince.ProvinceID),
+          name: selectedProvince.ProvinceName,
+        },
+        district: {
+          code: String(selectedDistrict.DistrictID),
+          name: selectedDistrict.DistrictName,
+        },
+        ward: {
+          code: selectedWard.WardCode,
+          name: selectedWard.WardName,
+        },
         street: cleanText(values.street),
       };
 
@@ -275,6 +414,8 @@ export function StoreAccountPage() {
 
       setProfile(updatedProfile);
       addressForm.resetFields();
+      setDistricts([]);
+      setWards([]);
       messageApi.success("Đã thêm địa chỉ mới");
     } catch (error) {
       messageApi.error(getErrorMessage(error, "Thêm địa chỉ thất bại"));
@@ -532,18 +673,62 @@ export function StoreAccountPage() {
               <Input size="large" placeholder="0987654321" />
             </Form.Item>
 
-            <Form.Item label="Tỉnh / Thành" name="province">
-              <Input size="large" placeholder="Hà Nội" />
+            <Form.Item
+              label="Tỉnh / Thành"
+              name="provinceId"
+              rules={[{ required: true, message: "Vui lòng chọn tỉnh/thành" }]}
+            >
+              <Select
+                size="large"
+                showSearch
+                placeholder="Chọn tỉnh/thành"
+                loading={locationLoading && provinces.length === 0}
+                options={provinces.map((item) => ({
+                  value: item.ProvinceID,
+                  label: item.ProvinceName,
+                }))}
+                optionFilterProp="label"
+              />
             </Form.Item>
           </div>
 
           <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
-            <Form.Item label="Quận / Huyện" name="district">
-              <Input size="large" placeholder="Bắc Từ Liêm" />
+            <Form.Item
+              label="Quận / Huyện"
+              name="districtId"
+              rules={[{ required: true, message: "Vui lòng chọn quận/huyện" }]}
+            >
+              <Select
+                size="large"
+                showSearch
+                placeholder="Chọn quận/huyện"
+                disabled={!selectedProvinceId}
+                loading={locationLoading && selectedProvinceId !== undefined}
+                options={districts.map((item) => ({
+                  value: item.DistrictID,
+                  label: item.DistrictName,
+                }))}
+                optionFilterProp="label"
+              />
             </Form.Item>
 
-            <Form.Item label="Phường / Xã" name="ward">
-              <Input size="large" placeholder="Phú Diễn" />
+            <Form.Item
+              label="Phường / Xã"
+              name="wardCode"
+              rules={[{ required: true, message: "Vui lòng chọn phường/xã" }]}
+            >
+              <Select
+                size="large"
+                showSearch
+                placeholder="Chọn phường/xã"
+                disabled={!selectedDistrictId}
+                loading={locationLoading && selectedDistrictId !== undefined}
+                options={wards.map((item) => ({
+                  value: item.WardCode,
+                  label: item.WardName,
+                }))}
+                optionFilterProp="label"
+              />
             </Form.Item>
           </div>
 
