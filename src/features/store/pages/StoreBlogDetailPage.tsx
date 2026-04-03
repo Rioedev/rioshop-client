@@ -106,7 +106,7 @@ export function StoreBlogDetailPage() {
 
   if (loading) {
     return (
-      <section className="mx-auto w-full max-w-[980px] px-4 py-8 md:px-6 md:py-10">
+      <section className="mx-auto w-full max-w-245 px-4 py-8 md:px-6 md:py-10">
         <Skeleton active paragraph={{ rows: 8 }} />
       </section>
     );
@@ -114,7 +114,7 @@ export function StoreBlogDetailPage() {
 
   if (errorText || !post) {
     return (
-      <section className="mx-auto w-full max-w-[980px] px-4 py-8 md:px-6 md:py-10">
+      <section className="mx-auto w-full max-w-245 px-4 py-8 md:px-6 md:py-10">
         <div className="mb-5">
           <Link to="/blog">
             <Button icon={<LeftOutlined />}>Quay lại Blog</Button>
@@ -128,7 +128,7 @@ export function StoreBlogDetailPage() {
   }
 
   return (
-    <article className="mx-auto w-full max-w-[980px] px-4 py-8 md:px-6 md:py-10">
+    <article className="mx-auto w-full max-w-245 px-4 py-8 md:px-6 md:py-10">
       <div className="mb-5">
         <Link to="/blog">
           <Button icon={<LeftOutlined />}>Quay lại Blog</Button>
@@ -160,7 +160,7 @@ export function StoreBlogDetailPage() {
           <img
             src={resolveImageUrl(post.coverImage)}
             alt={post.title}
-            className="max-h-[520px] w-full object-cover"
+            className="max-h-130 w-full object-cover"
           />
         </div>
       ) : null}

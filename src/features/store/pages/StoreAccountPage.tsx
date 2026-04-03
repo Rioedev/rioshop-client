@@ -51,11 +51,67 @@ type PasswordFormValues = {
 const phonePattern = /^[0-9]{10,11}$/;
 
 const cleanText = (value?: string) => value?.trim() || "";
+const normalizeLookupText = (value?: string) =>
+  cleanText(value)
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase();
+const isLookupMatch = (source: string, target: string) =>
+  source === target || source.includes(target) || target.includes(source);
+const toPositiveNumber = (value?: string) => {
+  const parsed = Number(cleanText(value));
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : undefined;
+};
 
 const ensureAddressId = (address: UserAddress, index: number) => ({
   ...address,
   id: cleanText(address.id) || `addr_${Date.now()}_${index}`,
 });
+
+const resolveProvinceIdFromAddress = (address: UserAddress, provinces: GhnProvince[]) => {
+  const code = toPositiveNumber(address.province?.code);
+  if (code && provinces.some((item) => item.ProvinceID === code)) {
+    return code;
+  }
+
+  const provinceName = normalizeLookupText(address.province?.name);
+  if (!provinceName) {
+    return undefined;
+  }
+
+  return provinces.find((item) => isLookupMatch(normalizeLookupText(item.ProvinceName), provinceName))
+    ?.ProvinceID;
+};
+
+const resolveDistrictIdFromAddress = (address: UserAddress, districts: GhnDistrict[]) => {
+  const code = toPositiveNumber(address.district?.code);
+  if (code && districts.some((item) => item.DistrictID === code)) {
+    return code;
+  }
+
+  const districtName = normalizeLookupText(address.district?.name);
+  if (!districtName) {
+    return undefined;
+  }
+
+  return districts.find((item) => isLookupMatch(normalizeLookupText(item.DistrictName), districtName))
+    ?.DistrictID;
+};
+
+const resolveWardCodeFromAddress = (address: UserAddress, wards: GhnWard[]) => {
+  const code = cleanText(address.ward?.code);
+  if (code && wards.some((item) => item.WardCode === code)) {
+    return code;
+  }
+
+  const wardName = normalizeLookupText(address.ward?.name);
+  if (!wardName) {
+    return undefined;
+  }
+
+  return wards.find((item) => isLookupMatch(normalizeLookupText(item.WardName), wardName))
+    ?.WardCode;
+};
 
 const formatAddressSummary = (address: UserAddress) => {
   const chunks = [
@@ -112,9 +168,12 @@ export function StoreAccountPage() {
   const [provinces, setProvinces] = useState<GhnProvince[]>([]);
   const [districts, setDistricts] = useState<GhnDistrict[]>([]);
   const [wards, setWards] = useState<GhnWard[]>([]);
+  const [editingAddressId, setEditingAddressId] = useState<string | null>(null);
+  const [addressPrefillSource, setAddressPrefillSource] = useState<UserAddress | null>(null);
 
   const selectedProvinceId = Form.useWatch("provinceId", addressForm) as number | undefined;
   const selectedDistrictId = Form.useWatch("districtId", addressForm) as number | undefined;
+  const selectedWardCode = Form.useWatch("wardCode", addressForm) as string | undefined;
 
   useEffect(() => {
     if (!isAuthenticated || !user) {
@@ -265,6 +324,32 @@ export function StoreAccountPage() {
     };
   }, [addressForm, messageApi, selectedDistrictId]);
 
+  useEffect(() => {
+    if (!addressPrefillSource || !selectedProvinceId || selectedDistrictId || districts.length === 0) {
+      return;
+    }
+
+    const districtId = resolveDistrictIdFromAddress(addressPrefillSource, districts);
+    if (districtId) {
+      addressForm.setFieldsValue({ districtId });
+      return;
+    }
+
+    setAddressPrefillSource(null);
+  }, [addressForm, addressPrefillSource, districts, selectedDistrictId, selectedProvinceId]);
+
+  useEffect(() => {
+    if (!addressPrefillSource || !selectedDistrictId || selectedWardCode || wards.length === 0) {
+      return;
+    }
+
+    const wardCode = resolveWardCodeFromAddress(addressPrefillSource, wards);
+    if (wardCode) {
+      addressForm.setFieldsValue({ wardCode });
+    }
+    setAddressPrefillSource(null);
+  }, [addressForm, addressPrefillSource, selectedDistrictId, selectedWardCode, wards]);
+
   if (!isAuthenticated || !user) {
     return (
       <StoreEmptyState
@@ -342,6 +427,38 @@ export function StoreAccountPage() {
     },
   ];
 
+  const handleStartEditAddress = (address: UserAddress, isDefault: boolean) => {
+    const normalizedAddress = ensureAddressId(address, 0);
+    const provinceId = resolveProvinceIdFromAddress(normalizedAddress, provinces);
+    if (!provinceId) {
+      messageApi.warning("Không thể nhận diện tỉnh/thành cho địa chỉ này. Vui lòng tạo lại địa chỉ.");
+      return;
+    }
+
+    setEditingAddressId(normalizedAddress.id);
+    setAddressPrefillSource(normalizedAddress);
+    setDistricts([]);
+    setWards([]);
+    addressForm.setFieldsValue({
+      label: cleanText(normalizedAddress.label) || undefined,
+      fullName: cleanText(normalizedAddress.fullName),
+      phone: cleanText(normalizedAddress.phone),
+      provinceId,
+      districtId: undefined,
+      wardCode: undefined,
+      street: cleanText(normalizedAddress.street),
+      isDefault,
+    });
+  };
+
+  const handleCancelEditAddress = () => {
+    setEditingAddressId(null);
+    setAddressPrefillSource(null);
+    setDistricts([]);
+    setWards([]);
+    addressForm.resetFields();
+  };
+
   const handleSaveProfile = async (values: ProfileFormValues) => {
     setIsSavingProfile(true);
     try {
@@ -379,7 +496,7 @@ export function StoreAccountPage() {
     setIsSavingAddress(true);
     try {
       const existing = profile.addresses.map(ensureAddressId);
-      const nextAddressId = `addr_${Date.now()}`;
+      const nextAddressId = editingAddressId || `addr_${Date.now()}`;
       const nextAddress: UserAddress = {
         id: nextAddressId,
         label: cleanText(values.label) || undefined,
@@ -402,7 +519,10 @@ export function StoreAccountPage() {
 
       const shouldSetDefault = Boolean(values.isDefault) || !currentDefaultAddressId;
       const nextDefaultAddressId = shouldSetDefault ? nextAddressId : currentDefaultAddressId;
-      const nextAddresses = [...existing, nextAddress].map((item) => ({
+      const upsertedAddresses = editingAddressId
+        ? existing.map((item) => (item.id === editingAddressId ? nextAddress : item))
+        : [...existing, nextAddress];
+      const nextAddresses = upsertedAddresses.map((item) => ({
         ...item,
         isDefault: item.id === nextDefaultAddressId,
       }));
@@ -416,9 +536,13 @@ export function StoreAccountPage() {
       addressForm.resetFields();
       setDistricts([]);
       setWards([]);
-      messageApi.success("Đã thêm địa chỉ mới");
+      setEditingAddressId(null);
+      setAddressPrefillSource(null);
+      messageApi.success(editingAddressId ? "Đã cập nhật địa chỉ" : "Đã thêm địa chỉ mới");
     } catch (error) {
-      messageApi.error(getErrorMessage(error, "Thêm địa chỉ thất bại"));
+      messageApi.error(
+        getErrorMessage(error, editingAddressId ? "Cập nhật địa chỉ thất bại" : "Thêm địa chỉ thất bại"),
+      );
     } finally {
       setIsSavingAddress(false);
     }
@@ -612,18 +736,28 @@ export function StoreAccountPage() {
                       <p className="m-0 text-xs font-semibold uppercase tracking-[0.12em] text-slate-500">{title}</p>
                       <h3 className="m-0 mt-1 text-base font-bold text-slate-900">{address.fullName}</h3>
                     </div>
-                    {isDefault ? (
-                      <span className="rounded-full bg-slate-900 px-3 py-1 text-xs font-semibold text-white">Mặc định</span>
-                    ) : (
+                    <div className="flex items-center gap-2">
+                      {isDefault ? (
+                        <span className="rounded-full bg-slate-900 px-3 py-1 text-xs font-semibold text-white">Mặc định</span>
+                      ) : (
+                        <Button
+                          size="small"
+                          className={storeButtonClassNames.secondaryCompact}
+                          loading={isSavingAddress}
+                          onClick={() => void handleSetDefaultAddress(address.id)}
+                        >
+                          Đặt mặc định
+                        </Button>
+                      )}
                       <Button
                         size="small"
                         className={storeButtonClassNames.secondaryCompact}
-                        loading={isSavingAddress}
-                        onClick={() => void handleSetDefaultAddress(address.id)}
+                        disabled={isSavingAddress}
+                        onClick={() => handleStartEditAddress(address, isDefault)}
                       >
-                        Đặt mặc định
+                        Sửa
                       </Button>
-                    )}
+                    </div>
                   </div>
                   <p className="m-0 text-sm text-slate-700">{address.phone}</p>
                   <p className="m-0 mt-1 text-sm text-slate-600">{formatAddressSummary(address)}</p>
@@ -744,14 +878,25 @@ export function StoreAccountPage() {
             <Checkbox>Đặt làm địa chỉ mặc định</Checkbox>
           </Form.Item>
 
-          <Button
-            type="primary"
-            htmlType="submit"
-            loading={isSavingAddress}
-            className={storeButtonClassNames.primaryCompact}
-          >
-            Thêm địa chỉ
-          </Button>
+          <div className="flex flex-wrap items-center gap-3">
+            <Button
+              type="primary"
+              htmlType="submit"
+              loading={isSavingAddress}
+              className={storeButtonClassNames.primaryCompact}
+            >
+              {editingAddressId ? "Cập nhật địa chỉ" : "Thêm địa chỉ"}
+            </Button>
+            {editingAddressId ? (
+              <Button
+                className={storeButtonClassNames.secondaryCompact}
+                disabled={isSavingAddress}
+                onClick={handleCancelEditAddress}
+              >
+                Hủy sửa
+              </Button>
+            ) : null}
+          </div>
         </Form>
       </StorePanelSection>
 
