@@ -208,7 +208,7 @@ export function StoreProductDetailPage() {
     const loadCoupons = async () => {
       setCouponLoading(true);
       try {
-        const result = await couponService.getActiveCoupons({ page: 1, limit: 3 });
+        const result = await couponService.getMyAvailableCoupons({ page: 1, limit: 3 });
         if (!active) {
           return;
         }

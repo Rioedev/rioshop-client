@@ -174,6 +174,20 @@ export const couponService = {
     return normalizePaginatedData(response.data.data);
   },
 
+  async getMyAvailableCoupons(params: GetActiveCouponsParams = {}): Promise<PaginatedCouponData> {
+    const response = await apiClient.get<ApiResponse<PaginatedCouponApiData>>(
+      "/api/coupons/me/available",
+      {
+        params: {
+          page: params.page,
+          limit: params.limit,
+        },
+      },
+    );
+
+    return normalizePaginatedData(response.data.data);
+  },
+
   async getAdminCoupons(params: GetAdminCouponsParams = {}): Promise<PaginatedCouponData> {
     const response = await apiClient.get<ApiResponse<PaginatedCouponApiData>>("/api/coupons/admin", {
       params: {

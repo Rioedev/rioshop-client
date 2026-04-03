@@ -49,7 +49,7 @@ export function StoreProductReviewSection({
           {reviewPercents.map((item) => (
             <div key={item.star} className="pdpv2-review-row">
               <span>{item.star} sao</span>
-              <Progress percent={item.percent} showInfo={false} strokeColor="#0f172a" trailColor="#e2e8f0" />
+              <Progress percent={item.percent} showInfo={false} strokeColor="#0f172a" railColor="#e2e8f0" />
             </div>
           ))}
         </div>
@@ -133,6 +133,7 @@ export function StoreProductReviewSection({
     </section>
   );
 }
+
 
 
 

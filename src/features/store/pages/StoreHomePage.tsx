@@ -80,12 +80,14 @@ export function StoreHomePage() {
           }),
           productService.getProducts({
             page: 1,
-            limit: 160,
+            limit: 100,
             status: "active",
             sort: { createdAt: -1 },
           }),
           flashSaleService.getFlashSales({ page: 1, limit: 1, currentOnly: true, isActive: true }),
-          couponService.getActiveCoupons({ page: 1, limit: 8 }),
+          isAuthenticated
+            ? couponService.getMyAvailableCoupons({ page: 1, limit: 8 })
+            : couponService.getActiveCoupons({ page: 1, limit: 8 }),
           blogService.getBlogs({ page: 1, limit: 8, isPublished: true }),
         ]);
 
@@ -269,7 +271,7 @@ export function StoreHomePage() {
     return () => {
       active = false;
     };
-  }, []);
+  }, [isAuthenticated]);
 
   const primarySlug = useMemo(() => featuredProducts[0]?.slug ?? flashDeals[0]?.slug ?? "", [featuredProducts, flashDeals]);
   const secondarySlug = useMemo(() => featuredProducts[1]?.slug ?? featuredProducts[0]?.slug ?? "", [featuredProducts]);
@@ -597,7 +599,7 @@ export function StoreHomePage() {
                 percent={flashDeals[0]?.soldPercent ?? 0}
                 showInfo={false}
                 strokeColor="#f97316"
-                trailColor="rgba(255,255,255,0.16)"
+                railColor="rgba(255,255,255,0.16)"
               />
             </article>
 
@@ -615,7 +617,7 @@ export function StoreHomePage() {
                     <strong>{formatCurrency(deal.salePrice)}</strong>
                     <span>{formatCurrency(deal.basePrice)}</span>
                   </div>
-                  <Progress percent={deal.soldPercent} showInfo={false} strokeColor="#fb923c" trailColor="#1f2937" />
+                  <Progress percent={deal.soldPercent} showInfo={false} strokeColor="#fb923c" railColor="#1f2937" />
                 </Link>
               ))}
             </div>
@@ -805,7 +807,5 @@ export function StoreHomePage() {
     </div>
   );
 }
-
-
 
 

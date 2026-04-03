@@ -49,7 +49,7 @@ export function RevenuePanel({ data }: RevenuePanelProps) {
               percent={Math.round((item.amount / maxValue) * 100)}
               showInfo={false}
               strokeColor={index % 2 === 0 ? "#2563eb" : "#0ea5e9"}
-              trailColor="#e2e8f0"
+              railColor="#e2e8f0"
             />
           </div>
         ))}
@@ -57,3 +57,4 @@ export function RevenuePanel({ data }: RevenuePanelProps) {
     </Card>
   );
 }
+

@@ -1,4 +1,4 @@
-﻿import { Button, Input, InputNumber, Progress, message } from "antd";
+import { Button, InputNumber, Progress, Select, message } from "antd";
 import { Link } from "react-router-dom";
 import { useEffect, useMemo, useState } from "react";
 import {
@@ -22,11 +22,18 @@ import {
   getSafeMaxQuantity,
 } from "../utils/quantityInputGuards";
 import { cartService, toCartCouponMeta, toCartStoreItems } from "../../../services/cartService";
+import { couponService, type Coupon } from "../../../services/couponService";
 import { productService, type Product } from "../../../services/productService";
 import { shippingService, type ShippingPolicy } from "../../../services/shippingService";
 import { buildCartItemId, type CartItem, useCartStore } from "../../../stores/cartStore";
 import { useAuthStore } from "../../../stores/authStore";
 import { getErrorMessage } from "../../../utils/errorMessage";
+import {
+  formatCouponCondition,
+  formatCouponExpiry,
+  formatCouponValue,
+  readSavedCouponCodes,
+} from "../shared/home";
 
 const DEFAULT_SHIPPING_POLICY: ShippingPolicy = {
   freeShipEnabled: true,
@@ -50,15 +57,63 @@ export function StoreCartPage() {
   const clearCart = useCartStore((state) => state.clearCart);
   const addCartItem = useCartStore((state) => state.addItem);
   const [recommendations, setRecommendations] = useState<Product[]>([]);
-  const [couponInput, setCouponInput] = useState("");
+  const [selectedCouponCode, setSelectedCouponCode] = useState<string | undefined>(undefined);
+  const [savedCoupons, setSavedCoupons] = useState<Coupon[]>([]);
+  const [savedCouponCodes, setSavedCouponCodes] = useState<string[]>([]);
+  const [savedCouponsLoading, setSavedCouponsLoading] = useState(false);
   const [applyingCoupon, setApplyingCoupon] = useState(false);
   const [clearingCoupon, setClearingCoupon] = useState(false);
   const [shippingPolicy, setShippingPolicy] = useState<ShippingPolicy>(DEFAULT_SHIPPING_POLICY);
   const [shippingPolicyLoading, setShippingPolicyLoading] = useState(true);
 
   useEffect(() => {
-    setCouponInput(couponCode ?? "");
+    setSelectedCouponCode(couponCode ?? undefined);
   }, [couponCode]);
+
+  useEffect(() => {
+    const savedCodes = readSavedCouponCodes();
+    setSavedCouponCodes(savedCodes);
+
+    if (savedCodes.length === 0) {
+      setSavedCoupons([]);
+      return;
+    }
+
+    let active = true;
+    const loadSavedCoupons = async () => {
+      setSavedCouponsLoading(true);
+      try {
+        const result = isAuthenticated
+          ? await couponService.getMyAvailableCoupons({ page: 1, limit: 100 })
+          : await couponService.getActiveCoupons({ page: 1, limit: 100 });
+        if (!active) {
+          return;
+        }
+
+        const activeCouponByCode = new Map(
+          result.docs.map((coupon) => [coupon.code.trim().toUpperCase(), coupon] as const),
+        );
+        const orderedSavedCoupons = savedCodes
+          .map((code) => activeCouponByCode.get(code))
+          .filter((coupon): coupon is Coupon => Boolean(coupon));
+
+        setSavedCoupons(orderedSavedCoupons);
+      } catch {
+        if (active) {
+          setSavedCoupons([]);
+        }
+      } finally {
+        if (active) {
+          setSavedCouponsLoading(false);
+        }
+      }
+    };
+
+    void loadSavedCoupons();
+    return () => {
+      active = false;
+    };
+  }, [isAuthenticated]);
 
   useEffect(() => {
     let active = true;
@@ -119,6 +174,11 @@ export function StoreCartPage() {
       isEligibleForFreeShip: eligible,
     };
   }, [couponDiscount, items, shippingPolicy]);
+
+  const unavailableSavedCouponCodes = useMemo(() => {
+    const availableCodes = new Set(savedCoupons.map((coupon) => coupon.code.trim().toUpperCase()));
+    return savedCouponCodes.filter((code) => !availableCodes.has(code));
+  }, [savedCouponCodes, savedCoupons]);
 
   useEffect(() => {
     let active = true;
@@ -266,9 +326,9 @@ export function StoreCartPage() {
       return;
     }
 
-    const nextCode = couponInput.trim().toUpperCase();
+    const nextCode = selectedCouponCode?.trim().toUpperCase() ?? "";
     if (!nextCode) {
-      messageApi.warning("Vui lòng nhập mã giảm giá.");
+      messageApi.warning("Vui lòng chọn mã giảm giá.");
       return;
     }
 
@@ -291,7 +351,7 @@ export function StoreCartPage() {
 
     if (!isAuthenticated) {
       setCoupon(null, 0);
-      setCouponInput("");
+      setSelectedCouponCode(undefined);
       return;
     }
 
@@ -299,7 +359,7 @@ export function StoreCartPage() {
     try {
       const cart = await cartService.clearCoupon();
       syncCartFromServer(cart);
-      setCouponInput("");
+      setSelectedCouponCode(undefined);
       messageApi.success("Đã gỡ mã giảm giá.");
     } catch (error) {
       messageApi.error(getErrorMessage(error));
@@ -382,7 +442,7 @@ export function StoreCartPage() {
               percent={isFreeShipTracked ? freeShipProgress : 0}
               showInfo={false}
               strokeColor="#0f172a"
-              trailColor="#e2e8f0"
+              railColor="#e2e8f0"
             />
           </div>
 
@@ -520,22 +580,64 @@ export function StoreCartPage() {
           <div className="mt-5">
             <p className="mb-2 text-xs font-bold uppercase tracking-[0.12em] text-slate-500">Mã giảm giá</p>
             <div className="flex gap-2">
-              <Input
-                value={couponInput}
-                onChange={(event) => setCouponInput(event.target.value)}
-                onPressEnter={() => void handleApplyCoupon()}
-                placeholder={isAuthenticated ? "Nhập mã giảm giá" : "Đăng nhập để áp mã"}
-                className="rounded-full!"
+              <Select
+                value={selectedCouponCode}
+                onChange={(value) => setSelectedCouponCode(value)}
+                placeholder={
+                  !isAuthenticated
+                    ? "Đăng nhập để chọn mã"
+                    : savedCouponsLoading
+                      ? "Đang tải mã đã lưu..."
+                      : savedCoupons.length === 0
+                        ? "Chưa có mã đã lưu"
+                        : "Chọn mã giảm giá đã lưu"
+                }
+                options={savedCoupons.map((coupon) => {
+                  const normalizedCode = coupon.code.trim().toUpperCase();
+                  const expiry = formatCouponExpiry(coupon.expiresAt);
+                  return {
+                    value: normalizedCode,
+                    couponCode: normalizedCode,
+                    label: (
+                      <div style={{ whiteSpace: "normal", lineHeight: 1.35 }}>
+                        <div>
+                          {normalizedCode} - {formatCouponValue(coupon)}
+                        </div>
+                        <div className="text-xs text-slate-500">{formatCouponCondition(coupon)}</div>
+                        <div className="text-xs text-slate-500">HSD {expiry}</div>
+                      </div>
+                    ),
+                  };
+                })}
+                optionLabelProp="couponCode"
+                loading={savedCouponsLoading}
+                disabled={!isAuthenticated || savedCoupons.length === 0 || applyingCoupon || clearingCoupon}
+                className="flex-1"
+                popupMatchSelectWidth={false}
               />
               <Button
                 className={storeButtonClassNames.ghostCompact}
                 loading={applyingCoupon}
-                disabled={!couponInput.trim() || applyingCoupon || clearingCoupon}
+                disabled={
+                  !selectedCouponCode ||
+                  selectedCouponCode === couponCode ||
+                  applyingCoupon ||
+                  clearingCoupon ||
+                  !isAuthenticated
+                }
                 onClick={() => void handleApplyCoupon()}
               >
                 Áp dụng
               </Button>
             </div>
+            {isAuthenticated && !savedCouponsLoading && savedCoupons.length === 0 ? (
+              <p className="mt-2 text-xs text-slate-500">Bạn chưa lưu mã nào. Hãy vào trang chủ để lưu mã.</p>
+            ) : null}
+            {isAuthenticated && unavailableSavedCouponCodes.length > 0 ? (
+              <p className="mt-2 text-xs text-slate-500">
+                {`Mã không còn hiệu lực: ${unavailableSavedCouponCodes.join(", ")}`}
+              </p>
+            ) : null}
             {couponCode ? (
               <div className="cart-coupon-chip mt-3">
                 <span>Mã đang dùng: {couponCode}</span>
