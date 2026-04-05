@@ -1,4 +1,5 @@
 ﻿import type { Category } from "../../services/categoryService";
+import type { Collection } from "../../services/collectionService";
 import { resolveStoreImageUrl } from "../../features/store/utils/storeFormatting";
 
 export type StoreMenuItem = {
@@ -62,6 +63,13 @@ const stripDiacritics = (value = "") =>
 
 const toCategoryHref = (slug?: string) =>
   slug ? `/products?category=${encodeURIComponent(slug)}` : "/products";
+
+const toCollectionHref = (slug?: string, id?: string) => {
+  const value = slug || id;
+  return value
+    ? `/products?collection=${encodeURIComponent(value)}`
+    : "/products";
+};
 
 const flattenCategoryTree = (nodes: Category[]): Category[] =>
   nodes.reduce<Category[]>((acc, node) => {
@@ -159,57 +167,25 @@ export const buildMegaColumns = (categoryTree: Category[]): MegaColumn[] => {
   return columns;
 };
 
-const fallbackCollectionImages = [
-  "https://dummyimage.com/960x420/e2e8f0/0f172a&text=BST+M%E1%BB%9Bi",
-  "https://dummyimage.com/960x420/fde2e4/7f1d1d&text=BST+Hot",
-  "https://dummyimage.com/960x420/fee2e2/991b1b&text=BST+Flash",
-];
-
 export const buildMegaCollectionCards = (
-  categoryTree: Category[],
+  collections: Collection[],
 ): MegaCollectionCard[] => {
-  const imageNodes = flattenCategoryTree(categoryTree)
-    .filter((node) => Boolean(node.slug))
-    .map((node) => ({
-      ...node,
-      image: resolveStoreImageUrl(node.image),
+  return collections
+    .filter((item) => item.isActive !== false)
+    .map((item) => ({
+      key: item._id,
+      title: item.name,
+      href: toCollectionHref(item.slug, item._id),
+      image: resolveStoreImageUrl(item.image || item.bannerImage),
+      position: Number.isFinite(item.position) ? item.position : 0,
     }))
-    .filter((node) => Boolean(node.image))
-    .slice(0, 3);
-
-  if (imageNodes.length > 0) {
-    const cards = imageNodes.map((node, index) => ({
-      key: node._id,
-      title: `BST ${node.name}`,
-      href: toCategoryHref(node.slug),
-      image:
-        node.image ||
-        fallbackCollectionImages[index % fallbackCollectionImages.length],
+    .filter((item) => Boolean(item.image))
+    .sort((a, b) => a.position - b.position)
+    .slice(0, 3)
+    .map(({ key, title, href, image }) => ({
+      key,
+      title,
+      href,
+      image: image as string,
     }));
-
-    while (cards.length < 3) {
-      const index = cards.length;
-      cards.push({
-        key: `fallback-${index}`,
-        title: `BST nổi bật ${index + 1}`,
-        href: "/products",
-        image:
-          fallbackCollectionImages[index % fallbackCollectionImages.length],
-      });
-    }
-
-    return cards;
-  }
-
-  return fallbackCollectionImages.map((image, index) => ({
-    key: `fallback-${index}`,
-    title: `BST nổi bật ${index + 1}`,
-    href: "/products",
-    image,
-  }));
 };
-
-
-
-
-

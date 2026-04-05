@@ -84,37 +84,26 @@
   min-height: 260px;
   border: 1px solid #dbe3ef;
   border-radius: 28px;
-  background-position: center;
-  background-size: cover;
-  padding: 28px;
-  display: flex;
-  align-items: end;
-  justify-content: space-between;
-  gap: 18px;
-}
-
-.store-home-v3-collection-banner p {
-  margin: 0;
-  font-size: 12px;
-  font-weight: 800;
-  letter-spacing: 0.18em;
-  text-transform: uppercase;
-  color: #cbd5e1;
-}
-
-.store-home-v3-collection-banner h2 {
-  margin: 8px 0 0;
-  font-size: clamp(30px, 3vw, 46px);
-  line-height: 1;
-  font-weight: 900;
-  color: #ffffff;
-}
-
-.store-home-v3-collection-banner span {
   display: block;
-  margin-top: 10px;
-  color: #e2e8f0;
-  font-size: 14px;
+  overflow: hidden;
+  background: #f1f5f9;
+  text-decoration: none;
+}
+
+.store-home-v3-collection-banner img {
+  width: 100%;
+  height: 100%;
+  display: block;
+  transition: transform 360ms ease;
+}
+
+.store-home-v3-collection-banner:hover img {
+  transform: scale(1.02);
+}
+
+.store-home-v3-collection-banner:focus-visible {
+  outline: 2px solid #0f4fa8;
+  outline-offset: 2px;
 }
 
 .store-home-v3-coupon-shell {

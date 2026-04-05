@@ -12,6 +12,7 @@ import { type Coupon } from "../../../services/couponService";
 import { type Product } from "../../../services/productService";
 import {
   formatStoreCurrency as formatCurrency,
+  resolveStoreImageUrl,
   resolveStoreProductThumbnail,
 } from "../utils/storeFormatting";
 
@@ -68,7 +69,8 @@ export type HomeProduct = {
   rating: number;
   sold: string;
   image: string;
-  colors?: Array<{ name: string; hex: string }>;
+  colors?: Array<{ key: string; name: string; hex: string; image: string }>;
+  collections?: Array<{ id: string; name: string; slug?: string; image?: string; bannerImage?: string }>;
 };
 
 export type FlashDeal = {
@@ -361,23 +363,88 @@ export const normalizeColorHex = (value?: string) => {
   return /^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/.test(hex) ? hex : "#cbd5e1";
 };
 
-export const getProductColorSwatches = (product: ProductRuntime) => {
+const normalizeColorRef = (value?: string) => (value ?? "").trim().toLowerCase();
+
+const findMediaColorImage = (
+  product: ProductRuntime,
+  colorName: string,
+  colorHex: string,
+) => {
+  const expectedRefs = new Set<string>();
+  const normalizedName = normalizeColorRef(colorName);
+  const normalizedHex = normalizeColorRef(colorHex);
+
+  if (normalizedName) {
+    expectedRefs.add(normalizedName);
+  }
+
+  if (normalizedHex) {
+    expectedRefs.add(normalizedHex);
+    expectedRefs.add(normalizedHex.replace("#", ""));
+  }
+
+  const match = (product.media ?? []).find((mediaItem) => {
+    if (!mediaItem?.url || mediaItem.type !== "image") {
+      return false;
+    }
+
+    const mediaRef = normalizeColorRef(mediaItem.colorRef);
+    if (!mediaRef) {
+      return false;
+    }
+
+    return expectedRefs.has(mediaRef);
+  });
+
+  return resolveStoreImageUrl(match?.url);
+};
+
+export const getProductColorSwatches = (product: ProductRuntime, fallbackImage: string) => {
   const variants = (product.variants ?? []).filter((variant) => variant.isActive !== false);
   const seen = new Set<string>();
-  const results: Array<{ name: string; hex: string }> = [];
+  const results: Array<{ key: string; name: string; hex: string; image: string }> = [];
 
   variants.forEach((variant) => {
     const rawHex = normalizeColorHex(variant.color?.hex);
     const name = (variant.color?.name ?? "").trim() || rawHex;
-    const key = `${name.toLowerCase()}-${rawHex.toLowerCase()}`;
+    const key = `${name.toLowerCase()}-${rawHex.toLowerCase()}`.replace(/\s+/g, "-");
     if (seen.has(key)) {
       return;
     }
+
+    const image =
+      resolveStoreImageUrl(variant.color?.imageUrl) ??
+      resolveStoreImageUrl(variant.images?.[0]) ??
+      findMediaColorImage(product, name, rawHex) ??
+      fallbackImage;
+
     seen.add(key);
-    results.push({ name, hex: rawHex });
+    results.push({ key, name, hex: rawHex, image });
   });
 
-  return results.slice(0, 4);
+  return results.slice(0, 6);
+};
+
+export const getProductCollections = (product: ProductRuntime) => {
+  const seen = new Set<string>();
+  const results: Array<{ id: string; name: string; slug?: string; image?: string; bannerImage?: string }> = [];
+
+  (product.collections ?? []).forEach((collection) => {
+    if (!collection?._id || !collection.name || seen.has(collection._id)) {
+      return;
+    }
+
+    seen.add(collection._id);
+    results.push({
+      id: collection._id,
+      name: collection.name,
+      slug: collection.slug,
+      image: resolveStoreImageUrl(collection.image),
+      bannerImage: resolveStoreImageUrl(collection.bannerImage),
+    });
+  });
+
+  return results;
 };
 
 export const formatTimeLeft = (endsAt: string) => {
@@ -502,25 +569,30 @@ export const mapHomeProduct = (
   product: ProductRuntime,
   index: number,
   labels: ResolvedHomeContent["labels"],
-): HomeProduct => ({
-  id: product._id,
-  name: product.name,
-  slug: product.slug,
-  category: getCategoryBadge(product, labels),
-  categoryId: product.category?._id,
-  categoryName: product.category?.name,
-  categorySlug: product.category?.slug,
-  price: product.pricing.salePrice,
-  originalPrice: product.pricing.basePrice > product.pricing.salePrice ? product.pricing.basePrice : undefined,
-  badge: getDiscountBadge(product.pricing.salePrice, product.pricing.basePrice),
-  rating:
-    typeof product.ratings?.avg === "number" && product.ratings.avg > 0
-      ? Number(product.ratings.avg.toFixed(1))
-      : 4.8,
-  sold: formatSoldText(product.totalSold, labels),
-  image: getProductImage(product, index),
-  colors: getProductColorSwatches(product),
-});
+): HomeProduct => {
+  const image = getProductImage(product, index);
+
+  return {
+    id: product._id,
+    name: product.name,
+    slug: product.slug,
+    category: getCategoryBadge(product, labels),
+    categoryId: product.category?._id,
+    categoryName: product.category?.name,
+    categorySlug: product.category?.slug,
+    price: product.pricing.salePrice,
+    originalPrice: product.pricing.basePrice > product.pricing.salePrice ? product.pricing.basePrice : undefined,
+    badge: getDiscountBadge(product.pricing.salePrice, product.pricing.basePrice),
+    rating:
+      typeof product.ratings?.avg === "number" && product.ratings.avg > 0
+        ? Number(product.ratings.avg.toFixed(1))
+        : 4.8,
+    sold: formatSoldText(product.totalSold, labels),
+    image,
+    colors: getProductColorSwatches(product, image),
+    collections: getProductCollections(product),
+  };
+};
 
 export const VIETNAMESE_DIACRITIC_REGEX = /[\u00C0-\u024F\u1E00-\u1EFF]/;
 export const HAS_LETTER_REGEX = /[A-Za-z\u00C0-\u024F\u1E00-\u1EFF]/;

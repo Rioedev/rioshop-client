@@ -1,7 +1,6 @@
-import {
+﻿import {
   ClockCircleOutlined,
   FireOutlined,
-  ThunderboltOutlined,
 } from "@ant-design/icons";
 import { Button, Progress, message } from "antd";
 import { useEffect, useMemo, useState } from "react";
@@ -9,9 +8,10 @@ import { Link } from "react-router-dom";
 import { STORE_BRAND_KEY } from "../../../app/constants/storeBrand";
 import { brandConfigService } from "../../../services/brandConfigService";
 import { categoryService, type Category } from "../../../services/categoryService";
+import { collectionService, type Collection } from "../../../services/collectionService";
 import { blogService, type BlogPost } from "../../../services/blogService";
 import { couponService, type Coupon } from "../../../services/couponService";
-import { flashSaleService } from "../../../services/flashSaleService";
+import { flashSaleService, type FlashSale } from "../../../services/flashSaleService";
 import { productService } from "../../../services/productService";
 import {
   formatStoreCurrency as formatCurrency,
@@ -28,7 +28,6 @@ import {
   formatCouponValue,
   formatTimeLeft,
   getProductImage,
-  iconByKey,
   mapHomeProduct,
   mergeHomeContent,
   readSavedCouponCodes,
@@ -39,15 +38,16 @@ import {
   type ResolvedHomeContent,
   writeSavedCouponCodes,
 } from "../shared/home";
-import { StoreHomeHeroSection } from "./StoreHomeHeroSection";
+import { StoreHomeHeroSection, type HomeHeroSlide } from "./StoreHomeHeroSection";
 import { StoreHomeProductCard } from "./StoreHomeProductCard";
-import { StoreHomeShowcaseSection } from "./StoreHomeShowcaseSection";
 
 export function StoreHomePage() {
   const [messageApi, contextHolder] = message.useMessage();
   const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
   const [homeContent, setHomeContent] = useState<ResolvedHomeContent>(DEFAULT_HOME_CONTENT);
   const [quickCategories, setQuickCategories] = useState<HomeCategory[]>([]);
+  const [homeCollections, setHomeCollections] = useState<Collection[]>([]);
+  const [homeFlashSales, setHomeFlashSales] = useState<FlashSale[]>([]);
   const [featuredProducts, setFeaturedProducts] = useState<HomeProduct[]>([]);
   const [catalogPool, setCatalogPool] = useState<HomeProduct[]>([]);
   const [flashDeals, setFlashDeals] = useState<FlashDeal[]>([]);
@@ -56,7 +56,6 @@ export function StoreHomePage() {
   const [savedCouponCodes, setSavedCouponCodes] = useState<string[]>(() => readSavedCouponCodes());
   const [isLoading, setIsLoading] = useState(true);
   const [activeHeroIndex, setActiveHeroIndex] = useState(0);
-  const [activeQuickCategoryId, setActiveQuickCategoryId] = useState("");
 
   useEffect(() => {
     writeSavedCouponCodes(savedCouponCodes);
@@ -68,10 +67,11 @@ export function StoreHomePage() {
     const loadHomeData = async () => {
       setIsLoading(true);
 
-      const [brandConfigResult, categoryResult, featuredResult, latestResult, flashSaleResult, couponResult, blogResult] =
+      const [brandConfigResult, categoryResult, collectionResult, featuredResult, latestResult, flashSaleResult, flashSaleTimelineResult, couponResult, blogResult] =
         await Promise.allSettled([
           brandConfigService.getBrandConfig(STORE_BRAND_KEY),
           categoryService.getCategories({ page: 1, limit: 24, isActive: true }),
+          collectionService.getCollections({ page: 1, limit: 24, isActive: true }),
           productService.getProducts({
             page: 1,
             limit: 20,
@@ -85,6 +85,7 @@ export function StoreHomePage() {
             sort: { createdAt: -1 },
           }),
           flashSaleService.getFlashSales({ page: 1, limit: 1, currentOnly: true, isActive: true }),
+          flashSaleService.getFlashSales({ page: 1, limit: 12, isActive: true }),
           isAuthenticated
             ? couponService.getMyAvailableCoupons({ page: 1, limit: 8 })
             : couponService.getActiveCoupons({ page: 1, limit: 8 }),
@@ -142,7 +143,7 @@ export function StoreHomePage() {
             return {
               id: category._id,
               name: category.name,
-              count: productCount > 0 ? `${productCount} sản phẩm` : resolvedHomeContent.labels.updatingLabel,
+              count: productCount > 0 ? `${productCount} sáº£n pháº©m` : resolvedHomeContent.labels.updatingLabel,
               slug: category.slug || "",
               image:
                 resolveImageUrl(category.image) ??
@@ -173,14 +174,14 @@ export function StoreHomePage() {
           const current = derived.get(categoryId);
           if (current) {
             current.productCount += 1;
-            current.count = `${current.productCount} sản phẩm`;
+            current.count = `${current.productCount} sáº£n pháº©m`;
             return;
           }
 
           derived.set(categoryId, {
             id: categoryId,
             name: categoryName,
-            count: "1 sản phẩm",
+            count: "1 sáº£n pháº©m",
             slug: product.category?.slug ?? "",
             image: getProductImage(product, index),
             productCount: 1,
@@ -209,7 +210,7 @@ export function StoreHomePage() {
 
           currentSale.slots.slice(0, 3).forEach((slot, index) => {
             const product = productById.get(slot.productId);
-            const dealName = slot.product?.name ?? product?.name ?? `Ưu đãi #${index + 1}`;
+            const dealName = slot.product?.name ?? product?.name ?? `Æ¯u Ä‘Ã£i #${index + 1}`;
             const dealSlug = slot.product?.slug ?? product?.slug ?? highlightedProducts[0]?.slug;
 
             if (!dealSlug) {
@@ -260,6 +261,8 @@ export function StoreHomePage() {
       setFeaturedProducts(highlightedProducts);
       setCatalogPool(mappedCatalogPool.length > 0 ? mappedCatalogPool : highlightedProducts);
       setQuickCategories(mappedCategories);
+      setHomeCollections(collectionResult.status === "fulfilled" ? collectionResult.value.docs : []);
+      setHomeFlashSales(flashSaleTimelineResult.status === "fulfilled" ? flashSaleTimelineResult.value.docs : []);
       setFlashDeals(mappedFlashDeals);
       setActiveCoupons(couponResult.status === "fulfilled" ? couponResult.value.docs : []);
       setBlogPosts(blogResult.status === "fulfilled" ? blogResult.value.docs : []);
@@ -273,58 +276,132 @@ export function StoreHomePage() {
     };
   }, [isAuthenticated]);
 
-  const primarySlug = useMemo(() => featuredProducts[0]?.slug ?? flashDeals[0]?.slug ?? "", [featuredProducts, flashDeals]);
   const secondarySlug = useMemo(() => featuredProducts[1]?.slug ?? featuredProducts[0]?.slug ?? "", [featuredProducts]);
   const productPool = useMemo(() => (catalogPool.length > 0 ? catalogPool : featuredProducts), [catalogPool, featuredProducts]);
-  const primaryCtaLink = primarySlug ? `/products/${primarySlug}` : "/products";
   const secondaryCtaLink = secondarySlug ? `/products/${secondarySlug}` : "/products";
-  const campaignImage =
-    featuredProducts[0]?.image ??
-    "https://images.unsplash.com/photo-1523381210434-271e8be1f52b?auto=format&fit=crop&w=1800&q=80";
   const bestsellingProducts = productPool.slice(4, 8).length > 0 ? productPool.slice(4, 8) : productPool.slice(0, 4);
   const curatedProducts = productPool.slice(8, 12).length > 0 ? productPool.slice(8, 12) : productPool.slice(0, 4);
-  const spotlightCategories = quickCategories.slice(0, 5);
-  const serviceHighlights = homeContent.valueProps.slice(0, 3);
-  const socialStats = [
-    { value: `${productPool.length}+`, label: homeContent.labels.productOpenLabel },
-    { value: `${quickCategories.length}`, label: homeContent.labels.shoppingCategoryLabel },
-    {
-      value: flashDeals.length > 0 ? `${flashDeals.length}` : "24h",
-      label: flashDeals.length > 0 ? homeContent.labels.activeDealLabel : homeContent.labels.sameDayFulfillmentLabel,
-    },
-    { value: homeContent.hero.metrics[0]?.value ?? "4.9/5", label: homeContent.hero.metrics[0]?.label ?? "Khách hàng đánh giá cao" },
-  ];
+  const sortedCollections = useMemo(() => {
+    return [...homeCollections].sort((a, b) => {
+      const aTime = new Date(a.createdAt ?? a.updatedAt ?? 0).getTime();
+      const bTime = new Date(b.createdAt ?? b.updatedAt ?? 0).getTime();
 
-  const categoryCollections = useMemo(() => {
-    const grouped = new Map<string, HomeProduct[]>();
+      if (Number.isFinite(aTime) && Number.isFinite(bTime) && aTime !== bTime) {
+        return bTime - aTime;
+      }
 
-    productPool.forEach((item) => {
-      if (!item.categoryId) {
-        return;
+      return (a.position ?? 0) - (b.position ?? 0);
+    });
+  }, [homeCollections]);
+
+  const collectionSections = useMemo(() => {
+    const sections: Array<{
+      id: string;
+      name: string;
+      slug?: string;
+      bannerImage: string;
+      products: HomeProduct[];
+    }> = [];
+
+    const now = Date.now();
+    const activeCollections = sortedCollections.filter((collection) => {
+      const startsAt = collection.startsAt ? new Date(collection.startsAt).getTime() : Number.NEGATIVE_INFINITY;
+      const endsAt = collection.endsAt ? new Date(collection.endsAt).getTime() : Number.POSITIVE_INFINITY;
+
+      if (Number.isFinite(startsAt) && startsAt > now) {
+        return false;
       }
-      const current = grouped.get(item.categoryId) ?? [];
-      if (current.length < 12) {
-        current.push(item);
+
+      if (Number.isFinite(endsAt) && endsAt <= now) {
+        return false;
       }
-      grouped.set(item.categoryId, current);
+
+      return true;
     });
 
-    return quickCategories
-      .slice(0, 4)
-      .map((category, index) => {
-        let products = (grouped.get(category.id) ?? []).slice(0, 4);
+    activeCollections.slice(0, 8).forEach((collection, index) => {
+      const products = productPool
+        .filter((item) => (item.collections ?? []).some((linkedCollection) => linkedCollection.id === collection._id))
+        .slice(0, 4);
 
-        if (products.length < 4) {
-          const fallback = productPool
-            .filter((item) => item.categoryId !== category.id)
-            .slice(index * 4, index * 4 + (4 - products.length));
-          products = [...products, ...fallback].slice(0, 4);
+      if (products.length === 0) {
+        return;
+      }
+
+      const matchedCollectionMeta = products
+        .map((item) => (item.collections ?? []).find((linkedCollection) => linkedCollection.id === collection._id))
+        .find(Boolean);
+
+      const bannerImage =
+        resolveImageUrl(collection.bannerImage) ??
+        resolveImageUrl(collection.image) ??
+        matchedCollectionMeta?.bannerImage ??
+        matchedCollectionMeta?.image ??
+        products[0].image ??
+        FALLBACK_CATEGORY_IMAGES[index % FALLBACK_CATEGORY_IMAGES.length];
+
+      sections.push({
+        id: collection._id,
+        name: collection.name,
+        slug: collection.slug,
+        bannerImage,
+        products,
+      });
+    });
+
+    if (sections.length > 0) {
+      return sections;
+    }
+
+    const derivedMap = new Map<string, {
+      id: string;
+      name: string;
+      slug?: string;
+      bannerImage?: string;
+      image?: string;
+      products: HomeProduct[];
+    }>();
+
+    productPool.forEach((product) => {
+      (product.collections ?? []).forEach((collection) => {
+        if (!collection.id || !collection.name) {
+          return;
         }
 
-        return { category, products };
-      })
-      .filter((item) => item.products.length > 0);
-  }, [productPool, quickCategories]);
+        const current = derivedMap.get(collection.id);
+        if (!current) {
+          derivedMap.set(collection.id, {
+            id: collection.id,
+            name: collection.name,
+            slug: collection.slug,
+            bannerImage: collection.bannerImage,
+            image: collection.image,
+            products: [product],
+          });
+          return;
+        }
+
+        if (current.products.length < 4) {
+          current.products.push(product);
+        }
+      });
+    });
+
+    return Array.from(derivedMap.values())
+      .filter((item) => item.products.length > 0)
+      .slice(0, 4)
+      .map((item, index) => ({
+        id: item.id,
+        name: item.name,
+        slug: item.slug,
+        bannerImage:
+          item.bannerImage ??
+          item.image ??
+          item.products[0]?.image ??
+          FALLBACK_CATEGORY_IMAGES[index % FALLBACK_CATEGORY_IMAGES.length],
+        products: item.products,
+      }));
+  }, [productPool, sortedCollections]);
 
   const blogCards = useMemo(() => {
     const fallbackImages = [
@@ -343,26 +420,26 @@ export function StoreHomePage() {
       {
         id: "blog-1",
         date: "23/03/2026",
-        title: "Hướng dẫn kiểm tra hạng thành viên RioShop nhanh chóng",
-        excerpt: "Mẹo theo dõi quyền lợi và điểm tích lũy để mua sắm tối ưu hơn.",
+        title: "HÆ°á»›ng dáº«n kiá»ƒm tra háº¡ng thÃ nh viÃªn RioShop nhanh chÃ³ng",
+        excerpt: "Máº¹o theo dÃµi quyá»n lá»£i vÃ  Ä‘iá»ƒm tÃ­ch lÅ©y Ä‘á»ƒ mua sáº¯m tá»‘i Æ°u hÆ¡n.",
       },
       {
         id: "blog-2",
         date: "21/03/2026",
-        title: "Bí kíp mặc đẹp cùng quần jean rách nam: Cách phối đồ & xu hướng 2026",
-        excerpt: "Gợi ý phối đồ thực tế để giữ vẻ ngoài gọn, hiện đại và nam tính.",
+        title: "BÃ­ kÃ­p máº·c Ä‘áº¹p cÃ¹ng quáº§n jean rÃ¡ch nam: CÃ¡ch phá»‘i Ä‘á»“ & xu hÆ°á»›ng 2026",
+        excerpt: "Gá»£i Ã½ phá»‘i Ä‘á»“ thá»±c táº¿ Ä‘á»ƒ giá»¯ váº» ngoÃ i gá»n, hiá»‡n Ä‘áº¡i vÃ  nam tÃ­nh.",
       },
       {
         id: "blog-3",
         date: "21/03/2026",
-        title: "Bí quyết phối đồ cực chất: Nâng tầm phong cách cùng quần jean áo thun nam",
-        excerpt: "Công thức phối nhanh cho đi làm, đi chơi và dạo phố cuối tuần.",
+        title: "BÃ­ quyáº¿t phá»‘i Ä‘á»“ cá»±c cháº¥t: NÃ¢ng táº§m phong cÃ¡ch cÃ¹ng quáº§n jean Ã¡o thun nam",
+        excerpt: "CÃ´ng thá»©c phá»‘i nhanh cho Ä‘i lÃ m, Ä‘i chÆ¡i vÃ  dáº¡o phá»‘ cuá»‘i tuáº§n.",
       },
       {
         id: "blog-4",
         date: "21/03/2026",
-        title: "Top 15+ kiểu áo mặc với quần jean ống rộng cực tôn dáng, chuẩn gu fashionista",
-        excerpt: "Danh sách outfit dễ áp dụng giúp trang phục cân đối và thời trang hơn.",
+        title: "Top 15+ kiá»ƒu Ã¡o máº·c vá»›i quáº§n jean á»‘ng rá»™ng cá»±c tÃ´n dÃ¡ng, chuáº©n gu fashionista",
+        excerpt: "Danh sÃ¡ch outfit dá»… Ã¡p dá»¥ng giÃºp trang phá»¥c cÃ¢n Ä‘á»‘i vÃ  thá»i trang hÆ¡n.",
       },
     ].map((item, index) => ({
       ...item,
@@ -374,8 +451,8 @@ export function StoreHomePage() {
       return blogPosts.slice(0, 4).map((post, index) => ({
         id: post._id,
         date: formatBlogDate(post.publishedAt || post.createdAt),
-        title: post.title?.trim() || fallbackCards[index]?.title || "Bài viết mới",
-        excerpt: post.excerpt?.trim() || fallbackCards[index]?.excerpt || "Nội dung đang được cập nhật.",
+        title: post.title?.trim() || fallbackCards[index]?.title || "BÃ i viáº¿t má»›i",
+        excerpt: post.excerpt?.trim() || fallbackCards[index]?.excerpt || "Ná»™i dung Ä‘ang Ä‘Æ°á»£c cáº­p nháº­t.",
         href: post.slug?.trim()
           ? `/blog/${encodeURIComponent(post.slug)}`
           : fallbackCards[index]?.href || "/blog",
@@ -390,32 +467,223 @@ export function StoreHomePage() {
   }, [blogPosts, quickCategories]);
 
   const heroSlides = useMemo(() => {
-    const source = (featuredProducts.length > 0 ? featuredProducts : productPool).slice(0, 3);
+    const HERO_SLIDE_LIMIT = 5;
+    const HERO_SOURCE_BALANCE_LIMIT = 2;
+    const now = Date.now();
+    const saleDateFormatter = new Intl.DateTimeFormat("vi-VN", {
+      day: "2-digit",
+      month: "2-digit",
+      hour: "2-digit",
+      minute: "2-digit",
+    });
 
-    return source.map((product, index) => ({
-      id: product.id,
-      image: product.image,
-      href: `/products/${product.slug}`,
-      secondaryHref: product.categorySlug ? `/products?category=${encodeURIComponent(product.categorySlug)}` : "/products",
-      kicker: index === 0 ? homeContent.hero.kicker : product.categoryName ?? homeContent.hero.sideKicker,
-      titleLine1: index === 0 ? homeContent.hero.titleLine1 : product.name,
-      titleLine2:
-        index === 0
-          ? homeContent.hero.titleLine2
-          : product.categoryName
-            ? `${product.categoryName} chọn lọc cho mùa này`
-            : homeContent.hero.sideTitleLine2,
-      description:
-        index === 0
-          ? homeContent.hero.description
-          : homeContent.hero.sideDescription,
-      primaryLabel: index === 0 ? homeContent.hero.primaryCtaLabel : homeContent.labels.buyDeal,
-      secondaryLabel: index === 0 ? homeContent.hero.secondaryCtaLabel : homeContent.labels.heroSlideSecondaryLabel,
-      priceLabel: formatCurrency(product.price),
-      meta: product.sold,
-      badge: product.badge ?? (index === 0 ? homeContent.labels.flashDeal : homeContent.labels.exploreNow),
-    }));
-  }, [featuredProducts, homeContent, productPool]);
+    type HeroSource = "flash_upcoming" | "flash_active" | "collection" | "product";
+    type HeroCandidate = HomeHeroSlide & {
+      source: HeroSource;
+      dedupeKey: string;
+      imageKey: string;
+    };
+
+    const collectionSlides: HeroCandidate[] = collectionSections
+      .filter((section) => Boolean(section.bannerImage))
+      .slice(0, HERO_SLIDE_LIMIT)
+      .map((section, index) => {
+        const leadProduct = section.products[0];
+        const collectionHref = `/products?collection=${encodeURIComponent(section.slug || section.id)}`;
+
+        return {
+          id: `collection-${section.id}`,
+          image: section.bannerImage,
+          href: collectionHref,
+          secondaryHref: collectionHref,
+          kicker: index === 0 ? homeContent.hero.kicker : homeContent.sections.collectionKicker,
+          titleLine1: section.name,
+          titleLine2: "Bộ sưu tập mới",
+          description: homeContent.hero.sideDescription,
+          primaryLabel: homeContent.sections.collectionLinkLabel,
+          secondaryLabel: homeContent.labels.heroSlideSecondaryLabel,
+          priceLabel: formatCurrency(leadProduct?.price ?? 0),
+          meta: leadProduct?.sold ?? `${section.products.length} sản phẩm`,
+          badge: homeContent.labels.exploreNow,
+          source: "collection" as const,
+          dedupeKey: collectionHref,
+          imageKey: section.bannerImage,
+        };
+      });
+
+    const availableFlashSales = homeFlashSales.filter((sale) => {
+      if (sale.isActive === false) {
+        return false;
+      }
+
+      if (!resolveImageUrl(sale.banner)) {
+        return false;
+      }
+
+      const startsAt = new Date(sale.startsAt).getTime();
+      const endsAt = new Date(sale.endsAt).getTime();
+      return !Number.isFinite(endsAt) || endsAt > now || startsAt > now;
+    });
+
+    const upcomingFlashSales = [...availableFlashSales]
+      .filter((sale) => new Date(sale.startsAt).getTime() > now)
+      .sort((a, b) => new Date(a.startsAt).getTime() - new Date(b.startsAt).getTime());
+
+    const activeFlashSales = [...availableFlashSales]
+      .filter((sale) => {
+        const startsAt = new Date(sale.startsAt).getTime();
+        const endsAt = new Date(sale.endsAt).getTime();
+        return startsAt <= now && (!Number.isFinite(endsAt) || endsAt > now);
+      })
+      .sort((a, b) => new Date(b.startsAt).getTime() - new Date(a.startsAt).getTime());
+
+    const toFlashCandidate = (sale: FlashSale, source: "flash_upcoming" | "flash_active"): HeroCandidate => {
+      const image = resolveImageUrl(sale.banner) as string;
+      const start = new Date(sale.startsAt).getTime();
+      const end = new Date(sale.endsAt).getTime();
+      const isUpcoming = source === "flash_upcoming";
+      const minSalePrice = sale.slots.reduce((lowest, slot) => {
+        if (slot.salePrice > 0 && slot.salePrice < lowest) {
+          return slot.salePrice;
+        }
+        return lowest;
+      }, Number.POSITIVE_INFINITY);
+      const leadProductSlug = sale.slots.find((slot) => slot.product?.slug)?.product?.slug;
+      const targetTime = isUpcoming ? start : end;
+      const meta = Number.isFinite(targetTime)
+        ? `${isUpcoming ? "Bắt đầu" : "Kết thúc"} ${saleDateFormatter.format(targetTime)}`
+        : homeContent.labels.updatingLabel;
+
+      return {
+        id: `flash-sale-${source}-${sale.id}`,
+        image,
+        href: "/flash-sales",
+        secondaryHref: leadProductSlug ? `/products/${leadProductSlug}` : "/flash-sales",
+        kicker: isUpcoming ? "Flash sale sắp diễn ra" : homeContent.labels.flashDeal,
+        titleLine1: sale.name,
+        titleLine2: isUpcoming ? "Chuẩn bị mở bán" : "Giá tốt giới hạn thời gian",
+        description: homeContent.hero.dealDescription,
+        primaryLabel: homeContent.sections.flashSaleLinkLabel,
+        secondaryLabel: homeContent.labels.heroSlideSecondaryLabel,
+        priceLabel: formatCurrency(Number.isFinite(minSalePrice) ? minSalePrice : featuredProducts[0]?.price ?? 0),
+        meta,
+        badge: homeContent.labels.flashDeal,
+        source,
+        dedupeKey: `/flash-sales::${sale.id}`,
+        imageKey: image,
+      };
+    };
+
+    const flashUpcomingSlides: HeroCandidate[] = upcomingFlashSales
+      .slice(0, HERO_SLIDE_LIMIT)
+      .map((sale) => toFlashCandidate(sale, "flash_upcoming"));
+
+    const flashActiveSlides: HeroCandidate[] = activeFlashSales
+      .slice(0, HERO_SLIDE_LIMIT)
+      .map((sale) => toFlashCandidate(sale, "flash_active"));
+
+    const source = (featuredProducts.length > 0 ? featuredProducts : productPool).slice(0, HERO_SLIDE_LIMIT);
+    const fallbackProductSlides: HeroCandidate[] = source
+      .map((product, index) => ({
+        id: product.id,
+        image: product.image,
+        href: `/products/${product.slug}`,
+        secondaryHref: product.categorySlug ? `/products?category=${encodeURIComponent(product.categorySlug)}` : "/products",
+        kicker: index === 0 ? homeContent.hero.kicker : product.categoryName ?? homeContent.hero.sideKicker,
+        titleLine1: index === 0 ? homeContent.hero.titleLine1 : product.name,
+        titleLine2:
+          index === 0
+            ? homeContent.hero.titleLine2
+            : product.categoryName
+              ? `${product.categoryName} chọn lọc cho mùa này`
+              : homeContent.hero.sideTitleLine2,
+        description:
+          index === 0
+            ? homeContent.hero.description
+            : homeContent.hero.sideDescription,
+        primaryLabel: index === 0 ? homeContent.hero.primaryCtaLabel : homeContent.labels.buyDeal,
+        secondaryLabel: index === 0 ? homeContent.hero.secondaryCtaLabel : homeContent.labels.heroSlideSecondaryLabel,
+        priceLabel: formatCurrency(product.price),
+        meta: product.sold,
+        badge: product.badge ?? (index === 0 ? homeContent.labels.flashDeal : homeContent.labels.exploreNow),
+        source: "product" as const,
+        dedupeKey: `/products/${product.slug}`,
+        imageKey: product.image,
+      }));
+
+    const orderedCandidates: HeroCandidate[] = [
+      ...flashUpcomingSlides,
+      ...flashActiveSlides,
+      ...collectionSlides,
+      ...fallbackProductSlides,
+    ];
+
+    const sourceCounter: Record<HeroSource, number> = {
+      flash_upcoming: 0,
+      flash_active: 0,
+      collection: 0,
+      product: 0,
+    };
+    const usedTargetKeys = new Set<string>();
+    const usedImageKeys = new Set<string>();
+    const slides: HomeHeroSlide[] = [];
+
+    const pushSlide = (candidate: HeroCandidate, enforceSourceLimit: boolean) => {
+      if (slides.length >= HERO_SLIDE_LIMIT) {
+        return;
+      }
+
+      if (
+        enforceSourceLimit &&
+        sourceCounter[candidate.source] >= HERO_SOURCE_BALANCE_LIMIT
+      ) {
+        return;
+      }
+
+      if (
+        usedTargetKeys.has(candidate.dedupeKey) ||
+        usedImageKeys.has(candidate.imageKey)
+      ) {
+        return;
+      }
+
+      usedTargetKeys.add(candidate.dedupeKey);
+      usedImageKeys.add(candidate.imageKey);
+      sourceCounter[candidate.source] += 1;
+      slides.push({
+        id: candidate.id,
+        image: candidate.image,
+        href: candidate.href,
+        secondaryHref: candidate.secondaryHref,
+        kicker: candidate.kicker,
+        titleLine1: candidate.titleLine1,
+        titleLine2: candidate.titleLine2,
+        description: candidate.description,
+        primaryLabel: candidate.primaryLabel,
+        secondaryLabel: candidate.secondaryLabel,
+        priceLabel: candidate.priceLabel,
+        meta: candidate.meta,
+        badge: candidate.badge,
+      });
+    };
+
+    orderedCandidates.forEach((candidate) => {
+      pushSlide(candidate, true);
+    });
+
+    if (slides.length < HERO_SLIDE_LIMIT) {
+      orderedCandidates.forEach((candidate) => {
+        pushSlide(candidate, false);
+      });
+    }
+
+    return slides.slice(0, HERO_SLIDE_LIMIT);
+  }, [collectionSections, featuredProducts, homeContent, homeFlashSales, productPool]);
+
+  const campaignImage =
+    heroSlides[0]?.image ??
+    featuredProducts[0]?.image ??
+    "https://images.unsplash.com/photo-1523381210434-271e8be1f52b?auto=format&fit=crop&w=1800&q=80";
 
   useEffect(() => {
     if (heroSlides.length <= 1) {
@@ -431,17 +699,6 @@ export function StoreHomePage() {
     };
   }, [heroSlides.length]);
 
-  const showcaseProducts = useMemo(() => {
-    const preferredCategoryId = activeQuickCategoryId || quickCategories[0]?.id;
-    if (!preferredCategoryId) {
-      return productPool.slice(0, 5);
-    }
-
-    return productPool.filter((item) => item.categoryId === preferredCategoryId).slice(0, 5);
-  }, [activeQuickCategoryId, productPool, quickCategories]);
-
-  const showcaseLeadProduct = showcaseProducts[0];
-  const showcaseRailProducts = showcaseProducts.slice(1, 5);
   const savedCouponCodeSet = useMemo(
     () => new Set(savedCouponCodes.map((code) => code.toUpperCase())),
     [savedCouponCodes],
@@ -482,94 +739,53 @@ export function StoreHomePage() {
       ) : null}
 
       <StoreHomeHeroSection
-        homeContent={homeContent}
         heroSlides={heroSlides}
         activeHeroIndex={activeHeroIndex}
         campaignImage={campaignImage}
-        primaryCtaLink={primaryCtaLink}
-        secondaryCtaLink={secondaryCtaLink}
-        fallbackPrice={featuredProducts[0]?.price ?? 0}
         onSelectSlide={setActiveHeroIndex}
       />
 
-      <section className="store-home-v3-metric-grid">
-        {socialStats.map((item) => (
-          <article key={`${item.value}-${item.label}`} className="store-home-v3-metric-card">
-            <p>{item.value}</p>
-            <span>{item.label}</span>
-          </article>
-        ))}
-      </section>
-
-      <section className="store-home-v3-service-grid">
-        {serviceHighlights.map((item) => (
-          <article key={item.title} className="store-home-v3-service-card">
-            <div className="store-home-v3-service-icon">
-              {iconByKey[item.iconKey as keyof typeof iconByKey] ?? <ThunderboltOutlined />}
-            </div>
-            <div>
-              <h3>{item.title}</h3>
-              <p>{item.text}</p>
-            </div>
-          </article>
-        ))}
-      </section>
-
-      {spotlightCategories.length > 0 ? (
-        <section className="store-home-v3-section">
+      {activeCoupons.length > 0 ? (
+        <section className="store-home-v3-section store-home-v3-coupon-shell">
           <div className="store-home-v3-section-head">
             <div>
-              <p>{homeContent.sections.categoryMosaicKicker}</p>
-              <h2>{homeContent.sections.categoriesTitle}</h2>
+              <p>{homeContent.sections.couponKicker}</p>
+              <h2>{homeContent.sections.couponTitle}</h2>
             </div>
-            <Link to="/products" className="store-home-v3-text-link">
-              {homeContent.sections.categoriesLinkLabel}
+            <Link to="/cart" className="store-home-v3-text-link">
+              {homeContent.sections.couponLinkLabel}
             </Link>
           </div>
 
-          <div className="store-home-v3-category-mosaic">
-            <Link
-              to={spotlightCategories[0].slug ? `/products?category=${encodeURIComponent(spotlightCategories[0].slug)}` : "/products"}
-              className="store-home-v3-category-lead"
-              style={{
-                backgroundImage: `linear-gradient(130deg, rgba(15, 23, 42, 0.8), rgba(15, 23, 42, 0.16)), url(${spotlightCategories[0].image})`,
-              }}
-            >
-              <span>{spotlightCategories[0].count}</span>
-              <h3>{spotlightCategories[0].name}</h3>
-            </Link>
+          <div className="store-home-v3-coupon-grid">
+            {activeCoupons.map((coupon) => {
+              const normalizedCode = coupon.code.trim().toUpperCase();
+              const isSaved = savedCouponCodeSet.has(normalizedCode);
 
-            <div className="store-home-v3-category-side">
-              {spotlightCategories.slice(1).map((category) => (
-                <Link
-                  key={`spotlight-${category.id}`}
-                  to={category.slug ? `/products?category=${encodeURIComponent(category.slug)}` : "/products"}
-                  className="store-home-v3-category-card"
-                >
-                  <div className="store-home-v3-category-thumb">
-                    <img src={category.image} alt={category.name} className="h-full w-full object-cover" />
+              return (
+                <article key={coupon.id} className="store-home-v3-coupon-card">
+                  <div className="store-home-v3-coupon-top">
+                    <p>{formatCouponValue(coupon)}</p>
+                    <span>HSD: {formatCouponExpiry(coupon.expiresAt)}</span>
                   </div>
-                  <div>
-                    <h3>{category.name}</h3>
-                    <p>{category.count}</p>
+                  <h3>{normalizedCode}</h3>
+                  <p>{coupon.description?.trim() || formatCouponCondition(coupon)}</p>
+                  <div className="store-home-v3-coupon-actions">
+                    <Button
+                      className="store-home-v3-primary-ghost h-10! rounded-full! px-5! font-bold!"
+                      onClick={() => void handleSaveCoupon(normalizedCode)}
+                    >
+                      {isSaved ? homeContent.labels.couponSavedLabel : homeContent.labels.couponSaveLabel}
+                    </Button>
+                    <span>{formatCouponCondition(coupon)}</span>
                   </div>
-                </Link>
-              ))}
-            </div>
+                </article>
+              );
+            })}
           </div>
         </section>
       ) : null}
 
-      {showcaseLeadProduct ? (
-        <StoreHomeShowcaseSection
-          homeContent={homeContent}
-          quickCategories={quickCategories}
-          activeQuickCategoryId={activeQuickCategoryId}
-          showcaseLeadProduct={showcaseLeadProduct}
-          showcaseRailProducts={showcaseRailProducts}
-          onSelectCategory={setActiveQuickCategoryId}
-        />
-      ) : null}
 
       {flashDeals.length > 0 ? (
         <section className="store-home-v3-flash-shell">
@@ -670,76 +886,25 @@ export function StoreHomePage() {
         </section>
       ) : null}
 
-      {categoryCollections.map((block) => (
-        <section key={`collection-${block.category.id}`} className="store-home-v3-collection">
-          <div
+      {collectionSections.map((section) => (
+        <section key={`collection-${section.id}`} className="store-home-v3-collection">
+          <Link
+            to={`/products?collection=${encodeURIComponent(section.slug || section.id)}`}
             className="store-home-v3-collection-banner"
-            style={{
-              backgroundImage: `linear-gradient(135deg, rgba(15, 23, 42, 0.8), rgba(15, 23, 42, 0.16)), url(${block.category.image})`,
-            }}
+            aria-label={`Xem sáº£n pháº©m collection ${section.name}`}
           >
-            <div>
-              <p>{homeContent.sections.collectionKicker}</p>
-              <h2>{block.category.name}</h2>
-              <span>{block.category.count}</span>
-            </div>
-            <Link to={block.category.slug ? `/products?category=${encodeURIComponent(block.category.slug)}` : "/products"}>
-              <Button className="store-home-v3-primary-ghost h-11! rounded-full! px-7! font-bold!">
-                {homeContent.sections.collectionLinkLabel}
-              </Button>
-            </Link>
-          </div>
+            <img src={section.bannerImage} alt={section.name} className="h-full w-full object-cover" />
+          </Link>
 
           <div className="store-home-v3-product-grid">
-            {block.products.map((product) => (
-              <div key={`category-${block.category.id}-${product.id}`}>
+            {section.products.map((product) => (
+              <div key={`collection-${section.id}-${product.id}`}>
                 <StoreHomeProductCard product={product} />
               </div>
             ))}
           </div>
         </section>
       ))}
-
-      {activeCoupons.length > 0 ? (
-        <section className="store-home-v3-section store-home-v3-coupon-shell">
-          <div className="store-home-v3-section-head">
-            <div>
-              <p>{homeContent.sections.couponKicker}</p>
-              <h2>{homeContent.sections.couponTitle}</h2>
-            </div>
-            <Link to="/cart" className="store-home-v3-text-link">
-              {homeContent.sections.couponLinkLabel}
-            </Link>
-          </div>
-
-          <div className="store-home-v3-coupon-grid">
-            {activeCoupons.map((coupon) => {
-              const normalizedCode = coupon.code.trim().toUpperCase();
-              const isSaved = savedCouponCodeSet.has(normalizedCode);
-
-              return (
-                <article key={coupon.id} className="store-home-v3-coupon-card">
-                  <div className="store-home-v3-coupon-top">
-                    <p>{formatCouponValue(coupon)}</p>
-                    <span>HSD: {formatCouponExpiry(coupon.expiresAt)}</span>
-                  </div>
-                  <h3>{normalizedCode}</h3>
-                  <p>{coupon.description?.trim() || formatCouponCondition(coupon)}</p>
-                  <div className="store-home-v3-coupon-actions">
-                    <Button
-                      className="store-home-v3-primary-ghost h-10! rounded-full! px-5! font-bold!"
-                      onClick={() => void handleSaveCoupon(normalizedCode)}
-                    >
-                      {isSaved ? homeContent.labels.couponSavedLabel : homeContent.labels.couponSaveLabel}
-                    </Button>
-                    <span>{formatCouponCondition(coupon)}</span>
-                  </div>
-                </article>
-              );
-            })}
-          </div>
-        </section>
-      ) : null}
 
       <section className="store-home-v3-member-shell">
         <article className="store-home-v3-member-card">
@@ -775,7 +940,7 @@ export function StoreHomePage() {
       {blogCards.length > 0 ? (
         <section className="store-home-v3-blog">
           <div className="store-home-v3-blog-head">
-            <p>Tin tức thời trang</p>
+            <p>Tin tá»©c thá»i trang</p>
             <h2>BLOG RIOSHOP</h2>
           </div>
 
@@ -785,7 +950,7 @@ export function StoreHomePage() {
                 <Link to={card.href} className="store-home-v3-blog-media">
                   <img src={card.image} alt={card.title} className="h-full w-full object-cover" />
                 </Link>
-                <p className="store-home-v3-blog-date">Ngày đăng: {card.date}</p>
+                <p className="store-home-v3-blog-date">NgÃ y Ä‘Äƒng: {card.date}</p>
                 <Link to={card.href} className="store-home-v3-blog-title">
                   {card.title}
                 </Link>
@@ -797,7 +962,7 @@ export function StoreHomePage() {
           <div className="store-home-v3-blog-action">
             <Link to="/blog">
               <Button className="store-home-v3-secondary-ghost h-11! rounded-full! px-8! font-bold!">
-                Xem thêm
+                Xem thÃªm
               </Button>
             </Link>
           </div>
@@ -807,5 +972,6 @@ export function StoreHomePage() {
     </div>
   );
 }
+
 
 

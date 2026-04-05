@@ -10,7 +10,11 @@ import {
   StoreSectionHeader,
   storeButtonClassNames,
 } from "../components/StorePageChrome";
-import { formatStoreCurrency, resolveStoreProductThumbnail } from "../utils/storeFormatting";
+import {
+  formatStoreCurrency,
+  resolveStoreImageUrl,
+  resolveStoreProductThumbnail,
+} from "../utils/storeFormatting";
 import { analyticsTracker } from "../../../services/analyticsTracker";
 import { categoryService, type Category } from "../../../services/categoryService";
 import { collectionService, type Collection } from "../../../services/collectionService";
@@ -125,8 +129,12 @@ export function StoreProductsPage() {
   );
 
   const selectedCollection = useMemo(
-    () => collections.find((item) => item.slug === collectionSlug),
+    () => collections.find((item) => item.slug === collectionSlug || item._id === collectionSlug),
     [collections, collectionSlug],
+  );
+  const selectedCollectionBannerImage = useMemo(
+    () => resolveStoreImageUrl(selectedCollection?.image),
+    [selectedCollection],
   );
 
   const colorOptions = useMemo(() => {
@@ -556,6 +564,24 @@ export function StoreProductsPage() {
 
   return (
     <StorePageShell>
+      {selectedCollectionBannerImage ? (
+        <div
+          style={{
+            width: "100vw",
+            marginLeft: "calc(50% - 50vw)",
+            marginRight: "calc(50% - 50vw)",
+          }}
+        >
+          <StorePanelFrame className="p-0!">
+            <img
+              src={selectedCollectionBannerImage}
+              alt={selectedCollection?.name ?? "Collection banner"}
+              className="h-100 w-full object-cover object-top md:h-140 lg:h-180"
+            />
+          </StorePanelFrame>
+        </div>
+      ) : null}
+
       <StorePanelFrame>
         <StoreSectionHeader
           kicker="Bộ lọc nhanh"

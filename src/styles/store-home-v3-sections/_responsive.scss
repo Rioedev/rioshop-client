@@ -35,6 +35,13 @@
     min-height: auto;
   }
 
+  .store-home-v3-hero.store-home-v3-hero-image-only {
+    min-height: 100vh;
+    min-height: 100dvh;
+    height: 100vh;
+    height: 100dvh;
+  }
+
   .store-home-v3-hero-inner {
     width: min(100vw - 20px, 100%);
     grid-template-columns: 1fr;
@@ -60,6 +67,24 @@
 
   .store-home-v3-hero-mini {
     grid-template-columns: 92px minmax(0, 1fr);
+  }
+
+  .store-home-v3-hero-image-controls {
+    bottom: 14px;
+  }
+
+  .store-home-v3-hero-nav-btn {
+    width: 34px;
+    height: 34px;
+    font-size: 22px;
+  }
+
+  .store-home-v3-hero-nav-btn--prev {
+    left: 10px;
+  }
+
+  .store-home-v3-hero-nav-btn--next {
+    right: 10px;
   }
 
   .store-home-v3-category-side {

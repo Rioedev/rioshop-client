@@ -40,6 +40,7 @@ export type ProductCollection = {
   name: string;
   slug?: string;
   image?: string;
+  bannerImage?: string;
 };
 
 export type Product = {

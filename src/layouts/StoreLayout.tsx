@@ -8,6 +8,10 @@ import { analyticsTracker } from "../services/analyticsTracker";
 import { brandConfigService } from "../services/brandConfigService";
 import { categoryService, type Category } from "../services/categoryService";
 import {
+  collectionService,
+  type Collection,
+} from "../services/collectionService";
+import {
   cartService,
   toCartCouponMeta,
   toCartStoreItems,
@@ -69,6 +73,7 @@ export function StoreLayout() {
   const [searchKeyword, setSearchKeyword] = useState("");
   const [menuItems, setMenuItems] = useState(defaultMenuItems);
   const [categoryTree, setCategoryTree] = useState<Category[]>([]);
+  const [collections, setCollections] = useState<Collection[]>([]);
   const [footerSocialLinks, setFooterSocialLinks] = useState<{
     facebook?: string;
     instagram?: string;
@@ -120,13 +125,18 @@ export function StoreLayout() {
 
     const loadCategories = async () => {
       try {
-        const [listResult, treeResult] = await Promise.all([
+        const [listResult, treeResult, collectionResult] = await Promise.all([
           categoryService.getCategories({
             page: 1,
             limit: 16,
             isActive: true,
           }),
           categoryService.getCategoryTree(),
+          collectionService.getCollections({
+            page: 1,
+            limit: 24,
+            isActive: true,
+          }),
         ]);
 
         if (!active) {
@@ -139,10 +149,14 @@ export function StoreLayout() {
           .map((item) => ({ label: item.name, category: item.slug }));
         setMenuItems(mapped.length > 0 ? mapped : defaultMenuItems);
         setCategoryTree(Array.isArray(treeResult) ? treeResult : []);
+        setCollections(
+          Array.isArray(collectionResult.docs) ? collectionResult.docs : [],
+        );
       } catch {
         if (active) {
           setMenuItems(defaultMenuItems);
           setCategoryTree([]);
+          setCollections([]);
         }
       }
     };
@@ -277,8 +291,8 @@ export function StoreLayout() {
     [categoryTree],
   );
   const megaCollectionCards = useMemo(
-    () => buildMegaCollectionCards(categoryTree),
-    [categoryTree],
+    () => buildMegaCollectionCards(collections),
+    [collections],
   );
 
   const normalizedActiveMegaItemKeys = useMemo(() => {
@@ -405,9 +419,7 @@ export function StoreLayout() {
               cartCount={cartCount}
               isAccountMenuOpen={isAccountMenuOpen}
               accountMenuRef={accountMenuRef}
-              onToggleAccountMenu={() =>
-                setIsAccountMenuOpen((prev) => !prev)
-              }
+              onToggleAccountMenu={() => setIsAccountMenuOpen((prev) => !prev)}
               onCloseAccountMenu={() => setIsAccountMenuOpen(false)}
               onOpenNotificationModal={() => setIsNotificationModalOpen(true)}
               onLogout={() => {
@@ -487,7 +499,3 @@ export function StoreLayout() {
     </div>
   );
 }
-
-
-
-
