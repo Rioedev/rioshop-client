@@ -31,8 +31,6 @@ import { StoreMegaMenu } from "./StoreMegaMenu";
 import {
   buildMegaCollectionCards,
   buildMegaColumns,
-  defaultMenuItems,
-  policyItems,
   utilityLinks,
   type MegaColumn,
 } from "./shared/storeLayout";
@@ -71,7 +69,6 @@ export function StoreLayout() {
   const [isMegaMenuOpen, setIsMegaMenuOpen] = useState(false);
   const [isNotificationModalOpen, setIsNotificationModalOpen] = useState(false);
   const [searchKeyword, setSearchKeyword] = useState("");
-  const [menuItems, setMenuItems] = useState(defaultMenuItems);
   const [categoryTree, setCategoryTree] = useState<Category[]>([]);
   const [collections, setCollections] = useState<Collection[]>([]);
   const [footerSocialLinks, setFooterSocialLinks] = useState<{
@@ -125,12 +122,7 @@ export function StoreLayout() {
 
     const loadCategories = async () => {
       try {
-        const [listResult, treeResult, collectionResult] = await Promise.all([
-          categoryService.getCategories({
-            page: 1,
-            limit: 16,
-            isActive: true,
-          }),
+        const [treeResult, collectionResult] = await Promise.all([
           categoryService.getCategoryTree(),
           collectionService.getCollections({
             page: 1,
@@ -143,18 +135,12 @@ export function StoreLayout() {
           return;
         }
 
-        const mapped = listResult.docs
-          .filter((item) => item.slug)
-          .slice(0, 8)
-          .map((item) => ({ label: item.name, category: item.slug }));
-        setMenuItems(mapped.length > 0 ? mapped : defaultMenuItems);
         setCategoryTree(Array.isArray(treeResult) ? treeResult : []);
         setCollections(
           Array.isArray(collectionResult.docs) ? collectionResult.docs : [],
         );
       } catch {
         if (active) {
-          setMenuItems(defaultMenuItems);
           setCategoryTree([]);
           setCollections([]);
         }
@@ -457,16 +443,6 @@ export function StoreLayout() {
               onCloseMenuNow={() => setIsMegaMenuOpen(false)}
               onToggleMegaChildren={toggleMegaChildren}
             />
-
-            {menuItems.slice(0, 6).map((item) => (
-              <Link
-                key={item.category}
-                to={`/products?category=${encodeURIComponent(item.category)}`}
-                className="store-nav-pill"
-              >
-                {item.label}
-              </Link>
-            ))}
           </nav>
         </div>
       </header>
@@ -475,19 +451,6 @@ export function StoreLayout() {
         open={isNotificationModalOpen}
         onClose={() => setIsNotificationModalOpen(false)}
       />
-
-      <div className="store-policy-strip">
-        <div className="mx-auto w-full max-w-405 px-3 sm:px-4 xl:px-6">
-          <div className="flex flex-wrap items-center gap-3 py-3">
-            {policyItems.map((item) => (
-              <div key={item} className="store-policy-item">
-                <span className="store-policy-dot" />
-                {item}
-              </div>
-            ))}
-          </div>
-        </div>
-      </div>
 
       <main
         className={`store-main-content mx-auto w-full max-w-405 px-3 sm:px-4 xl:px-6 ${isHomePage ? "pt-0 pb-6 md:pb-8" : "py-6 md:py-8"}`}

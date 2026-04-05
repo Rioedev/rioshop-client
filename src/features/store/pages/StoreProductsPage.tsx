@@ -51,6 +51,13 @@ type ProductColorOption = {
   hex?: string;
 };
 
+type ProductCardColorSwatch = {
+  key: string;
+  label: string;
+  hex?: string;
+  imageUrl?: string;
+};
+
 const parseCsvParam = (value: string | null) =>
   (value ?? "")
     .split(",")
@@ -68,6 +75,80 @@ const parseNumberParam = (value: string | null) => {
 const normalizeColorHex = (value?: string) => {
   const hex = (value ?? "").trim();
   return /^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/.test(hex) ? hex : "";
+};
+
+const normalizeColorRef = (value?: string) => (value ?? "").trim().toLowerCase();
+
+const findMediaColorImage = (product: Product, colorName: string, colorHex: string) => {
+  const expectedRefs = new Set<string>();
+  const normalizedName = normalizeColorRef(colorName);
+  const normalizedHex = normalizeColorRef(colorHex);
+
+  if (normalizedName) {
+    expectedRefs.add(normalizedName);
+  }
+
+  if (normalizedHex) {
+    expectedRefs.add(normalizedHex);
+    expectedRefs.add(normalizedHex.replace("#", ""));
+  }
+
+  const match = (product.media ?? []).find((mediaItem) => {
+    if (!mediaItem?.url || mediaItem.type !== "image") {
+      return false;
+    }
+
+    const mediaRef = normalizeColorRef(mediaItem.colorRef);
+    if (!mediaRef) {
+      return false;
+    }
+
+    return expectedRefs.has(mediaRef);
+  });
+
+  return resolveStoreImageUrl(match?.url);
+};
+
+const toProductCardColorSwatches = (product: Product): ProductCardColorSwatch[] => {
+  const swatchMap = new Map<string, ProductCardColorSwatch>();
+  const fallbackImage = resolveStoreProductThumbnail(product);
+
+  (product.variants ?? []).forEach((variant) => {
+    if (variant.isActive === false) {
+      return;
+    }
+
+    const label = (variant.color?.name ?? "").trim();
+    const hex = normalizeColorHex(variant.color?.hex);
+    const normalizedKey = (label || hex).toLowerCase();
+
+    if (!normalizedKey) {
+      return;
+    }
+
+    const imageUrl =
+      resolveStoreImageUrl(variant.color?.imageUrl) ??
+      resolveStoreImageUrl(variant.images?.[0]) ??
+      findMediaColorImage(product, label, hex) ??
+      fallbackImage;
+
+    const existing = swatchMap.get(normalizedKey);
+    if (existing) {
+      if (!existing.imageUrl && imageUrl) {
+        swatchMap.set(normalizedKey, { ...existing, imageUrl });
+      }
+      return;
+    }
+
+    swatchMap.set(normalizedKey, {
+      key: normalizedKey,
+      label: label || hex || "Mặc định",
+      hex: hex || undefined,
+      imageUrl,
+    });
+  });
+
+  return Array.from(swatchMap.values()).slice(0, 5);
 };
 
 export function StoreProductsPage() {
@@ -732,6 +813,7 @@ export function StoreProductsPage() {
               const hasDiscount = item.pricing.basePrice > item.pricing.salePrice;
               const image = resolveStoreProductThumbnail(item);
               const inWishlist = wishlistItems.some((wishlist) => wishlist.productId === item._id);
+              const colorSwatches = toProductCardColorSwatches(item);
               const discountLabel = hasDiscount
                 ? `-${Math.round(((item.pricing.basePrice - item.pricing.salePrice) / item.pricing.basePrice) * 100)}%`
                 : undefined;
@@ -746,6 +828,7 @@ export function StoreProductsPage() {
                   originalPrice={hasDiscount ? formatStoreCurrency(item.pricing.basePrice) : undefined}
                   categoryLabel={item.category?.name ?? "Sản phẩm"}
                   badge={discountLabel}
+                  colorSwatches={colorSwatches}
                   footer={
                     <>
                       <Button
@@ -788,5 +871,3 @@ export function StoreProductsPage() {
     </StorePageShell>
   );
 }
-
-

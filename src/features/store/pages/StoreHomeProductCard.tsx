@@ -35,7 +35,7 @@ export function StoreHomeProductCard({
       className={`store-home-v3-product-card ${large ? "is-large" : ""}`}
     >
       <div className="store-home-v3-product-media">
-        <img src={displayedImage} alt={product.name} className="h-full w-full object-cover" />
+        <img src={displayedImage} alt={product.name} className="h-full w-full object-cover object-top" />
         <span className="store-home-v3-product-chip">
           {product.categoryName ?? product.category}
         </span>
@@ -105,7 +105,7 @@ export function StoreHomeShowcaseItem({ product }: StoreHomeShowcaseItemProps) {
       className="store-home-v3-showcase-item"
     >
       <div className="store-home-v3-showcase-item-media">
-        <img src={product.image} alt={product.name} className="h-full w-full object-cover" />
+        <img src={product.image} alt={product.name} className="h-full w-full object-cover object-top" />
       </div>
       <div className="store-home-v3-showcase-item-copy">
         <p>{product.categoryName ?? product.category}</p>
