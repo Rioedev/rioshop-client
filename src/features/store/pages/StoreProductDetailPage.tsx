@@ -427,9 +427,29 @@ export function StoreProductDetailPage() {
     return Array.from(map.values());
   }, [relatedProducts, catalogProducts, product?._id]);
 
-  const sameCategoryProducts = productPool
-    .filter((item) => (item.category?._id || "") === (product?.category?._id || ""))
-    .slice(0, 4);
+  const sameCategoryProducts = useMemo(() => {
+    const sameCategory = productPool.filter(
+      (item) => (item.category?._id || "") === (product?.category?._id || ""),
+    );
+
+    if (sameCategory.length >= 4) {
+      return sameCategory.slice(0, 4);
+    }
+
+    const picked = new Map<string, ProductRuntime>();
+    sameCategory.forEach((item) => {
+      picked.set(item._id, item);
+    });
+
+    productPool.forEach((item) => {
+      if (picked.size >= 4 || picked.has(item._id)) {
+        return;
+      }
+      picked.set(item._id, item);
+    });
+
+    return Array.from(picked.values()).slice(0, 4);
+  }, [product?.category?._id, productPool]);
 
   const viewedProducts = useMemo(() => {
     const list = [product, ...productPool].filter((item): item is ProductRuntime => Boolean(item));
@@ -746,9 +766,7 @@ export function StoreProductDetailPage() {
 
       <section className="pdpv2-block">
         <h3 className="pdpv2-section-title">Sản phẩm cùng danh mục</h3>
-        <StoreProductShowcaseGrid
-          items={sameCategoryProducts.length > 0 ? sameCategoryProducts : relatedProducts.slice(0, 4)}
-        />
+        <StoreProductShowcaseGrid items={sameCategoryProducts} />
       </section>
 
       <StoreProductReviewSection

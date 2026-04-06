@@ -647,6 +647,7 @@ export function StoreAccountPage() {
       </StoreHeroSection>
 
       <StorePanelSection
+        className="store-account-summary-panel"
         kicker="Thông tin tài khoản"
         title="Hồ sơ tài khoản"
         action={

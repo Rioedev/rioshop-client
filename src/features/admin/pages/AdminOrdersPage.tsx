@@ -1,4 +1,4 @@
-import {
+﻿import {
   Button,
   Card,
   Col,
@@ -101,9 +101,9 @@ const PAYMENT_STATUS_UPDATE_OPTIONS: { value: PaymentStatus; label: string }[] =
 ];
 
 const STATUS_TRANSITION_MAP: Record<OrderStatus, OrderStatus[]> = {
-  pending: ["confirmed", "packing", "ready_to_ship", "shipping", "cancelled"],
-  confirmed: ["packing", "ready_to_ship", "shipping", "cancelled"],
-  packing: ["ready_to_ship", "shipping", "cancelled"],
+  pending: ["confirmed", "packing", "ready_to_ship", "cancelled"],
+  confirmed: ["packing", "ready_to_ship", "cancelled"],
+  packing: ["ready_to_ship", "cancelled"],
   ready_to_ship: ["shipping", "cancelled"],
   shipping: ["delivered", "returned", "cancelled"],
   delivered: ["completed", "returned"],
@@ -125,18 +125,67 @@ const formatDateTime = (value?: string) => {
   }).format(date);
 };
 
-const formatAddress = (value: unknown) => {
+const pickFirstText = (...values: unknown[]) => {
+  for (const value of values) {
+    if (typeof value === "string") {
+      const trimmed = value.trim();
+      if (trimmed) {
+        return trimmed;
+      }
+      continue;
+    }
+
+    if (typeof value === "number" && Number.isFinite(value)) {
+      return String(value);
+    }
+  }
+
+  return "";
+};
+
+const formatShippingAddress = (value: unknown) => {
   if (!value) return "-";
-  if (typeof value === "string") return value;
-  if (typeof value === "object") return JSON.stringify(value, null, 2);
+
+  if (typeof value === "string") {
+    const trimmed = value.trim();
+    return trimmed || "-";
+  }
+
+  if (typeof value === "object") {
+    const address = value as Record<string, unknown>;
+    const line1 = pickFirstText(address.line1, address.addressLine1, address.street, address.address);
+    const line2 = pickFirstText(address.line2, address.addressLine2, address.wardName, address.ward);
+    const district = pickFirstText(address.districtName, address.district);
+    const province = pickFirstText(address.provinceName, address.province, address.city);
+    const country = pickFirstText(address.country);
+
+    const parts = [line1, line2, district, province, country].filter(Boolean);
+    if (parts.length > 0) {
+      return parts.join(", ");
+    }
+
+    return JSON.stringify(value);
+  }
+
   return String(value);
 };
 
 const isCancellableOrder = (status: OrderStatus) => ["pending", "confirmed"].includes(status);
 
-const getStatusUpdateOptions = (currentStatus: OrderStatus): { value: OrderStatus; label: string }[] => {
+const isGhnCarrier = (carrier?: string) => (carrier || "").toString().trim().toUpperCase() === "GHN";
+
+const getStatusUpdateOptions = (
+  currentStatus: OrderStatus,
+  shippingCarrier?: string,
+): { value: OrderStatus; label: string }[] => {
   const nextStatuses = STATUS_TRANSITION_MAP[currentStatus] || [];
-  const uniqueStatuses = [currentStatus, ...nextStatuses].filter(
+  let filteredNextStatuses = [...nextStatuses];
+
+  if (isGhnCarrier(shippingCarrier) && currentStatus === "ready_to_ship") {
+    filteredNextStatuses = filteredNextStatuses.filter((status) => status !== "shipping");
+  }
+
+  const uniqueStatuses = [currentStatus, ...filteredNextStatuses].filter(
     (status, index, source) => source.indexOf(status) === index,
   );
 
@@ -245,8 +294,8 @@ export function AdminOrdersPage() {
     : false;
 
   const manageStatusOptions = useMemo(
-    () => getStatusUpdateOptions(managingOrder?.status || "pending"),
-    [managingOrder?.status],
+    () => getStatusUpdateOptions(managingOrder?.status || "pending", managingOrder?.shippingCarrier),
+    [managingOrder?.shippingCarrier, managingOrder?.status],
   );
 
   const hasManageChanges = useMemo(() => {
@@ -505,7 +554,7 @@ export function AdminOrdersPage() {
         title={managingOrder ? `Quản lý đơn ${managingOrder.orderNumber}` : "Quản lý đơn hàng"}
         open={Boolean(managingOrder)}
         onCancel={closeManageModal}
-        width={960}
+        width={1040}
         footer={[
           <Button key="close" onClick={closeManageModal} disabled={saving}>
             Đóng
@@ -539,8 +588,32 @@ export function AdminOrdersPage() {
       >
         {managingOrder ? (
           <div className="space-y-4">
-            <Card size="small" title="Điều phối đơn hàng">
-              <div className="grid gap-3 md:grid-cols-2">
+            <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+              <div className="flex flex-wrap items-center gap-2">
+                <Tag color={STATUS_COLOR_MAP[managingOrder.status]}>{getOrderStatusLabel(managingOrder)}</Tag>
+                <Tag color={PAYMENT_STATUS_COLOR_MAP[managingOrder.paymentStatus]}>
+                  {PAYMENT_STATUS_LABEL_MAP[managingOrder.paymentStatus]}
+                </Tag>
+                <Tag>{managingOrder.paymentMethod?.toUpperCase() || "-"}</Tag>
+              </div>
+              <div className="mt-3 grid gap-2 text-sm text-slate-600 md:grid-cols-3">
+                <div>
+                  <Text type="secondary">Mã đơn</Text>
+                  <div className="font-semibold text-slate-900">{managingOrder.orderNumber}</div>
+                </div>
+                <div>
+                  <Text type="secondary">Tạo lúc</Text>
+                  <div className="font-semibold text-slate-900">{formatDateTime(managingOrder.createdAt)}</div>
+                </div>
+                <div>
+                  <Text type="secondary">Cập nhật gần nhất</Text>
+                  <div className="font-semibold text-slate-900">{formatDateTime(managingOrder.updatedAt)}</div>
+                </div>
+              </div>
+            </div>
+
+            <Card size="small" title="Điều phối đơn hàng" className="rounded-2xl! border-slate-200! shadow-sm!">
+              <div className="grid gap-4 md:grid-cols-2">
                 <div className="space-y-3">
                   <div>
                     <Text type="secondary">Trạng thái hiện tại</Text>
@@ -555,7 +628,13 @@ export function AdminOrdersPage() {
                     options={manageStatusOptions}
                     onChange={(value) => setManageStatus(value)}
                     disabled={saving || !canChangeOrderStatus}
+                    className="w-full"
                   />
+                  {managingOrder.status === "ready_to_ship" && isGhnCarrier(managingOrder.shippingCarrier) ? (
+                    <Text type="secondary">
+                      Đơn GHN sẽ chuyển sang Đang giao tự động khi GHN cập nhật đã lấy hàng.
+                    </Text>
+                  ) : null}
                   {!canChangeOrderStatus ? (
                     <Text type="secondary">Đơn ở trạng thái cuối, không thể chuyển tiếp.</Text>
                   ) : null}
@@ -575,6 +654,7 @@ export function AdminOrdersPage() {
                     options={PAYMENT_STATUS_UPDATE_OPTIONS}
                     onChange={(value) => setManagePaymentStatus(value)}
                     disabled={saving}
+                    className="w-full"
                   />
                 </div>
               </div>
@@ -591,43 +671,107 @@ export function AdminOrdersPage() {
             </Card>
 
             <div className="grid gap-3 md:grid-cols-2">
-              <Card size="small" title="Thông tin khách hàng">
-                <div><Text strong>Tên:</Text> {managingOrder.customerName}</div>
-                <div><Text strong>Email:</Text> {managingOrder.customerEmail || "-"}</div>
-                <div><Text strong>Số điện thoại:</Text> {managingOrder.customerPhone || "-"}</div>
+              <Card size="small" title="Thông tin khách hàng" className="rounded-2xl! border-slate-200! shadow-sm!">
+                <div className="space-y-2 text-sm">
+                  <div>
+                    <Text type="secondary">Họ tên</Text>
+                    <div className="font-semibold text-slate-900">{managingOrder.customerName || "-"}</div>
+                  </div>
+                  <div>
+                    <Text type="secondary">Email</Text>
+                    <div className="font-semibold text-slate-900">{managingOrder.customerEmail || "-"}</div>
+                  </div>
+                  <div>
+                    <Text type="secondary">Số điện thoại</Text>
+                    <div className="font-semibold text-slate-900">{managingOrder.customerPhone || "-"}</div>
+                  </div>
+                </div>
               </Card>
-              <Card size="small" title="Thông tin vận chuyển">
-                <div><Text strong>Phương thức:</Text> {managingOrder.shippingMethod || "-"}</div>
-                <div><Text strong>Đơn vị vận chuyển:</Text> {managingOrder.shippingCarrier || "-"}</div>
-                <div>
-                  <Text strong>Địa chỉ:</Text>
-                  <pre className="mt-1 whitespace-pre-wrap break-words rounded bg-slate-50 p-2 text-xs">
-                    {formatAddress(managingOrder.shippingAddress)}
-                  </pre>
+              <Card size="small" title="Thông tin vận chuyển" className="rounded-2xl! border-slate-200! shadow-sm!">
+                <div className="space-y-2 text-sm">
+                  <div>
+                    <Text type="secondary">Phương thức</Text>
+                    <div className="font-semibold text-slate-900">{managingOrder.shippingMethod || "-"}</div>
+                  </div>
+                  <div>
+                    <Text type="secondary">Đơn vị vận chuyển</Text>
+                    <div className="font-semibold text-slate-900">{managingOrder.shippingCarrier || "-"}</div>
+                  </div>
+                  <div>
+                    <Text type="secondary">Địa chỉ giao hàng</Text>
+                    <div className="rounded-xl bg-slate-50 px-3 py-2 font-medium text-slate-800">
+                      {formatShippingAddress(managingOrder.shippingAddress)}
+                    </div>
+                  </div>
                 </div>
               </Card>
             </div>
 
-            <Card size="small" title="Sản phẩm trong đơn">
+            <Card size="small" title="Sản phẩm trong đơn" className="rounded-2xl! border-slate-200! shadow-sm!">
               <div className="space-y-3">
                 {managingOrder.items.map((line, index) => (
-                  <div key={`${line.variantSku}-${index}`} className="rounded border border-slate-200 p-3">
-                    <div><Text strong>{line.productName || "Sản phẩm"}</Text></div>
-                    <div>SKU biến thể: {line.variantSku || "-"}</div>
-                    <div>Phân loại: {line.variantLabel || "-"}</div>
-                    <div>Số lượng: {line.quantity}</div>
-                    <div>Đơn giá: {formatCurrency.format(line.unitPrice)} VND</div>
-                    <div>Thành tiền: {formatCurrency.format(line.totalPrice)} VND</div>
-                  </div>
+                  <article
+                    key={`${line.productId || line.variantSku || "line"}-${index}`}
+                    className="rounded-xl border border-slate-200 bg-white p-3"
+                  >
+                    <div className="flex flex-wrap gap-3 md:flex-nowrap">
+                      <div className="h-16 w-16 shrink-0 overflow-hidden rounded-lg border border-slate-200 bg-slate-100">
+                        {line.image ? (
+                          <img src={line.image} alt={line.productName || "Sản phẩm"} className="h-full w-full object-cover object-top" />
+                        ) : (
+                          <div className="flex h-full w-full items-center justify-center text-xs font-bold tracking-widest text-slate-400">
+                            RIO
+                          </div>
+                        )}
+                      </div>
+
+                      <div className="min-w-0 flex-1">
+                        <div className="font-semibold text-slate-900">{line.productName || "Sản phẩm"}</div>
+                        <div className="mt-1 text-sm text-slate-500">SKU: {line.variantSku || "-"}</div>
+                        <div className="text-sm text-slate-500">Phân loại: {line.variantLabel || "-"}</div>
+                      </div>
+
+                      <div className="ml-auto min-w-[180px] space-y-1 text-right text-sm">
+                        <div>
+                          <Text type="secondary">Số lượng</Text>
+                          <div className="font-semibold text-slate-900">{line.quantity}</div>
+                        </div>
+                        <div>
+                          <Text type="secondary">Đơn giá</Text>
+                          <div className="font-semibold text-slate-900">{formatCurrency.format(line.unitPrice)} VND</div>
+                        </div>
+                        <div>
+                          <Text type="secondary">Thành tiền</Text>
+                          <div className="text-base font-bold text-slate-900">{formatCurrency.format(line.totalPrice)} VND</div>
+                        </div>
+                      </div>
+                    </div>
+                  </article>
                 ))}
               </div>
             </Card>
 
-            <Card size="small" title="Tổng hợp thanh toán">
-              <div><Text strong>Tạm tính:</Text> {formatCurrency.format(managingOrder.pricing.subtotal)} VND</div>
-              <div><Text strong>Giảm giá:</Text> {formatCurrency.format(managingOrder.pricing.discount)} VND</div>
-              <div><Text strong>Phí vận chuyển:</Text> {formatCurrency.format(managingOrder.pricing.shippingFee)} VND</div>
-              <div><Text strong>Tổng thanh toán:</Text> {formatCurrency.format(managingOrder.pricing.total)} VND</div>
+            <Card size="small" title="Tổng hợp thanh toán" className="rounded-2xl! border-slate-200! shadow-sm!">
+              <div className="space-y-2 text-sm">
+                <div className="flex items-center justify-between">
+                  <Text type="secondary">Tạm tính</Text>
+                  <Text strong>{formatCurrency.format(managingOrder.pricing.subtotal)} VND</Text>
+                </div>
+                <div className="flex items-center justify-between">
+                  <Text type="secondary">Giảm giá</Text>
+                  <Text strong>-{formatCurrency.format(managingOrder.pricing.discount)} VND</Text>
+                </div>
+                <div className="flex items-center justify-between">
+                  <Text type="secondary">Phí vận chuyển</Text>
+                  <Text strong>{formatCurrency.format(managingOrder.pricing.shippingFee)} VND</Text>
+                </div>
+                <div className="mt-2 flex items-center justify-between rounded-xl border border-slate-200 bg-slate-50 px-3 py-2">
+                  <Text strong className="text-base!">Tổng thanh toán</Text>
+                  <Text strong className="text-base! text-slate-900!">
+                    {formatCurrency.format(managingOrder.pricing.total)} VND
+                  </Text>
+                </div>
+              </div>
             </Card>
           </div>
         ) : null}
@@ -635,6 +779,7 @@ export function AdminOrdersPage() {
     </div>
   );
 }
+
 
 
 
