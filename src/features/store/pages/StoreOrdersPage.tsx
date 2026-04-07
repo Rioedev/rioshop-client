@@ -12,27 +12,59 @@ import {
   storeButtonClassNames,
 } from "../components/StorePageChrome";
 import { formatStoreCurrency } from "../utils/storeFormatting";
-import { orderService, type OrderRecord, type PaymentStatus } from "../../../services/orderService";
+import {
+  orderService,
+  type CustomerOrderStatus,
+  type OrderRecord,
+  type PaymentStatus,
+} from "../../../services/orderService";
 import { paymentService } from "../../../services/paymentService";
 import { useAuthStore } from "../../../stores/authStore";
 import { getErrorMessage } from "../../../utils/errorMessage";
 
-const statusLabelMap: Record<string, string> = {
+const STATUS_LABEL_MAP: Record<string, string> = {
+  pending_confirmation: "Chờ xác nhận",
+  waiting_pickup: "Chờ lấy hàng",
+  in_transit: "Đang vận chuyển",
+  out_for_delivery: "Đang giao hàng",
+  delivered: "Đã giao",
+  completed: "Hoàn thành",
+  cancelled: "Đã hủy",
+  return_in_progress: "Đang hoàn hàng",
+  returned: "Hoàn trả",
+  issue: "Giao hàng gặp sự cố",
   pending: "Chờ xác nhận",
   confirmed: "Đã xác nhận",
   packing: "Đang đóng gói",
   ready_to_ship: "Chờ lấy hàng",
   shipping: "Đang giao",
-  delivered: "Đã giao",
-  completed: "Hoàn thành",
-  cancelled: "Đã hủy",
-  returned: "Hoàn trả",
+};
+const STATUS_PILL_VARIANT_MAP: Record<string, string> = {
+  pending_confirmation: "pending",
+  waiting_pickup: "ready_to_ship",
+  in_transit: "shipping",
+  out_for_delivery: "shipping",
+  delivered: "delivered",
+  completed: "completed",
+  cancelled: "cancelled",
+  return_in_progress: "returned",
+  returned: "returned",
+  issue: "cancelled",
 };
 
 const ONLINE_PAYMENT_METHODS = new Set(["momo", "vnpay", "zalopay", "card", "bank_transfer"]);
 
-const getOrderStatusLabel = (order: Pick<OrderRecord, "status" | "paymentStatus" | "paymentMethod">) => {
+const getDisplayStatus = (
+  order: Pick<OrderRecord, "status" | "customerStatus">,
+) => (order.customerStatus || order.status) as CustomerOrderStatus | string;
+
+const getOrderStatusLabel = (
+  order: Pick<OrderRecord, "status" | "customerStatus" | "paymentStatus" | "paymentMethod">,
+) => {
+  const displayStatus = getDisplayStatus(order);
+
   if (
+    displayStatus === "pending_confirmation" &&
     order.status === "pending" &&
     order.paymentStatus === "pending" &&
     ONLINE_PAYMENT_METHODS.has(order.paymentMethod)
@@ -40,7 +72,7 @@ const getOrderStatusLabel = (order: Pick<OrderRecord, "status" | "paymentStatus"
     return "Chờ thanh toán";
   }
 
-  return statusLabelMap[order.status] ?? order.status;
+  return STATUS_LABEL_MAP[displayStatus] ?? displayStatus;
 };
 
 const paymentStatusLabelMap: Record<PaymentStatus, string> = {
@@ -68,9 +100,13 @@ export function StoreOrdersPage() {
 
   const orderMetrics = useMemo(() => {
     const pendingCount = orders.filter((item) =>
-      ["pending", "confirmed", "packing", "ready_to_ship", "shipping"].includes(item.status),
+      ["pending_confirmation", "waiting_pickup", "in_transit", "out_for_delivery"].includes(
+        getDisplayStatus(item),
+      ),
     ).length;
-    const completedCount = orders.filter((item) => item.status === "completed").length;
+    const completedCount = orders.filter((item) =>
+      ["delivered", "completed"].includes(getDisplayStatus(item)),
+    ).length;
 
     return [
       {
@@ -208,6 +244,7 @@ export function StoreOrdersPage() {
               order.paymentMethod === "momo" &&
               ["pending", "failed"].includes(order.paymentStatus) &&
               ["pending", "confirmed", "packing", "ready_to_ship", "shipping"].includes(order.status);
+            const displayStatus = getDisplayStatus(order);
             const highlighted = highlightedOrderId && highlightedOrderId === order.id;
 
             return (
@@ -223,7 +260,10 @@ export function StoreOrdersPage() {
 
                   <div className="text-right">
                     <div className="flex flex-wrap items-center justify-end gap-2">
-                      <StoreStatusPill status={order.status} label={getOrderStatusLabel(order)} />
+                      <StoreStatusPill
+                        status={STATUS_PILL_VARIANT_MAP[displayStatus] || order.status}
+                        label={getOrderStatusLabel(order)}
+                      />
                       <StoreStatusPill
                         status={`payment-${order.paymentStatus}`}
                         label={paymentStatusLabelMap[order.paymentStatus] ?? order.paymentStatus}

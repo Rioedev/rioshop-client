@@ -15,6 +15,7 @@ import { formatStoreCurrency, resolveStoreImageUrl } from "../utils/storeFormatt
 import { paymentService } from "../../../services/paymentService";
 import {
   orderService,
+  type CustomerOrderStatus,
   type OrderRecord,
   type PaymentMethod,
   type PaymentStatus,
@@ -23,6 +24,12 @@ import { useAuthStore } from "../../../stores/authStore";
 import { getErrorMessage } from "../../../utils/errorMessage";
 
 const orderStatusLabelMap: Record<string, string> = {
+  pending_confirmation: "Chờ xác nhận",
+  waiting_pickup: "Chờ lấy hàng",
+  in_transit: "Đang vận chuyển",
+  out_for_delivery: "Đang giao hàng",
+  return_in_progress: "Đang hoàn hàng",
+  issue: "Giao hàng gặp sự cố",
   pending: "Chờ xác nhận",
   confirmed: "Đã xác nhận",
   packing: "Đang đóng gói",
@@ -36,10 +43,17 @@ const orderStatusLabelMap: Record<string, string> = {
 
 const ONLINE_PAYMENT_METHODS = new Set(["momo", "vnpay", "zalopay", "card", "bank_transfer"]);
 
+const getDisplayStatus = (
+  order: Pick<OrderRecord, "status" | "customerStatus">,
+) => (order.customerStatus || order.status) as CustomerOrderStatus | string;
+
 const getOrderStatusLabel = (
-  order: Pick<OrderRecord, "status" | "paymentStatus" | "paymentMethod">,
+  order: Pick<OrderRecord, "status" | "customerStatus" | "paymentStatus" | "paymentMethod">,
 ) => {
+  const displayStatus = getDisplayStatus(order);
+
   if (
+    displayStatus === "pending_confirmation" &&
     order.status === "pending" &&
     order.paymentStatus === "pending" &&
     ONLINE_PAYMENT_METHODS.has(order.paymentMethod)
@@ -47,7 +61,7 @@ const getOrderStatusLabel = (
     return "Chờ thanh toán";
   }
 
-  return orderStatusLabelMap[order.status] ?? order.status;
+  return orderStatusLabelMap[displayStatus] ?? displayStatus;
 };
 
 const paymentStatusLabelMap: Record<PaymentStatus, string> = {

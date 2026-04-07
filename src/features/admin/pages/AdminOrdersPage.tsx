@@ -14,7 +14,12 @@
 } from "antd";
 import type { ColumnsType, TablePaginationConfig } from "antd/es/table";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import type { OrderRecord, OrderStatus, PaymentStatus } from "../../../services/orderService";
+import {
+  orderService,
+  type OrderRecord,
+  type OrderStatus,
+  type PaymentStatus,
+} from "../../../services/orderService";
 import { subscribeAdminRealtime } from "../../../services/socketClient";
 import { useOrderStore } from "../../../stores/orderStore";
 import { getErrorMessage } from "../../../utils/errorMessage";
@@ -202,6 +207,8 @@ export function AdminOrdersPage() {
   const [manageStatus, setManageStatus] = useState<OrderStatus>("pending");
   const [managePaymentStatus, setManagePaymentStatus] = useState<PaymentStatus>("pending");
   const [manageNote, setManageNote] = useState("");
+  const [syncingShipment, setSyncingShipment] = useState(false);
+  const [syncingActiveGhn, setSyncingActiveGhn] = useState(false);
 
   const orders = useOrderStore((state) => state.orders);
   const loading = useOrderStore((state) => state.loading);
@@ -392,6 +399,46 @@ export function AdminOrdersPage() {
     }
   };
 
+  const handleSyncCurrentShipment = async () => {
+    if (!managingOrder?.shipmentId) {
+      messageApi.warning("Đơn chưa có shipment để đồng bộ.");
+      return;
+    }
+
+    setSyncingShipment(true);
+    try {
+      const result = await orderService.syncShipmentFromGhn(managingOrder.shipmentId);
+      if (result.updated) {
+        messageApi.success("Đồng bộ GHN thành công.");
+      } else {
+        messageApi.info(`GHN chưa có thay đổi mới (${result.reason || "status_unchanged"}).`);
+      }
+
+      const refreshedOrder = await orderService.getOrderById(managingOrder.id);
+      setManagingOrder(refreshedOrder);
+      refreshCurrentOrderPage();
+    } catch (error) {
+      messageApi.error(getErrorMessage(error, "Không thể đồng bộ GHN cho đơn này"));
+    } finally {
+      setSyncingShipment(false);
+    }
+  };
+
+  const handleSyncActiveGhn = async () => {
+    setSyncingActiveGhn(true);
+    try {
+      const result = await orderService.syncActiveGhnShipments(30);
+      messageApi.success(
+        `Đồng bộ GHN: ${result.updated} cập nhật, ${result.unchanged} không đổi, ${result.failed} lỗi.`,
+      );
+      refreshCurrentOrderPage();
+    } catch (error) {
+      messageApi.error(getErrorMessage(error, "Không thể đồng bộ danh sách GHN"));
+    } finally {
+      setSyncingActiveGhn(false);
+    }
+  };
+
   const columns: ColumnsType<OrderRecord> = [
     {
       title: "Mã đơn",
@@ -520,6 +567,12 @@ export function AdminOrdersPage() {
             onChange={(value) => void handleChangePaymentFilter(value)}
             className="min-w-[260px]"
           />
+          <Button
+            onClick={() => void handleSyncActiveGhn()}
+            loading={syncingActiveGhn}
+          >
+            Đồng bộ GHN
+          </Button>
         </div>
 
         <Table<OrderRecord>
@@ -697,6 +750,21 @@ export function AdminOrdersPage() {
                     <Text type="secondary">Đơn vị vận chuyển</Text>
                     <div className="font-semibold text-slate-900">{managingOrder.shippingCarrier || "-"}</div>
                   </div>
+                  <div>
+                    <Text type="secondary">Mã theo dõi</Text>
+                    <div className="font-semibold text-slate-900">{managingOrder.trackingCode || "-"}</div>
+                  </div>
+                  {isGhnCarrier(managingOrder.shippingCarrier) ? (
+                    <div>
+                      <Button
+                        onClick={() => void handleSyncCurrentShipment()}
+                        loading={syncingShipment}
+                        disabled={!managingOrder.shipmentId}
+                      >
+                        Đồng bộ GHN cho đơn này
+                      </Button>
+                    </div>
+                  ) : null}
                   <div>
                     <Text type="secondary">Địa chỉ giao hàng</Text>
                     <div className="rounded-xl bg-slate-50 px-3 py-2 font-medium text-slate-800">
