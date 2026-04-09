@@ -769,6 +769,10 @@ export function AdminDashboardPage() {
                 </div>
               </div>
             </Card>
+          </Col>
+        </Row>
+        <Row gutter={[16, 16]}>
+          <Col xs={24}>
             <LowStockList data={lowStockProducts} />
           </Col>
         </Row>

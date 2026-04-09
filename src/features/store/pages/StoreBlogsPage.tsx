@@ -1,4 +1,4 @@
-import { Empty, Pagination, Skeleton, Typography } from "antd";
+﻿import { Empty, Pagination, Skeleton, Typography } from "antd";
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { blogService, type BlogPost } from "../../../services/blogService";
@@ -75,7 +75,7 @@ export function StoreBlogsPage() {
   }, [page, pageSize]);
 
   return (
-    <section className="mx-auto w-full max-w-[1220px] px-4 py-8 md:px-6 md:py-10">
+    <section className="mx-auto w-full max-w-305 px-4 py-8 md:px-6 md:py-10">
       <div className="mb-6">
         <p className="mb-2 text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">
           Blog RioShop

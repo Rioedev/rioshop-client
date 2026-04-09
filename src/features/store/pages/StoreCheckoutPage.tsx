@@ -15,6 +15,7 @@ import { cartService, toCartCouponMeta, toCartStoreItems } from "../../../servic
 import { formatStoreCurrency } from "../utils/storeFormatting";
 import { orderService } from "../../../services/orderService";
 import { paymentService } from "../../../services/paymentService";
+import { userProfileService, type UserAddress } from "../../../services/userProfileService";
 import { analyticsTracker } from "../../../services/analyticsTracker";
 import {
   shippingService,
@@ -44,6 +45,29 @@ const toSafeMoney = (value: unknown, fallback = 0) => {
     return Math.max(0, Math.round(fallback));
   }
   return Math.max(0, Math.round(parsed));
+};
+
+const cleanText = (value?: string) => value?.trim() || "";
+
+const toPositiveNumber = (value?: string) => {
+  const parsed = Number(cleanText(value));
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : undefined;
+};
+
+const pickCheckoutAddress = (addresses: UserAddress[], defaultAddressId?: string) => {
+  if (addresses.length === 0) {
+    return null;
+  }
+
+  const normalizedDefaultId = cleanText(defaultAddressId);
+  if (normalizedDefaultId) {
+    const matchedDefault = addresses.find((item) => cleanText(item.id) === normalizedDefaultId);
+    if (matchedDefault) {
+      return matchedDefault;
+    }
+  }
+
+  return addresses.find((item) => item.isDefault) ?? addresses[0];
 };
 
 const applyShippingPolicyLocally = (
@@ -100,6 +124,7 @@ export function StoreCheckoutPage() {
   const [isEligibleForFreeShip, setIsEligibleForFreeShip] = useState(false);
   const [remainingToFreeShip, setRemainingToFreeShip] = useState(0);
   const [shippingFee, setShippingFee] = useState(0);
+  const [hasAddressPrefilled, setHasAddressPrefilled] = useState(false);
 
   const selectedProvince = useMemo(
     () => provinces.find((item) => item.ProvinceID === provinceId) ?? null,
@@ -162,6 +187,58 @@ export function StoreCheckoutPage() {
       mounted = false;
     };
   }, []);
+
+  useEffect(() => {
+    if (!isAuthenticated || hasAddressPrefilled) {
+      return;
+    }
+
+    let mounted = true;
+
+    const prefillAddressFromProfile = async () => {
+      try {
+        const profile = await userProfileService.getProfile();
+        if (!mounted) {
+          return;
+        }
+
+        const selectedAddress = pickCheckoutAddress(profile.addresses ?? [], profile.defaultAddressId);
+        setHasAddressPrefilled(true);
+        if (!selectedAddress) {
+          return;
+        }
+
+        const provinceCode = toPositiveNumber(selectedAddress.province?.code);
+        const districtCode = toPositiveNumber(selectedAddress.district?.code);
+        const nextWardCode = cleanText(selectedAddress.ward?.code);
+
+        setFullName((prev) => cleanText(selectedAddress.fullName) || prev.trim() || cleanText(profile.fullName));
+        setPhone((prev) => cleanText(selectedAddress.phone) || prev.trim() || cleanText(profile.phone));
+        setEmail((prev) => prev.trim() || cleanText(profile.email));
+        setAddress((prev) => cleanText(selectedAddress.street) || prev.trim());
+
+        if (provinceCode) {
+          setProvinceId(provinceCode);
+        }
+        if (districtCode) {
+          setDistrictId(districtCode);
+        }
+        if (nextWardCode) {
+          setWardCode(nextWardCode);
+        }
+      } catch {
+        if (mounted) {
+          setHasAddressPrefilled(true);
+        }
+      }
+    };
+
+    void prefillAddressFromProfile();
+
+    return () => {
+      mounted = false;
+    };
+  }, [hasAddressPrefilled, isAuthenticated]);
 
   useEffect(() => {
     if (!isAuthenticated) {

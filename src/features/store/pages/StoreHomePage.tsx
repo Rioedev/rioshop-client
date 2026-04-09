@@ -210,7 +210,7 @@ export function StoreHomePage() {
 
           currentSale.slots.slice(0, 3).forEach((slot, index) => {
             const product = productById.get(slot.productId);
-            const dealName = slot.product?.name ?? product?.name ?? `Æ¯u Ä‘Ã£i #${index + 1}`;
+            const dealName = slot.product?.name ?? product?.name ?? `Ưu đãi #${index + 1}`;
             const dealSlug = slot.product?.slug ?? product?.slug ?? highlightedProducts[0]?.slug;
 
             if (!dealSlug) {
@@ -420,26 +420,26 @@ export function StoreHomePage() {
       {
         id: "blog-1",
         date: "23/03/2026",
-        title: "HÆ°á»›ng dáº«n kiá»ƒm tra háº¡ng thÃ nh viÃªn RioShop nhanh chÃ³ng",
-        excerpt: "Máº¹o theo dÃµi quyá»n lá»£i vÃ  Ä‘iá»ƒm tÃ­ch lÅ©y Ä‘á»ƒ mua sáº¯m tá»‘i Æ°u hÆ¡n.",
+        title: "Hướng dẫn kiểm tra hạng thành viên RioShop nhanh chóng",
+        excerpt: "Mẹo theo dõi quyền lợi và điểm tích lũy để mua sắm tối ưu hơn.",
       },
       {
         id: "blog-2",
         date: "21/03/2026",
-        title: "BÃ­ kÃ­p máº·c Ä‘áº¹p cÃ¹ng quáº§n jean rÃ¡ch nam: CÃ¡ch phá»‘i Ä‘á»“ & xu hÆ°á»›ng 2026",
-        excerpt: "Gá»£i Ã½ phá»‘i Ä‘á»“ thá»±c táº¿ Ä‘á»ƒ giá»¯ váº» ngoÃ i gá»n, hiá»‡n Ä‘áº¡i vÃ  nam tÃ­nh.",
+        title: "Bí kíp mặc đẹp cùng quần jean rách nam: Cách phối đồ & xu hướng 2026",
+        excerpt: "Gợi ý phối đồ thực tế để giữ vẻ ngoài gọn, hiện đại và nam tính.",
       },
       {
         id: "blog-3",
         date: "21/03/2026",
-        title: "BÃ­ quyáº¿t phá»‘i Ä‘á»“ cá»±c cháº¥t: NÃ¢ng táº§m phong cÃ¡ch cÃ¹ng quáº§n jean Ã¡o thun nam",
-        excerpt: "CÃ´ng thá»©c phá»‘i nhanh cho Ä‘i lÃ m, Ä‘i chÆ¡i vÃ  dáº¡o phá»‘ cuá»‘i tuáº§n.",
+        title: "Bí quyết phối đồ cực chất: Nâng tầm phong cách cùng quần jean áo thun nam",
+        excerpt: "Công thức phối nhanh cho đi làm, đi chơi và dạo phố cuối tuần.",
       },
       {
         id: "blog-4",
         date: "21/03/2026",
-        title: "Top 15+ kiá»ƒu Ã¡o máº·c vá»›i quáº§n jean á»‘ng rá»™ng cá»±c tÃ´n dÃ¡ng, chuáº©n gu fashionista",
-        excerpt: "Danh sÃ¡ch outfit dá»… Ã¡p dá»¥ng giÃºp trang phá»¥c cÃ¢n Ä‘á»‘i vÃ  thá»i trang hÆ¡n.",
+        title: "Top 15+ kiểu áo mặc với quần jean ống rộng cực tôn dáng, chuẩn gu fashionista",
+        excerpt: "Danh sách outfit dễ áp dụng giúp trang phục cân đối và thời trang hơn.",
       },
     ].map((item, index) => ({
       ...item,
@@ -451,8 +451,8 @@ export function StoreHomePage() {
       return blogPosts.slice(0, 4).map((post, index) => ({
         id: post._id,
         date: formatBlogDate(post.publishedAt || post.createdAt),
-        title: post.title?.trim() || fallbackCards[index]?.title || "BÃ i viáº¿t má»›i",
-        excerpt: post.excerpt?.trim() || fallbackCards[index]?.excerpt || "Ná»™i dung Ä‘ang Ä‘Æ°á»£c cáº­p nháº­t.",
+        title: post.title?.trim() || fallbackCards[index]?.title || "Bài viết mới",
+        excerpt: post.excerpt?.trim() || fallbackCards[index]?.excerpt || "Nội dung đang được cập nhật.",
         href: post.slug?.trim()
           ? `/blog/${encodeURIComponent(post.slug)}`
           : fallbackCards[index]?.href || "/blog",
@@ -940,7 +940,7 @@ export function StoreHomePage() {
       {blogCards.length > 0 ? (
         <section className="store-home-v3-blog">
           <div className="store-home-v3-blog-head">
-            <p>Tin tá»©c thá»i trang</p>
+            <p>Tin tức thời trang</p>
             <h2>BLOG RIOSHOP</h2>
           </div>
 
@@ -950,7 +950,7 @@ export function StoreHomePage() {
                 <Link to={card.href} className="store-home-v3-blog-media">
                   <img src={card.image} alt={card.title} className="h-full w-full object-cover" />
                 </Link>
-                <p className="store-home-v3-blog-date">NgÃ y Ä‘Äƒng: {card.date}</p>
+                <p className="store-home-v3-blog-date">Ngày đăng: {card.date}</p>
                 <Link to={card.href} className="store-home-v3-blog-title">
                   {card.title}
                 </Link>
@@ -962,7 +962,7 @@ export function StoreHomePage() {
           <div className="store-home-v3-blog-action">
             <Link to="/blog">
               <Button className="store-home-v3-secondary-ghost h-11! rounded-full! px-8! font-bold!">
-                Xem thÃªm
+                Xem thêm
               </Button>
             </Link>
           </div>
