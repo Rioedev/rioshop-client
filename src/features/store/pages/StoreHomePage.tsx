@@ -968,7 +968,6 @@ export function StoreHomePage() {
           </div>
         </section>
       ) : null}
-
     </div>
   );
 }

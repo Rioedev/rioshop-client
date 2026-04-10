@@ -1,4 +1,4 @@
-import { PhoneOutlined } from "@ant-design/icons";
+import { PhoneOutlined, SearchOutlined } from "@ant-design/icons";
 import { Input } from "antd";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Link, Outlet, useLocation, useNavigate } from "react-router-dom";
@@ -254,6 +254,15 @@ export function StoreLayout() {
     window.scrollTo(0, 0);
   }, [location.pathname]);
 
+  useEffect(() => {
+    if (location.pathname !== "/products") {
+      return;
+    }
+
+    const keyword = new URLSearchParams(location.search).get("q")?.trim() ?? "";
+    setSearchKeyword(keyword);
+  }, [location.pathname, location.search]);
+
   const onSearch = () => {
     const keyword = searchKeyword.trim();
     if (keyword) {
@@ -389,6 +398,12 @@ export function StoreLayout() {
                 value={searchKeyword}
                 onChange={(event) => setSearchKeyword(event.target.value)}
                 onPressEnter={onSearch}
+                suffix={
+                  <SearchOutlined
+                    onClick={onSearch}
+                    className="cursor-pointer text-slate-500 transition hover:text-slate-700"
+                  />
+                }
                 className="store-search"
                 placeholder="Tìm áo thun, quần short, combo..."
               />
