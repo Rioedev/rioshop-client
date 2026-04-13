@@ -100,7 +100,7 @@ export function StoreOrdersPage() {
 
   const orderMetrics = useMemo(() => {
     const pendingCount = orders.filter((item) =>
-      ["pending_confirmation", "waiting_pickup", "in_transit", "out_for_delivery"].includes(
+      ["pending_confirmation", "confirmed", "packing", "waiting_pickup", "in_transit", "out_for_delivery"].includes(
         getDisplayStatus(item),
       ),
     ).length;

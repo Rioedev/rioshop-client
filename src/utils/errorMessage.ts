@@ -73,6 +73,21 @@ const EXACT_MESSAGE_MAP: Record<string, string> = {
   "failed to update order status": "Khong the cap nhat trang thai don hang.",
   "order can no longer be cancelled": "Don hang nay khong the huy nua.",
   "failed to cancel order": "Khong the huy don hang.",
+  "only customer can submit return request": "Chi khach hang moi co the gui yeu cau doi tra.",
+  "invalid return request type": "Loai yeu cau doi tra khong hop le.",
+  "return request reason is required": "Vui long nhap ly do doi tra.",
+  "return request is only allowed for delivered or completed orders":
+    "Chi duoc gui yeu cau doi tra sau khi don da giao thanh cong.",
+  "a return request is already in progress": "Don hang nay da co yeu cau doi tra dang duoc xu ly.",
+  "invalid return request status": "Trang thai yeu cau doi tra khong hop le.",
+  "order does not have return request": "Don hang nay chua co yeu cau doi tra.",
+  "only admin can update return request status": "Chi quan tri vien moi duoc cap nhat yeu cau doi tra.",
+  "return request can only be completed after order is marked returned":
+    "Yeu cau tra hang chi hoan tat khi don da chuyen sang trang thai da hoan.",
+  "cannot determine delivered date for this order":
+    "Khong xac dinh duoc thoi diem giao hang de kiem tra han doi tra.",
+  "return request period expired (3 day(s) after delivery)":
+    "Don hang da qua han doi tra 3 ngay ke tu luc giao thanh cong.",
   "invalid order item payload": "Du lieu san pham trong don hang khong hop le.",
   "inventory reserved underflow": "Du lieu giu kho khong hop le.",
   "order not found for ghn shipment creation": "Khong tim thay don hang de tao van don GHN.",
@@ -97,6 +112,8 @@ const EXACT_MESSAGE_MAP: Record<string, string> = {
   "wishlist item not found": "Khong tim thay san pham yeu thich.",
   "invalid wishlist item payload": "Du lieu san pham yeu thich khong hop le.",
   "wishlist item image is required": "Thieu anh san pham yeu thich.",
+  "file image is required": "Vui long chon anh de tai len.",
+  "only image files are allowed": "Chi chap nhan file anh.",
   "something went wrong": "Da xay ra loi. Vui long thu lai.",
 };
 
@@ -106,6 +123,14 @@ const PATTERN_MESSAGE_MAP: Array<{ pattern: RegExp; message: string }> = [
   { pattern: /variant .* is inactive/, message: "Bien the san pham hien khong con kinh doanh." },
   { pattern: /product .* not found/, message: "Khong tim thay san pham." },
   { pattern: /cannot change status from .*/, message: "Khong the chuyen trang thai don hang hien tai." },
+  {
+    pattern: /return request period expired \(\d+ day\(s\) after delivery\)/,
+    message: "Don hang da qua han doi tra theo chinh sach hien tai.",
+  },
+  {
+    pattern: /cannot change return request status from .*/,
+    message: "Khong the chuyen trang thai yeu cau doi tra theo huong nay.",
+  },
   { pattern: /cloudinary .* failed/, message: "Tai anh len that bai. Vui long thu lai." },
   {
     pattern: /network error|failed to fetch|load failed/,

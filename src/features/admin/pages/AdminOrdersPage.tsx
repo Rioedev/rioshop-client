@@ -14,11 +14,13 @@
 } from "antd";
 import type { ColumnsType, TablePaginationConfig } from "antd/es/table";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useLocation, useNavigate } from "react-router-dom";
 import {
   orderService,
   type OrderRecord,
   type OrderStatus,
   type PaymentStatus,
+  type ReturnRequestStatus,
 } from "../../../services/orderService";
 import { subscribeAdminRealtime } from "../../../services/socketClient";
 import { useOrderStore } from "../../../stores/orderStore";
@@ -77,6 +79,25 @@ const PAYMENT_STATUS_COLOR_MAP: Record<PaymentStatus, string> = {
   failed: "red",
 };
 
+const RETURN_REQUEST_TYPE_LABEL_MAP = {
+  return: "Trả hàng",
+  exchange: "Đổi hàng",
+} as const;
+
+const RETURN_REQUEST_STATUS_LABEL_MAP: Record<ReturnRequestStatus, string> = {
+  pending: "Chờ xử lý",
+  approved: "Đã chấp nhận",
+  rejected: "Đã từ chối",
+  completed: "Hoàn tất",
+};
+
+const RETURN_REQUEST_STATUS_COLOR_MAP: Record<ReturnRequestStatus, string> = {
+  pending: "gold",
+  approved: "blue",
+  rejected: "red",
+  completed: "green",
+};
+
 const STATUS_FILTER_OPTIONS: { value: OrderStatus | "all"; label: string }[] = [
   { value: "all", label: "Tất cả trạng thái đơn" },
   { value: "pending", label: STATUS_LABEL_MAP.pending },
@@ -112,7 +133,7 @@ const STATUS_TRANSITION_MAP: Record<OrderStatus, OrderStatus[]> = {
   ready_to_ship: ["shipping", "cancelled"],
   shipping: ["delivered", "returned", "cancelled"],
   delivered: ["completed", "returned"],
-  completed: [],
+  completed: ["returned"],
   cancelled: [],
   returned: [],
 };
@@ -201,6 +222,8 @@ const getStatusUpdateOptions = (
 };
 
 export function AdminOrdersPage() {
+  const location = useLocation();
+  const navigate = useNavigate();
   const [messageApi, contextHolder] = message.useMessage();
   const [searchText, setSearchText] = useState("");
   const [managingOrder, setManagingOrder] = useState<OrderRecord | null>(null);
@@ -209,6 +232,7 @@ export function AdminOrdersPage() {
   const [manageNote, setManageNote] = useState("");
   const [syncingShipment, setSyncingShipment] = useState(false);
   const [syncingActiveGhn, setSyncingActiveGhn] = useState(false);
+  const [updatingReturnRequest, setUpdatingReturnRequest] = useState(false);
 
   const orders = useOrderStore((state) => state.orders);
   const loading = useOrderStore((state) => state.loading);
@@ -224,6 +248,12 @@ export function AdminOrdersPage() {
   const updateOrderStatus = useOrderStore((state) => state.updateOrderStatus);
   const cancelOrder = useOrderStore((state) => state.cancelOrder);
   const realtimeRefreshTimerRef = useRef<number | null>(null);
+  const handledFocusOrderIdRef = useRef("");
+
+  const focusOrderId = useMemo(() => {
+    const query = new URLSearchParams(location.search);
+    return (query.get("focusOrderId") || "").trim();
+  }, [location.search]);
 
   const refreshCurrentOrderPage = useCallback(() => {
     void loadOrders({
@@ -305,6 +335,13 @@ export function AdminOrdersPage() {
     [managingOrder?.shippingCarrier, managingOrder?.status],
   );
 
+  const activeReturnRequest = managingOrder?.returnRequest;
+  const canApproveReturnRequest = activeReturnRequest?.status === "pending";
+  const canRejectReturnRequest =
+    activeReturnRequest?.status === "pending" || activeReturnRequest?.status === "approved";
+  const canCompleteExchangeRequest =
+    activeReturnRequest?.status === "approved" && activeReturnRequest?.type === "exchange";
+
   const hasManageChanges = useMemo(() => {
     if (!managingOrder) {
       return false;
@@ -317,6 +354,8 @@ export function AdminOrdersPage() {
     );
   }, [manageNote, managePaymentStatus, manageStatus, managingOrder]);
 
+  const modalBusy = saving || updatingReturnRequest;
+
   const openManageModal = (order: OrderRecord) => {
     setManagingOrder(order);
     setManageStatus(order.status);
@@ -324,8 +363,25 @@ export function AdminOrdersPage() {
     setManageNote("");
   };
 
+  const clearFocusOrderIdFromUrl = useCallback(() => {
+    const query = new URLSearchParams(location.search);
+    if (!query.has("focusOrderId")) {
+      return;
+    }
+
+    query.delete("focusOrderId");
+    const nextSearch = query.toString();
+    navigate(
+      {
+        pathname: location.pathname,
+        search: nextSearch ? `?${nextSearch}` : "",
+      },
+      { replace: true },
+    );
+  }, [location.pathname, location.search, navigate]);
+
   const closeManageModal = () => {
-    if (saving) {
+    if (modalBusy) {
       return;
     }
     setManagingOrder(null);
@@ -362,6 +418,30 @@ export function AdminOrdersPage() {
     }
   };
 
+  useEffect(() => {
+    if (!focusOrderId) {
+      return;
+    }
+
+    if (handledFocusOrderIdRef.current === focusOrderId) {
+      return;
+    }
+
+    handledFocusOrderIdRef.current = focusOrderId;
+
+    void (async () => {
+      try {
+        const focusedOrder = await orderService.getOrderById(focusOrderId);
+        setSearchText(focusedOrder.orderNumber || "");
+        openManageModal(focusedOrder);
+      } catch (error) {
+        messageApi.error(getErrorMessage(error, "Không thể mở đơn hàng từ thông báo"));
+      } finally {
+        clearFocusOrderIdFromUrl();
+      }
+    })();
+  }, [clearFocusOrderIdFromUrl, focusOrderId, messageApi]);
+
   const handleUpdateOrder = async () => {
     if (!managingOrder) {
       return;
@@ -382,6 +462,31 @@ export function AdminOrdersPage() {
       closeManageModal();
     } catch (error) {
       messageApi.error(getErrorMessage(error));
+    }
+  };
+
+  const handleUpdateReturnRequestStatus = async (nextStatus: ReturnRequestStatus) => {
+    if (!managingOrder?.returnRequest) {
+      messageApi.warning("Đơn hàng này chưa có yêu cầu đổi/trả.");
+      return;
+    }
+
+    setUpdatingReturnRequest(true);
+    try {
+      const updatedOrder = await orderService.updateReturnRequestStatus(managingOrder.id, {
+        status: nextStatus,
+        note: manageNote.trim() || undefined,
+      });
+      setManagingOrder(updatedOrder);
+      setManageStatus(updatedOrder.status);
+      setManagePaymentStatus(updatedOrder.paymentStatus);
+      setManageNote("");
+      refreshCurrentOrderPage();
+      messageApi.success("Đã cập nhật yêu cầu đổi/trả.");
+    } catch (error) {
+      messageApi.error(getErrorMessage(error));
+    } finally {
+      setUpdatingReturnRequest(false);
     }
   };
 
@@ -609,7 +714,7 @@ export function AdminOrdersPage() {
         onCancel={closeManageModal}
         width={1040}
         footer={[
-          <Button key="close" onClick={closeManageModal} disabled={saving}>
+          <Button key="close" onClick={closeManageModal} disabled={modalBusy}>
             Đóng
           </Button>,
           <Popconfirm
@@ -619,11 +724,11 @@ export function AdminOrdersPage() {
             okText="Hủy đơn"
             cancelText="Bỏ qua"
             onConfirm={() => void handleCancelOrder()}
-            disabled={!managingOrder || !isCancellableOrder(managingOrder.status) || saving}
+            disabled={!managingOrder || !isCancellableOrder(managingOrder.status) || modalBusy}
           >
             <Button
               danger
-              disabled={!managingOrder || !isCancellableOrder(managingOrder.status) || saving}
+              disabled={!managingOrder || !isCancellableOrder(managingOrder.status) || modalBusy}
             >
               Hủy đơn
             </Button>
@@ -633,7 +738,7 @@ export function AdminOrdersPage() {
             type="primary"
             onClick={() => void handleUpdateOrder()}
             loading={saving}
-            disabled={!managingOrder || !hasManageChanges}
+            disabled={!managingOrder || !hasManageChanges || modalBusy}
           >
             Lưu cập nhật
           </Button>,
@@ -665,6 +770,101 @@ export function AdminOrdersPage() {
               </div>
             </div>
 
+            {activeReturnRequest ? (
+              <Card
+                size="small"
+                title="Yêu cầu đổi/trả"
+                className="rounded-2xl! border-amber-200! bg-amber-50/40 shadow-sm!"
+              >
+                <div className="space-y-3 text-sm">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <Tag color="purple">{RETURN_REQUEST_TYPE_LABEL_MAP[activeReturnRequest.type]}</Tag>
+                    <Tag color={RETURN_REQUEST_STATUS_COLOR_MAP[activeReturnRequest.status]}>
+                      {RETURN_REQUEST_STATUS_LABEL_MAP[activeReturnRequest.status]}
+                    </Tag>
+                    {activeReturnRequest.requestedAt ? (
+                      <Text type="secondary">Gửi lúc: {formatDateTime(activeReturnRequest.requestedAt)}</Text>
+                    ) : null}
+                  </div>
+
+                  <div>
+                    <Text type="secondary">Lý do khách gửi</Text>
+                    <div className="font-medium text-slate-800">{activeReturnRequest.reason || "-"}</div>
+                  </div>
+
+                  {activeReturnRequest.note ? (
+                    <div>
+                      <Text type="secondary">Ghi chú khách hàng</Text>
+                      <div className="font-medium text-slate-800">{activeReturnRequest.note}</div>
+                    </div>
+                  ) : null}
+
+                  {activeReturnRequest.images.length > 0 ? (
+                    <div>
+                      <Text type="secondary">Ảnh minh chứng</Text>
+                      <div className="mt-2 grid grid-cols-2 gap-2 md:grid-cols-4">
+                        {activeReturnRequest.images.map((imageUrl) => (
+                          <a
+                            key={imageUrl}
+                            href={imageUrl}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="block overflow-hidden rounded-lg border border-slate-200 bg-white"
+                          >
+                            <img src={imageUrl} alt="Ảnh minh chứng đổi trả" className="h-24 w-full object-cover" />
+                          </a>
+                        ))}
+                      </div>
+                    </div>
+                  ) : null}
+
+                  <div className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-slate-600">
+                    {activeReturnRequest.status === "pending"
+                      ? "Bước tiếp theo: kiểm tra lý do + ảnh, sau đó bấm Chấp nhận hoặc Từ chối."
+                      : null}
+                    {activeReturnRequest.status === "approved" && activeReturnRequest.type === "exchange"
+                      ? "Yêu cầu đã được duyệt. Sau khi đã xử lý đổi hàng cho khách, bấm Hoàn tất yêu cầu."
+                      : null}
+                    {activeReturnRequest.status === "approved" && activeReturnRequest.type === "return"
+                      ? "Yêu cầu đã được duyệt. Khi nhận lại hàng thành công, chuyển trạng thái đơn sang Đã hoàn để kết thúc yêu cầu."
+                      : null}
+                    {activeReturnRequest.status === "rejected"
+                      ? "Yêu cầu đã bị từ chối. Nếu khách gửi lại yêu cầu mới hợp lệ, hệ thống sẽ ghi nhận lại."
+                      : null}
+                    {activeReturnRequest.status === "completed"
+                      ? "Yêu cầu đổi/trả đã hoàn tất."
+                      : null}
+                  </div>
+
+                  <div className="flex flex-wrap gap-2">
+                    <Button
+                      type="primary"
+                      onClick={() => void handleUpdateReturnRequestStatus("approved")}
+                      loading={updatingReturnRequest}
+                      disabled={!canApproveReturnRequest || modalBusy}
+                    >
+                      Chấp nhận yêu cầu
+                    </Button>
+                    <Button
+                      danger
+                      onClick={() => void handleUpdateReturnRequestStatus("rejected")}
+                      loading={updatingReturnRequest}
+                      disabled={!canRejectReturnRequest || modalBusy}
+                    >
+                      Từ chối yêu cầu
+                    </Button>
+                    <Button
+                      onClick={() => void handleUpdateReturnRequestStatus("completed")}
+                      loading={updatingReturnRequest}
+                      disabled={!canCompleteExchangeRequest || modalBusy}
+                    >
+                      Hoàn tất đổi hàng
+                    </Button>
+                  </div>
+                </div>
+              </Card>
+            ) : null}
+
             <Card size="small" title="Điều phối đơn hàng" className="rounded-2xl! border-slate-200! shadow-sm!">
               <div className="grid gap-4 md:grid-cols-2">
                 <div className="space-y-3">
@@ -680,7 +880,7 @@ export function AdminOrdersPage() {
                     value={manageStatus}
                     options={manageStatusOptions}
                     onChange={(value) => setManageStatus(value)}
-                    disabled={saving || !canChangeOrderStatus}
+                    disabled={modalBusy || !canChangeOrderStatus}
                     className="w-full"
                   />
                   {managingOrder.status === "ready_to_ship" && isGhnCarrier(managingOrder.shippingCarrier) ? (
@@ -706,7 +906,7 @@ export function AdminOrdersPage() {
                     value={managePaymentStatus}
                     options={PAYMENT_STATUS_UPDATE_OPTIONS}
                     onChange={(value) => setManagePaymentStatus(value)}
-                    disabled={saving}
+                    disabled={modalBusy}
                     className="w-full"
                   />
                 </div>
@@ -719,7 +919,7 @@ export function AdminOrdersPage() {
                 placeholder="Ghi chú quản trị (tùy chọn)"
                 autoSize={{ minRows: 2, maxRows: 4 }}
                 maxLength={500}
-                disabled={saving}
+                disabled={modalBusy}
               />
             </Card>
 

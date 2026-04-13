@@ -19,8 +19,22 @@ export type OrderStatus =
 
 export type PaymentStatus = "pending" | "paid" | "refunded" | "failed";
 export type PaymentMethod = "cod" | "bank_transfer" | "momo" | "vnpay" | "zalopay" | "card";
+export type ReturnRequestType = "return" | "exchange";
+export type ReturnRequestStatus = "pending" | "approved" | "rejected" | "completed";
+
+export type ReturnRequestRecord = {
+  type: ReturnRequestType;
+  reason: string;
+  note?: string;
+  images: string[];
+  status: ReturnRequestStatus;
+  requestedAt?: string;
+};
+
 export type CustomerOrderStatus =
   | "pending_confirmation"
+  | "confirmed"
+  | "packing"
   | "waiting_pickup"
   | "in_transit"
   | "out_for_delivery"
@@ -83,6 +97,14 @@ type OrderApiItem = {
     at?: string;
     by?: string;
   }>;
+  returnRequest?: {
+    type?: ReturnRequestType;
+    reason?: string;
+    note?: string;
+    images?: string[];
+    status?: ReturnRequestStatus;
+    requestedAt?: string;
+  };
   createdAt?: string;
   updatedAt?: string;
 };
@@ -131,6 +153,7 @@ export type OrderRecord = {
     at?: string;
     by?: string;
   }>;
+  returnRequest?: ReturnRequestRecord;
   createdAt?: string;
   updatedAt?: string;
 };
@@ -166,6 +189,18 @@ export type UpdateOrderStatusPayload = {
   status: OrderStatus;
   note?: string;
   paymentStatus?: PaymentStatus;
+};
+
+export type SubmitReturnRequestPayload = {
+  type: ReturnRequestType;
+  reason: string;
+  note?: string;
+  images?: string[];
+};
+
+export type UpdateReturnRequestStatusPayload = {
+  status: ReturnRequestStatus;
+  note?: string;
 };
 
 export type SyncShipmentResult = {
@@ -272,6 +307,16 @@ const normalizeOrder = (item: OrderApiItem): OrderRecord => {
     note: item.note,
     adminNote: item.adminNote,
     timeline: item.timeline ?? [],
+    returnRequest: item.returnRequest
+      ? {
+          type: item.returnRequest.type ?? "return",
+          reason: item.returnRequest.reason ?? "",
+          note: item.returnRequest.note,
+          images: item.returnRequest.images ?? [],
+          status: item.returnRequest.status ?? "pending",
+          requestedAt: item.returnRequest.requestedAt,
+        }
+      : undefined,
     createdAt: item.createdAt,
     updatedAt: item.updatedAt,
   };
@@ -319,6 +364,42 @@ export const orderService = {
   async cancelOrder(id: string, note?: string): Promise<OrderRecord> {
     const response = await apiClient.post<ApiResponse<OrderApiItem>>(`/api/orders/${id}/cancel`, { note });
     return normalizeOrder(response.data.data);
+  },
+
+  async submitReturnRequest(id: string, payload: SubmitReturnRequestPayload): Promise<OrderRecord> {
+    const response = await apiClient.post<ApiResponse<OrderApiItem>>(
+      `/api/orders/${id}/return-request`,
+      payload,
+    );
+    return normalizeOrder(response.data.data);
+  },
+
+  async updateReturnRequestStatus(
+    id: string,
+    payload: UpdateReturnRequestStatusPayload,
+  ): Promise<OrderRecord> {
+    const response = await apiClient.patch<ApiResponse<OrderApiItem>>(
+      `/api/orders/${id}/return-request/status`,
+      payload,
+    );
+    return normalizeOrder(response.data.data);
+  },
+
+  async uploadReturnRequestImage(file: File): Promise<string> {
+    const formData = new FormData();
+    formData.append("file", file);
+
+    const response = await apiClient.post<ApiResponse<{ url: string }>>(
+      "/api/orders/upload-return-image",
+      formData,
+      {
+        headers: {
+          "Content-Type": "multipart/form-data",
+        },
+      },
+    );
+
+    return response.data.data.url;
   },
 
   async syncShipmentFromGhn(shipmentId: string): Promise<SyncShipmentResult> {

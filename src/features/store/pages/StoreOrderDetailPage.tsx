@@ -1,4 +1,5 @@
-import { Button, message } from "antd";
+import { Button, Form, Input, Modal, Select, Upload, message } from "antd";
+import type { UploadProps } from "antd/es/upload";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import {
@@ -19,7 +20,10 @@ import {
   type OrderRecord,
   type PaymentMethod,
   type PaymentStatus,
+  type ReturnRequestStatus,
+  type ReturnRequestType,
 } from "../../../services/orderService";
+import { getImageValidationError } from "../../../services/mediaUploadService";
 import { useAuthStore } from "../../../stores/authStore";
 import { getErrorMessage } from "../../../utils/errorMessage";
 
@@ -39,9 +43,24 @@ const orderStatusLabelMap: Record<string, string> = {
   completed: "Hoàn thành",
   cancelled: "Đã hủy",
   returned: "Hoàn trả",
+  return_requested: "Đã gửi yêu cầu đổi/trả",
 };
 
 const ONLINE_PAYMENT_METHODS = new Set(["momo", "vnpay", "zalopay", "card", "bank_transfer"]);
+const RETURN_REQUEST_WINDOW_DAYS = 3;
+const RETURN_REQUEST_MAX_IMAGES = 8;
+
+const returnRequestStatusLabelMap: Record<ReturnRequestStatus, string> = {
+  pending: "Đang chờ duyệt",
+  approved: "Đã duyệt",
+  rejected: "Đã từ chối",
+  completed: "Đã xử lý",
+};
+
+const returnRequestTypeLabelMap: Record<ReturnRequestType, string> = {
+  exchange: "Đổi hàng",
+  return: "Trả hàng",
+};
 
 const getDisplayStatus = (
   order: Pick<OrderRecord, "status" | "customerStatus">,
@@ -133,14 +152,53 @@ const formatDateTime = (value?: string) => {
   return parsedDate.toLocaleString("vi-VN");
 };
 
+const resolveDeliveredAt = (order: OrderRecord | null): Date | null => {
+  if (!order) {
+    return null;
+  }
+
+  for (let index = order.timeline.length - 1; index >= 0; index -= 1) {
+    const event = order.timeline[index];
+    if ((event.status || "").trim() !== "delivered") {
+      continue;
+    }
+
+    const deliveredAt = new Date(event.at || "");
+    if (!Number.isNaN(deliveredAt.getTime())) {
+      return deliveredAt;
+    }
+  }
+
+  if (!["delivered", "completed"].includes(order.status)) {
+    return null;
+  }
+
+  const fallback = new Date(order.updatedAt || order.createdAt || "");
+  if (!Number.isNaN(fallback.getTime())) {
+    return fallback;
+  }
+
+  return null;
+};
+
 export function StoreOrderDetailPage() {
   const { id } = useParams<{ id: string }>();
   const [messageApi, contextHolder] = message.useMessage();
   const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
 
+  const [returnRequestForm] = Form.useForm<{
+    type: ReturnRequestType;
+    reason: string;
+    note?: string;
+  }>();
+
   const [order, setOrder] = useState<OrderRecord | null>(null);
   const [loading, setLoading] = useState(true);
   const [retryingPayment, setRetryingPayment] = useState(false);
+  const [returnRequestModalOpen, setReturnRequestModalOpen] = useState(false);
+  const [submittingReturnRequest, setSubmittingReturnRequest] = useState(false);
+  const [returnProofImages, setReturnProofImages] = useState<string[]>([]);
+  const [returnProofUploading, setReturnProofUploading] = useState(false);
 
   const loadOrderDetail = useCallback(async () => {
     if (!id) {
@@ -183,6 +241,48 @@ export function StoreOrderDetailPage() {
       ["pending", "confirmed", "packing", "ready_to_ship", "shipping"].includes(order.status)
     );
   }, [order]);
+
+  const returnRequestWindowInfo = useMemo(() => {
+    const deliveredAt = resolveDeliveredAt(order);
+    if (!deliveredAt) {
+      return {
+        deliveredAt: null as Date | null,
+        deadlineAt: null as Date | null,
+        isWithinWindow: false,
+      };
+    }
+
+    const deadlineAt = new Date(
+      deliveredAt.getTime() + RETURN_REQUEST_WINDOW_DAYS * 24 * 60 * 60 * 1000,
+    );
+
+    return {
+      deliveredAt,
+      deadlineAt,
+      isWithinWindow: Date.now() <= deadlineAt.getTime(),
+    };
+  }, [order]);
+
+  const hasActiveReturnRequest = useMemo(() => {
+    const status = order?.returnRequest?.status;
+    return status === "pending" || status === "approved";
+  }, [order?.returnRequest?.status]);
+
+  const canSubmitReturnRequest = useMemo(() => {
+    if (!order) {
+      return false;
+    }
+
+    if (!["delivered", "completed"].includes(order.status)) {
+      return false;
+    }
+
+    if (hasActiveReturnRequest) {
+      return false;
+    }
+
+    return returnRequestWindowInfo.isWithinWindow;
+  }, [hasActiveReturnRequest, order, returnRequestWindowInfo.isWithinWindow]);
 
   const overviewMetrics = useMemo(() => {
     if (!order) {
@@ -242,6 +342,88 @@ export function StoreOrderDetailPage() {
     }
   };
 
+  const onOpenReturnRequestModal = () => {
+    if (!canSubmitReturnRequest || !order) {
+      return;
+    }
+
+    returnRequestForm.setFieldsValue({
+      type: "return",
+      reason: "",
+      note: "",
+    });
+    setReturnProofImages([]);
+    setReturnRequestModalOpen(true);
+  };
+
+  const beforeUploadReturnProof: UploadProps["beforeUpload"] = (file) => {
+    if (returnProofImages.length >= RETURN_REQUEST_MAX_IMAGES) {
+      messageApi.warning(`Bạn chỉ có thể tải tối đa ${RETURN_REQUEST_MAX_IMAGES} ảnh.`);
+      return Upload.LIST_IGNORE;
+    }
+
+    const validationError = getImageValidationError(file as File, 5);
+    if (validationError) {
+      messageApi.error(validationError);
+      return Upload.LIST_IGNORE;
+    }
+
+    return true;
+  };
+
+  const uploadReturnProof: UploadProps["customRequest"] = async ({ file, onError, onSuccess }) => {
+    try {
+      setReturnProofUploading(true);
+      const uploadedUrl = await orderService.uploadReturnRequestImage(file as File);
+      setReturnProofImages((previous) => {
+        if (previous.length >= RETURN_REQUEST_MAX_IMAGES) {
+          return previous;
+        }
+        return [...previous, uploadedUrl];
+      });
+      onSuccess?.("ok");
+      messageApi.success("Tải ảnh minh chứng thành công.");
+    } catch (error) {
+      onError?.(error as Error);
+      messageApi.error(getErrorMessage(error, "Không thể tải ảnh minh chứng"));
+    } finally {
+      setReturnProofUploading(false);
+    }
+  };
+
+  const removeReturnProofImage = (targetUrl: string) => {
+    setReturnProofImages((previous) => previous.filter((url) => url !== targetUrl));
+  };
+
+  const onSubmitReturnRequest = async () => {
+    if (!order) {
+      return;
+    }
+
+    try {
+      const values = await returnRequestForm.validateFields();
+
+      setSubmittingReturnRequest(true);
+      await orderService.submitReturnRequest(order.id, {
+        type: values.type,
+        reason: values.reason.trim(),
+        note: values.note?.trim() || undefined,
+        images: returnProofImages,
+      });
+      messageApi.success("Đã gửi yêu cầu đổi/trả. Shop sẽ phản hồi sớm.");
+      setReturnRequestModalOpen(false);
+      await loadOrderDetail();
+    } catch (error) {
+      if (typeof error === "object" && error && "errorFields" in error) {
+        return;
+      }
+      const messageText = getErrorMessage(error, "Không thể gửi yêu cầu đổi/trả");
+      messageApi.error(messageText);
+    } finally {
+      setSubmittingReturnRequest(false);
+    }
+  };
+
   if (!isAuthenticated) {
     return (
       <StoreEmptyState
@@ -293,6 +475,11 @@ export function StoreOrderDetailPage() {
             <Link to="/orders">
               <Button className={storeButtonClassNames.secondary}>Danh sách đơn</Button>
             </Link>
+            {canSubmitReturnRequest ? (
+              <Button className={storeButtonClassNames.ghost} onClick={onOpenReturnRequestModal}>
+                Yêu cầu đổi/trả
+              </Button>
+            ) : null}
             {canRetryMomoPayment ? (
               <Button
                 type="primary"
@@ -357,6 +544,41 @@ export function StoreOrderDetailPage() {
             {order.note ? (
               <div className="mt-4">
                 <StoreInlineNote title="Ghi chú đơn hàng" description={order.note} />
+              </div>
+            ) : null}
+
+            {order.returnRequest ? (
+              <div className="mt-4">
+                <StoreInlineNote
+                  title={`Yêu cầu ${returnRequestTypeLabelMap[order.returnRequest.type] || "đổi/trả"}: ${
+                    returnRequestStatusLabelMap[order.returnRequest.status] || order.returnRequest.status
+                  }`}
+                  description={`Lý do: ${order.returnRequest.reason || "Đang cập nhật"}${
+                    order.returnRequest.note ? ` • Ghi chú: ${order.returnRequest.note}` : ""
+                  }`}
+                />
+              </div>
+            ) : null}
+
+            {!order.returnRequest &&
+            ["delivered", "completed"].includes(order.status) &&
+            returnRequestWindowInfo.deadlineAt ? (
+              <div className="mt-4">
+                <StoreInlineNote
+                  tone={returnRequestWindowInfo.isWithinWindow ? "default" : "warning"}
+                  title={
+                    returnRequestWindowInfo.isWithinWindow
+                      ? `Đơn còn trong hạn đổi/trả (${RETURN_REQUEST_WINDOW_DAYS} ngày)`
+                      : "Đơn đã quá hạn đổi/trả"
+                  }
+                  description={
+                    returnRequestWindowInfo.isWithinWindow
+                      ? `Bạn có thể gửi yêu cầu đổi/trả đến ${formatDateTime(
+                          returnRequestWindowInfo.deadlineAt.toISOString(),
+                        )}.`
+                      : `Đơn chỉ hỗ trợ đổi/trả trong ${RETURN_REQUEST_WINDOW_DAYS} ngày kể từ lúc giao thành công.`
+                  }
+                />
               </div>
             ) : null}
           </StorePanelSection>
@@ -450,6 +672,86 @@ export function StoreOrderDetailPage() {
           </StorePanelSection>
         </>
       ) : null}
+
+      <Modal
+        title="Gửi yêu cầu đổi/trả"
+        open={returnRequestModalOpen}
+        onCancel={() => setReturnRequestModalOpen(false)}
+        onOk={() => void onSubmitReturnRequest()}
+        okText="Gửi yêu cầu"
+        cancelText="Đóng"
+        okButtonProps={{ loading: submittingReturnRequest }}
+        destroyOnClose
+      >
+        <Form layout="vertical" form={returnRequestForm}>
+          <Form.Item
+            name="type"
+            label="Loại yêu cầu"
+            rules={[{ required: true, message: "Vui lòng chọn loại yêu cầu" }]}
+          >
+            <Select
+              options={[
+                { label: "Trả hàng", value: "return" },
+                { label: "Đổi hàng", value: "exchange" },
+              ]}
+            />
+          </Form.Item>
+
+          <Form.Item
+            name="reason"
+            label="Lý do"
+            rules={[
+              { required: true, message: "Vui lòng nhập lý do" },
+              { min: 5, message: "Lý do cần ít nhất 5 ký tự" },
+            ]}
+          >
+            <Input.TextArea rows={3} maxLength={500} placeholder="Ví dụ: Sai kích cỡ, sản phẩm lỗi, không đúng mô tả..." />
+          </Form.Item>
+
+          <Form.Item name="note" label="Ghi chú thêm">
+            <Input.TextArea rows={2} maxLength={1000} placeholder="Mô tả thêm nếu cần" />
+          </Form.Item>
+
+          <Form.Item label={`Ảnh minh chứng (tuỳ chọn, tối đa ${RETURN_REQUEST_MAX_IMAGES} ảnh)`}>
+            <Upload
+              accept="image/*"
+              multiple
+              disabled={returnProofImages.length >= RETURN_REQUEST_MAX_IMAGES}
+              showUploadList={false}
+              customRequest={uploadReturnProof}
+              beforeUpload={beforeUploadReturnProof}
+            >
+              <Button loading={returnProofUploading}>Tải ảnh lên</Button>
+            </Upload>
+
+            {returnProofImages.length > 0 ? (
+              <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-4">
+                {returnProofImages.map((imageUrl) => (
+                  <div key={imageUrl} className="overflow-hidden rounded-lg border border-slate-200 bg-white">
+                    <img
+                      src={imageUrl}
+                      alt="Ảnh minh chứng"
+                      className="h-20 w-full object-cover"
+                    />
+                    <div className="p-1">
+                      <Button
+                        danger
+                        size="small"
+                        className="w-full"
+                        onClick={() => removeReturnProofImage(imageUrl)}
+                      >
+                        Xóa
+                      </Button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <p className="mt-2 text-sm text-slate-500">Chưa có ảnh nào được tải lên.</p>
+            )}
+          </Form.Item>
+        </Form>
+      </Modal>
     </StorePageShell>
   );
 }
