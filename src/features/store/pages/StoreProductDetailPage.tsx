@@ -428,27 +428,11 @@ export function StoreProductDetailPage() {
   }, [relatedProducts, catalogProducts, product?._id]);
 
   const sameCategoryProducts = useMemo(() => {
-    const sameCategory = productPool.filter(
+    return productPool
+      .filter(
       (item) => (item.category?._id || "") === (product?.category?._id || ""),
-    );
-
-    if (sameCategory.length >= 4) {
-      return sameCategory.slice(0, 4);
-    }
-
-    const picked = new Map<string, ProductRuntime>();
-    sameCategory.forEach((item) => {
-      picked.set(item._id, item);
-    });
-
-    productPool.forEach((item) => {
-      if (picked.size >= 4 || picked.has(item._id)) {
-        return;
-      }
-      picked.set(item._id, item);
-    });
-
-    return Array.from(picked.values()).slice(0, 4);
+      )
+      .slice(0, 4);
   }, [product?.category?._id, productPool]);
 
   const viewedProducts = useMemo(() => {
@@ -766,7 +750,13 @@ export function StoreProductDetailPage() {
 
       <section className="pdpv2-block">
         <h3 className="pdpv2-section-title">Sản phẩm cùng danh mục</h3>
-        <StoreProductShowcaseGrid items={sameCategoryProducts} />
+        {sameCategoryProducts.length > 0 ? (
+          <StoreProductShowcaseGrid items={sameCategoryProducts} />
+        ) : (
+          <p className="m-0 text-sm text-slate-500">
+            Chưa có thêm sản phẩm cùng danh mục này.
+          </p>
+        )}
       </section>
 
       <StoreProductReviewSection

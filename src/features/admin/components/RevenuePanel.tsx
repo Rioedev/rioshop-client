@@ -21,8 +21,11 @@ export function RevenuePanel({ data }: RevenuePanelProps) {
   }
 
   const maxValue = Math.max(...data.map((item) => item.amount), 1);
-  const bestMonth = data.reduce((best, item) => (item.amount > best.amount ? item : best), data[0]);
   const totalAmount = data.reduce((sum, item) => sum + item.amount, 0);
+  const hasRevenue = totalAmount > 0;
+  const bestMonth = hasRevenue
+    ? data.reduce((best, item) => (item.amount > best.amount ? item : best), data[0])
+    : null;
 
   return (
     <Card className="border-slate-200! shadow-sm!">
@@ -33,9 +36,15 @@ export function RevenuePanel({ data }: RevenuePanelProps) {
           </Title>
           <Text type="secondary">Tổng doanh thu: {formatCurrency.format(totalAmount)} VND</Text>
         </div>
-        <span className="inline-flex items-center rounded-full bg-emerald-50 px-3 py-1 text-xs font-semibold text-emerald-700">
-          Cao nhất: {bestMonth.label} ({formatCurrency.format(bestMonth.amount)} VND)
-        </span>
+        {bestMonth ? (
+          <span className="inline-flex items-center rounded-full bg-emerald-50 px-3 py-1 text-xs font-semibold text-emerald-700">
+            Cao nhất: {bestMonth.label} ({formatCurrency.format(bestMonth.amount)} VND)
+          </span>
+        ) : (
+          <span className="inline-flex items-center rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-600">
+            Chưa phát sinh doanh thu
+          </span>
+        )}
       </div>
 
       <Space direction="vertical" size="middle" className="w-full">

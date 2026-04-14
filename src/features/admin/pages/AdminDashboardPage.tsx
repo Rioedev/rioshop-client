@@ -92,6 +92,11 @@ type MonthRange = {
   endDate: Date;
 };
 
+const toMonthKey = (date: Date) => {
+  const month = `${date.getMonth() + 1}`.padStart(2, "0");
+  return `${date.getFullYear()}-${month}`;
+};
+
 const calculateGrowthRate = (currentValue: number, previousValue: number) => {
   if (previousValue <= 0) {
     return currentValue > 0 ? 100 : 0;
@@ -168,7 +173,7 @@ const buildMonthlyRevenueSeries = (
   }
 
   return ranges.map((range) => {
-    const key = range.startDate.toISOString().slice(0, 7);
+    const key = toMonthKey(range.startDate);
     return {
       label: range.label,
       amount: byMonth.get(key) || 0,
