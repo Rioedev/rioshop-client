@@ -1,5 +1,5 @@
 ﻿import { Button, message } from "antd";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Link, useLocation } from "react-router-dom";
 import {
   StoreEmptyState,
@@ -21,6 +21,7 @@ import {
 import { paymentService } from "../../../services/paymentService";
 import { useAuthStore } from "../../../stores/authStore";
 import { getErrorMessage } from "../../../utils/errorMessage";
+import { subscribeOrderRealtime } from "../../../services/socketClient";
 
 const STATUS_LABEL_MAP: Record<string, string> = {
   pending_confirmation: "Chờ xác nhận",
@@ -92,6 +93,7 @@ export function StoreOrdersPage() {
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [payingOrderId, setPayingOrderId] = useState<string | null>(null);
+  const realtimeRefreshTimerRef = useRef<number | null>(null);
 
   const highlightedOrderId = useMemo(
     () => (location.state as { orderId?: string } | null)?.orderId,
@@ -153,6 +155,41 @@ export function StoreOrdersPage() {
 
     void loadOrders(1);
   }, [isAuthenticated, loadOrders]);
+
+  const orderRoomIds = useMemo(() => orders.map((item) => item.id).filter(Boolean), [orders]);
+
+  const scheduleRealtimeRefresh = useCallback(() => {
+    if (realtimeRefreshTimerRef.current) {
+      window.clearTimeout(realtimeRefreshTimerRef.current);
+    }
+
+    realtimeRefreshTimerRef.current = window.setTimeout(() => {
+      void loadOrders(page);
+    }, 600);
+  }, [loadOrders, page]);
+
+  useEffect(
+    () => () => {
+      if (realtimeRefreshTimerRef.current) {
+        window.clearTimeout(realtimeRefreshTimerRef.current);
+      }
+    },
+    [],
+  );
+
+  useEffect(() => {
+    if (!isAuthenticated || orderRoomIds.length === 0) {
+      return undefined;
+    }
+
+    const unsubscribe = subscribeOrderRealtime(orderRoomIds, () => {
+      scheduleRealtimeRefresh();
+    });
+
+    return () => {
+      unsubscribe();
+    };
+  }, [isAuthenticated, orderRoomIds, scheduleRealtimeRefresh]);
 
   const onCancelOrder = async (order: OrderRecord) => {
     try {
@@ -246,6 +283,11 @@ export function StoreOrdersPage() {
               ["pending", "confirmed", "packing", "ready_to_ship", "shipping"].includes(order.status);
             const displayStatus = getDisplayStatus(order);
             const highlighted = highlightedOrderId && highlightedOrderId === order.id;
+            const isReplacementOrder = Boolean(order.exchangeMeta?.isReplacement);
+            const parentOrderId = order.exchangeMeta?.parentOrderId;
+            const parentOrderNumber = order.exchangeMeta?.parentOrderNumber;
+            const replacementOrderId = order.returnRequest?.replacementOrderId;
+            const replacementOrderNumber = order.returnRequest?.replacementOrderNumber;
 
             return (
               <article key={order.id} className={`store-order-card ${highlighted ? "is-highlighted" : ""}`}>
@@ -253,9 +295,40 @@ export function StoreOrdersPage() {
                   <div>
                     <p className="m-0 text-xs font-bold uppercase tracking-[0.16em] text-slate-500">Mã đơn</p>
                     <h3 className="m-0 mt-1 text-xl font-black tracking-[-0.04em] text-slate-900">{order.orderNumber}</h3>
+                    {isReplacementOrder ? (
+                      <p className="m-0 mt-2 inline-flex items-center rounded-full border border-blue-200 bg-blue-50 px-3 py-1 text-xs font-bold uppercase tracking-[0.12em] text-blue-700">
+                        Đơn đổi tự động
+                      </p>
+                    ) : null}
                     <p className="m-0 mt-2 text-sm text-slate-500">
                       Đặt lúc {order.createdAt ? new Date(order.createdAt).toLocaleString("vi-VN") : "Đang cập nhật"}
                     </p>
+                    {isReplacementOrder ? (
+                      <p className="m-0 mt-1 text-sm text-slate-600">
+                        Tạo từ đơn{" "}
+                        {parentOrderId ? (
+                          <Link className="font-semibold text-blue-700" to={`/orders/${parentOrderId}`}>
+                            {parentOrderNumber || "đơn gốc"}
+                          </Link>
+                        ) : (
+                          <span className="font-semibold text-slate-700">{parentOrderNumber || "đơn gốc"}</span>
+                        )}
+                        .
+                      </p>
+                    ) : null}
+                    {!isReplacementOrder && replacementOrderNumber ? (
+                      <p className="m-0 mt-1 text-sm text-slate-600">
+                        Đã tạo đơn đổi:{" "}
+                        {replacementOrderId ? (
+                          <Link className="font-semibold text-blue-700" to={`/orders/${replacementOrderId}`}>
+                            {replacementOrderNumber}
+                          </Link>
+                        ) : (
+                          <span className="font-semibold text-slate-700">{replacementOrderNumber}</span>
+                        )}
+                        .
+                      </p>
+                    ) : null}
                   </div>
 
                   <div className="text-right">
@@ -272,6 +345,11 @@ export function StoreOrdersPage() {
                     <p className="m-0 mt-2 text-lg font-black tracking-[-0.04em] text-slate-900">
                       {formatStoreCurrency(order.pricing.total)}
                     </p>
+                    {isReplacementOrder ? (
+                      <p className="m-0 mt-1 text-xs font-semibold uppercase tracking-[0.1em] text-blue-700">
+                        Đơn đổi - không thu thêm
+                      </p>
+                    ) : null}
                   </div>
                 </div>
 

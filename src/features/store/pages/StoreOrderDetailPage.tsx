@@ -1,6 +1,6 @@
-import { Button, Form, Input, Modal, Select, Upload, message } from "antd";
+import { Button, Form, Input, Modal, Upload, message } from "antd";
 import type { UploadProps } from "antd/es/upload";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import {
   StoreEmptyState,
@@ -26,6 +26,7 @@ import {
 import { getImageValidationError } from "../../../services/mediaUploadService";
 import { useAuthStore } from "../../../stores/authStore";
 import { getErrorMessage } from "../../../utils/errorMessage";
+import { subscribeOrderRealtime } from "../../../services/socketClient";
 
 const orderStatusLabelMap: Record<string, string> = {
   pending_confirmation: "Chờ xác nhận",
@@ -43,7 +44,11 @@ const orderStatusLabelMap: Record<string, string> = {
   completed: "Hoàn thành",
   cancelled: "Đã hủy",
   returned: "Hoàn trả",
-  return_requested: "Đã gửi yêu cầu đổi/trả",
+  return_requested: "Đã gửi yêu cầu đổi hàng",
+  return_request_pending: "Yêu cầu đổi hàng đang chờ xử lý",
+  return_request_approved: "Yêu cầu đổi hàng đã được duyệt",
+  return_request_rejected: "Yêu cầu đổi hàng đã bị từ chối",
+  return_request_completed: "Yêu cầu đổi hàng đã hoàn tất",
 };
 
 const ONLINE_PAYMENT_METHODS = new Set(["momo", "vnpay", "zalopay", "card", "bank_transfer"]);
@@ -59,7 +64,49 @@ const returnRequestStatusLabelMap: Record<ReturnRequestStatus, string> = {
 
 const returnRequestTypeLabelMap: Record<ReturnRequestType, string> = {
   exchange: "Đổi hàng",
-  return: "Trả hàng",
+  return: "Đổi hàng",
+};
+
+const normalizeTimelineText = (value?: string) => (value || "").toString().trim().toLowerCase();
+
+const timelineNoteLabelMap: Record<string, string> = {
+  "customer submitted an exchange request": "Khách hàng đã gửi yêu cầu đổi hàng",
+  "customer submitted a return request": "Khách hàng đã gửi yêu cầu đổi hàng",
+  "admin approved exchange request": "Quản trị viên đã duyệt yêu cầu đổi hàng",
+  "admin approved return request": "Quản trị viên đã duyệt yêu cầu đổi hàng",
+  "admin rejected exchange request": "Quản trị viên đã từ chối yêu cầu đổi hàng",
+  "admin rejected return request": "Quản trị viên đã từ chối yêu cầu đổi hàng",
+  "exchange request completed": "Yêu cầu đổi hàng đã hoàn tất",
+  "return request completed": "Yêu cầu đổi hàng đã hoàn tất",
+};
+
+const timelineNotePrefixLabelMap: Array<{ from: string; to: string }> = [
+  { from: "admin approved exchange request. note:", to: "Quản trị viên đã duyệt yêu cầu đổi hàng. Ghi chú:" },
+  { from: "admin approved return request. note:", to: "Quản trị viên đã duyệt yêu cầu đổi hàng. Ghi chú:" },
+  { from: "admin rejected exchange request. note:", to: "Quản trị viên đã từ chối yêu cầu đổi hàng. Ghi chú:" },
+  { from: "admin rejected return request. note:", to: "Quản trị viên đã từ chối yêu cầu đổi hàng. Ghi chú:" },
+  { from: "exchange request completed. note:", to: "Yêu cầu đổi hàng đã hoàn tất. Ghi chú:" },
+  { from: "return request completed. note:", to: "Yêu cầu đổi hàng đã hoàn tất. Ghi chú:" },
+];
+
+const getLocalizedTimelineNote = (note?: string) => {
+  const normalized = normalizeTimelineText(note);
+  if (!normalized) {
+    return "Đang cập nhật trạng thái đơn hàng.";
+  }
+
+  if (timelineNoteLabelMap[normalized]) {
+    return timelineNoteLabelMap[normalized];
+  }
+
+  for (const item of timelineNotePrefixLabelMap) {
+    if (normalized.startsWith(item.from)) {
+      const suffix = (note || "").slice(item.from.length).trim();
+      return suffix ? `${item.to} ${suffix}` : item.to;
+    }
+  }
+
+  return note ?? "Đang cập nhật trạng thái đơn hàng.";
 };
 
 const getDisplayStatus = (
@@ -187,7 +234,6 @@ export function StoreOrderDetailPage() {
   const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
 
   const [returnRequestForm] = Form.useForm<{
-    type: ReturnRequestType;
     reason: string;
     note?: string;
   }>();
@@ -199,6 +245,7 @@ export function StoreOrderDetailPage() {
   const [submittingReturnRequest, setSubmittingReturnRequest] = useState(false);
   const [returnProofImages, setReturnProofImages] = useState<string[]>([]);
   const [returnProofUploading, setReturnProofUploading] = useState(false);
+  const realtimeRefreshTimerRef = useRef<number | null>(null);
 
   const loadOrderDetail = useCallback(async () => {
     if (!id) {
@@ -230,6 +277,35 @@ export function StoreOrderDetailPage() {
     void loadOrderDetail();
   }, [isAuthenticated, loadOrderDetail]);
 
+  useEffect(
+    () => () => {
+      if (realtimeRefreshTimerRef.current) {
+        window.clearTimeout(realtimeRefreshTimerRef.current);
+      }
+    },
+    [],
+  );
+
+  useEffect(() => {
+    if (!isAuthenticated || !id) {
+      return undefined;
+    }
+
+    const unsubscribe = subscribeOrderRealtime([id], () => {
+      if (realtimeRefreshTimerRef.current) {
+        window.clearTimeout(realtimeRefreshTimerRef.current);
+      }
+
+      realtimeRefreshTimerRef.current = window.setTimeout(() => {
+        void loadOrderDetail();
+      }, 400);
+    });
+
+    return () => {
+      unsubscribe();
+    };
+  }, [id, isAuthenticated, loadOrderDetail]);
+
   const canRetryMomoPayment = useMemo(() => {
     if (!order) {
       return false;
@@ -241,6 +317,12 @@ export function StoreOrderDetailPage() {
       ["pending", "confirmed", "packing", "ready_to_ship", "shipping"].includes(order.status)
     );
   }, [order]);
+
+  const isReplacementOrder = useMemo(() => Boolean(order?.exchangeMeta?.isReplacement), [order?.exchangeMeta?.isReplacement]);
+  const parentOrderId = order?.exchangeMeta?.parentOrderId;
+  const parentOrderNumber = order?.exchangeMeta?.parentOrderNumber;
+  const replacementOrderId = order?.returnRequest?.replacementOrderId;
+  const replacementOrderNumber = order?.returnRequest?.replacementOrderNumber;
 
   const returnRequestWindowInfo = useMemo(() => {
     const deliveredAt = resolveDeliveredAt(order);
@@ -268,6 +350,11 @@ export function StoreOrderDetailPage() {
     return status === "pending" || status === "approved";
   }, [order?.returnRequest?.status]);
 
+  const hasCompletedReturnRequest = useMemo(
+    () => order?.returnRequest?.status === "completed",
+    [order?.returnRequest?.status],
+  );
+
   const canSubmitReturnRequest = useMemo(() => {
     if (!order) {
       return false;
@@ -281,8 +368,12 @@ export function StoreOrderDetailPage() {
       return false;
     }
 
+    if (hasCompletedReturnRequest) {
+      return false;
+    }
+
     return returnRequestWindowInfo.isWithinWindow;
-  }, [hasActiveReturnRequest, order, returnRequestWindowInfo.isWithinWindow]);
+  }, [hasActiveReturnRequest, hasCompletedReturnRequest, order, returnRequestWindowInfo.isWithinWindow]);
 
   const overviewMetrics = useMemo(() => {
     if (!order) {
@@ -348,7 +439,6 @@ export function StoreOrderDetailPage() {
     }
 
     returnRequestForm.setFieldsValue({
-      type: "return",
       reason: "",
       note: "",
     });
@@ -405,19 +495,19 @@ export function StoreOrderDetailPage() {
 
       setSubmittingReturnRequest(true);
       await orderService.submitReturnRequest(order.id, {
-        type: values.type,
+        type: "exchange",
         reason: values.reason.trim(),
         note: values.note?.trim() || undefined,
         images: returnProofImages,
       });
-      messageApi.success("Đã gửi yêu cầu đổi/trả. Shop sẽ phản hồi sớm.");
+      messageApi.success("Đã gửi yêu cầu đổi hàng. Shop sẽ phản hồi sớm.");
       setReturnRequestModalOpen(false);
       await loadOrderDetail();
     } catch (error) {
       if (typeof error === "object" && error && "errorFields" in error) {
         return;
       }
-      const messageText = getErrorMessage(error, "Không thể gửi yêu cầu đổi/trả");
+      const messageText = getErrorMessage(error, "Không thể gửi yêu cầu đổi hàng");
       messageApi.error(messageText);
     } finally {
       setSubmittingReturnRequest(false);
@@ -477,7 +567,7 @@ export function StoreOrderDetailPage() {
             </Link>
             {canSubmitReturnRequest ? (
               <Button className={storeButtonClassNames.ghost} onClick={onOpenReturnRequestModal}>
-                Yêu cầu đổi/trả
+                Yêu cầu đổi hàng
               </Button>
             ) : null}
             {canRetryMomoPayment ? (
@@ -547,16 +637,54 @@ export function StoreOrderDetailPage() {
               </div>
             ) : null}
 
+            {isReplacementOrder ? (
+              <div className="mt-4 rounded-2xl border border-blue-200 bg-blue-50/70 p-4 text-sm text-slate-700">
+                <p className="m-0 text-xs font-bold uppercase tracking-[0.14em] text-blue-700">Đơn đổi tự động</p>
+                <p className="m-0 mt-2">
+                  Đơn này được hệ thống tạo tự động sau khi yêu cầu đổi hàng được duyệt và hoàn tất.
+                </p>
+                <p className="m-0 mt-1">
+                  Tạo từ đơn{" "}
+                  {parentOrderId ? (
+                    <Link className="font-semibold text-blue-700" to={`/orders/${parentOrderId}`}>
+                      {parentOrderNumber || "đơn gốc"}
+                    </Link>
+                  ) : (
+                    <span className="font-semibold text-slate-800">{parentOrderNumber || "đơn gốc"}</span>
+                  )}
+                  .
+                </p>
+                <p className="m-0 mt-1 font-semibold text-blue-700">Đơn đổi không thu thêm tiền sản phẩm.</p>
+              </div>
+            ) : null}
+
             {order.returnRequest ? (
               <div className="mt-4">
                 <StoreInlineNote
-                  title={`Yêu cầu ${returnRequestTypeLabelMap[order.returnRequest.type] || "đổi/trả"}: ${
+                  title={`Yêu cầu ${returnRequestTypeLabelMap[order.returnRequest.type] || "đổi hàng"}: ${
                     returnRequestStatusLabelMap[order.returnRequest.status] || order.returnRequest.status
                   }`}
                   description={`Lý do: ${order.returnRequest.reason || "Đang cập nhật"}${
                     order.returnRequest.note ? ` • Ghi chú: ${order.returnRequest.note}` : ""
                   }`}
                 />
+              </div>
+            ) : null}
+
+            {!isReplacementOrder && replacementOrderNumber ? (
+              <div className="mt-4 rounded-2xl border border-emerald-200 bg-emerald-50/70 p-4 text-sm text-slate-700">
+                <p className="m-0 text-xs font-bold uppercase tracking-[0.14em] text-emerald-700">Đổi hàng đã hoàn tất</p>
+                <p className="m-0 mt-2">
+                  Shop đã tạo đơn đổi mới cho bạn:{" "}
+                  {replacementOrderId ? (
+                    <Link className="font-semibold text-emerald-700" to={`/orders/${replacementOrderId}`}>
+                      {replacementOrderNumber}
+                    </Link>
+                  ) : (
+                    <span className="font-semibold text-slate-800">{replacementOrderNumber}</span>
+                  )}
+                  .
+                </p>
               </div>
             ) : null}
 
@@ -568,15 +696,15 @@ export function StoreOrderDetailPage() {
                   tone={returnRequestWindowInfo.isWithinWindow ? "default" : "warning"}
                   title={
                     returnRequestWindowInfo.isWithinWindow
-                      ? `Đơn còn trong hạn đổi/trả (${RETURN_REQUEST_WINDOW_DAYS} ngày)`
-                      : "Đơn đã quá hạn đổi/trả"
+                      ? `Đơn còn trong hạn đổi hàng (${RETURN_REQUEST_WINDOW_DAYS} ngày)`
+                      : "Đơn đã quá hạn đổi hàng"
                   }
                   description={
                     returnRequestWindowInfo.isWithinWindow
-                      ? `Bạn có thể gửi yêu cầu đổi/trả đến ${formatDateTime(
+                      ? `Bạn có thể gửi yêu cầu đổi hàng đến ${formatDateTime(
                           returnRequestWindowInfo.deadlineAt.toISOString(),
                         )}.`
-                      : `Đơn chỉ hỗ trợ đổi/trả trong ${RETURN_REQUEST_WINDOW_DAYS} ngày kể từ lúc giao thành công.`
+                      : `Đơn chỉ hỗ trợ đổi hàng trong ${RETURN_REQUEST_WINDOW_DAYS} ngày kể từ lúc giao thành công.`
                   }
                 />
               </div>
@@ -650,23 +778,27 @@ export function StoreOrderDetailPage() {
               />
             ) : (
               <div className="space-y-3">
-                {order.timeline.map((event, index) => (
-                  <article
-                    key={`${order.id}-timeline-${index}`}
-                    className="rounded-2xl border border-slate-200 bg-white/90 p-4"
-                  >
-                    <div className="flex flex-wrap items-start justify-between gap-2">
-                      <StoreStatusPill
-                        status={event.status}
-                        label={orderStatusLabelMap[event.status || ""] ?? event.status ?? "Cập nhật"}
-                      />
-                      <p className="m-0 text-sm text-slate-500">{formatDateTime(event.at)}</p>
-                    </div>
-                    <p className="m-0 mt-2 text-sm text-slate-700">
-                      {event.note || "Đang cập nhật trạng thái đơn hàng."}
-                    </p>
-                  </article>
-                ))}
+                {order.timeline.map((event, index) => {
+                  const timelineStatusKey = (event.status || "").toString().trim().toLowerCase();
+
+                  return (
+                    <article
+                      key={`${order.id}-timeline-${index}`}
+                      className="rounded-2xl border border-slate-200 bg-white/90 p-4"
+                    >
+                      <div className="flex flex-wrap items-start justify-between gap-2">
+                        <StoreStatusPill
+                          status={event.status}
+                          label={orderStatusLabelMap[timelineStatusKey] ?? event.status ?? "Cập nhật"}
+                        />
+                        <p className="m-0 text-sm text-slate-500">{formatDateTime(event.at)}</p>
+                      </div>
+                      <p className="m-0 mt-2 text-sm text-slate-700">
+                        {getLocalizedTimelineNote(event.note)}
+                      </p>
+                    </article>
+                  );
+                })}
               </div>
             )}
           </StorePanelSection>
@@ -674,7 +806,7 @@ export function StoreOrderDetailPage() {
       ) : null}
 
       <Modal
-        title="Gửi yêu cầu đổi/trả"
+        title="Gửi yêu cầu đổi hàng"
         open={returnRequestModalOpen}
         onCancel={() => setReturnRequestModalOpen(false)}
         onOk={() => void onSubmitReturnRequest()}
@@ -684,19 +816,6 @@ export function StoreOrderDetailPage() {
         destroyOnClose
       >
         <Form layout="vertical" form={returnRequestForm}>
-          <Form.Item
-            name="type"
-            label="Loại yêu cầu"
-            rules={[{ required: true, message: "Vui lòng chọn loại yêu cầu" }]}
-          >
-            <Select
-              options={[
-                { label: "Trả hàng", value: "return" },
-                { label: "Đổi hàng", value: "exchange" },
-              ]}
-            />
-          </Form.Item>
-
           <Form.Item
             name="reason"
             label="Lý do"

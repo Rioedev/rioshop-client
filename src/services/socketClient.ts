@@ -21,6 +21,8 @@ export type RealtimeOrderPayload = {
   orderId: string;
   orderNumber?: string;
   status?: string;
+  carrierStatus?: string;
+  customerStatus?: string;
   paymentStatus?: string;
   updatedAt?: string;
 };
@@ -80,6 +82,8 @@ const normalizeOrderPayload = (payload: Partial<RealtimeOrderPayload>): Realtime
   orderId: payload.orderId?.toString().trim() || "",
   orderNumber: payload.orderNumber?.toString().trim(),
   status: payload.status?.toString().trim(),
+  carrierStatus: payload.carrierStatus?.toString().trim(),
+  customerStatus: payload.customerStatus?.toString().trim(),
   paymentStatus: payload.paymentStatus?.toString().trim(),
   updatedAt: payload.updatedAt?.toString(),
 });
@@ -201,6 +205,69 @@ export const subscribeAdminRealtime = (handlers: AdminRealtimeHandlers) => {
     socket.off("order-updated", handleOrderUpdated);
     socket.off("inventory-updated", handleInventoryUpdated);
     socket.off("flash-sale-updated", handleFlashSaleUpdated);
+
+    if (shouldDisconnectSocket(socket)) {
+      socket.disconnect();
+    }
+  };
+};
+
+export const subscribeOrderRealtime = (
+  orderIds: string[],
+  onOrderUpdated: (payload: RealtimeOrderPayload) => void,
+) => {
+  const normalizedOrderIds = Array.from(
+    new Set(
+      (orderIds || [])
+        .map((value) => value?.toString().trim())
+        .filter(Boolean),
+    ),
+  );
+
+  if (normalizedOrderIds.length === 0) {
+    return () => undefined;
+  }
+
+  const socket = getSocketClient();
+
+  const joinOrderRooms = () => {
+    normalizedOrderIds.forEach((orderId) => {
+      socket.emit("join-order", orderId);
+    });
+  };
+
+  const leaveOrderRooms = () => {
+    normalizedOrderIds.forEach((orderId) => {
+      socket.emit("leave-order", orderId);
+    });
+  };
+
+  const handleOrderUpdated = (payload: Partial<RealtimeOrderPayload>) => {
+    const normalized = normalizeOrderPayload(payload || {});
+    if (!normalized.orderId) {
+      return;
+    }
+
+    if (!normalizedOrderIds.includes(normalized.orderId)) {
+      return;
+    }
+
+    onOrderUpdated(normalized);
+  };
+
+  socket.on("connect", joinOrderRooms);
+  socket.on("order-updated", handleOrderUpdated);
+
+  if (socket.connected) {
+    joinOrderRooms();
+  } else {
+    socket.connect();
+  }
+
+  return () => {
+    leaveOrderRooms();
+    socket.off("connect", joinOrderRooms);
+    socket.off("order-updated", handleOrderUpdated);
 
     if (shouldDisconnectSocket(socket)) {
       socket.disconnect();

@@ -29,6 +29,15 @@ export type ReturnRequestRecord = {
   images: string[];
   status: ReturnRequestStatus;
   requestedAt?: string;
+  completedAt?: string;
+  replacementOrderId?: string;
+  replacementOrderNumber?: string;
+};
+
+export type ExchangeMetaRecord = {
+  isReplacement: boolean;
+  parentOrderId?: string;
+  parentOrderNumber?: string;
 };
 
 export type CustomerOrderStatus =
@@ -104,6 +113,14 @@ type OrderApiItem = {
     images?: string[];
     status?: ReturnRequestStatus;
     requestedAt?: string;
+    completedAt?: string;
+    replacementOrderId?: string;
+    replacementOrderNumber?: string;
+  };
+  exchangeMeta?: {
+    isReplacement?: boolean;
+    parentOrderId?: string;
+    parentOrderNumber?: string;
   };
   createdAt?: string;
   updatedAt?: string;
@@ -154,6 +171,7 @@ export type OrderRecord = {
     by?: string;
   }>;
   returnRequest?: ReturnRequestRecord;
+  exchangeMeta?: ExchangeMetaRecord;
   createdAt?: string;
   updatedAt?: string;
 };
@@ -192,7 +210,7 @@ export type UpdateOrderStatusPayload = {
 };
 
 export type SubmitReturnRequestPayload = {
-  type: ReturnRequestType;
+  type: "exchange";
   reason: string;
   note?: string;
   images?: string[];
@@ -262,6 +280,35 @@ export type CreateOrderPayload = {
 };
 
 const normalizeOrder = (item: OrderApiItem): OrderRecord => {
+  const toOptionalString = (value: unknown): string | undefined => {
+    if (typeof value === "string") {
+      const trimmed = value.trim();
+      return trimmed || undefined;
+    }
+
+    if (typeof value === "number" && Number.isFinite(value)) {
+      return String(value);
+    }
+
+    if (value && typeof value === "object") {
+      const objectValue = value as { _id?: unknown; id?: unknown; toString?: () => string };
+      if (objectValue._id !== undefined && objectValue._id !== value) {
+        return toOptionalString(objectValue._id);
+      }
+      if (objectValue.id !== undefined && objectValue.id !== value) {
+        return toOptionalString(objectValue.id);
+      }
+      if (typeof objectValue.toString === "function") {
+        const text = objectValue.toString().trim();
+        if (text && text !== "[object Object]") {
+          return text;
+        }
+      }
+    }
+
+    return undefined;
+  };
+
   const rawShipment =
     item.shipmentId && typeof item.shipmentId === "object" ? item.shipmentId : null;
   const shipmentId =
@@ -309,12 +356,22 @@ const normalizeOrder = (item: OrderApiItem): OrderRecord => {
     timeline: item.timeline ?? [],
     returnRequest: item.returnRequest
       ? {
-          type: item.returnRequest.type ?? "return",
+          type: item.returnRequest.type ?? "exchange",
           reason: item.returnRequest.reason ?? "",
           note: item.returnRequest.note,
           images: item.returnRequest.images ?? [],
           status: item.returnRequest.status ?? "pending",
           requestedAt: item.returnRequest.requestedAt,
+          completedAt: item.returnRequest.completedAt,
+          replacementOrderId: toOptionalString(item.returnRequest.replacementOrderId),
+          replacementOrderNumber: item.returnRequest.replacementOrderNumber,
+        }
+      : undefined,
+    exchangeMeta: item.exchangeMeta
+      ? {
+          isReplacement: Boolean(item.exchangeMeta.isReplacement),
+          parentOrderId: toOptionalString(item.exchangeMeta.parentOrderId),
+          parentOrderNumber: item.exchangeMeta.parentOrderNumber,
         }
       : undefined,
     createdAt: item.createdAt,

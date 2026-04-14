@@ -80,7 +80,7 @@ const PAYMENT_STATUS_COLOR_MAP: Record<PaymentStatus, string> = {
 };
 
 const RETURN_REQUEST_TYPE_LABEL_MAP = {
-  return: "Trả hàng",
+  return: "Đổi hàng",
   exchange: "Đổi hàng",
 } as const;
 
@@ -96,6 +96,17 @@ const RETURN_REQUEST_STATUS_COLOR_MAP: Record<ReturnRequestStatus, string> = {
   approved: "blue",
   rejected: "red",
   completed: "green",
+};
+
+const getReturnRequestBadgeLabel = (order: Pick<OrderRecord, "returnRequest">) => {
+  if (!order.returnRequest) {
+    return "";
+  }
+
+  const typeLabel = RETURN_REQUEST_TYPE_LABEL_MAP[order.returnRequest.type] || "Đổi hàng";
+  const statusLabel =
+    RETURN_REQUEST_STATUS_LABEL_MAP[order.returnRequest.status] || order.returnRequest.status;
+  return `${typeLabel} • ${statusLabel}`;
 };
 
 const STATUS_FILTER_OPTIONS: { value: OrderStatus | "all"; label: string }[] = [
@@ -467,7 +478,7 @@ export function AdminOrdersPage() {
 
   const handleUpdateReturnRequestStatus = async (nextStatus: ReturnRequestStatus) => {
     if (!managingOrder?.returnRequest) {
-      messageApi.warning("Đơn hàng này chưa có yêu cầu đổi/trả.");
+      messageApi.warning("Đơn hàng này chưa có yêu cầu đổi hàng.");
       return;
     }
 
@@ -482,7 +493,12 @@ export function AdminOrdersPage() {
       setManagePaymentStatus(updatedOrder.paymentStatus);
       setManageNote("");
       refreshCurrentOrderPage();
-      messageApi.success("Đã cập nhật yêu cầu đổi/trả.");
+      const replacementOrderNumber = updatedOrder.returnRequest?.replacementOrderNumber;
+      if (nextStatus === "completed" && replacementOrderNumber) {
+        messageApi.success(`Đã hoàn tất đổi hàng và tạo đơn mới ${replacementOrderNumber}.`);
+      } else {
+        messageApi.success("Đã cập nhật yêu cầu đổi hàng.");
+      }
     } catch (error) {
       messageApi.error(getErrorMessage(error));
     } finally {
@@ -593,6 +609,19 @@ export function AdminOrdersPage() {
       ),
     },
     {
+      title: "Đổi hàng",
+      key: "returnRequest",
+      width: 220,
+      render: (_, record) =>
+        record.returnRequest ? (
+          <Tag color={RETURN_REQUEST_STATUS_COLOR_MAP[record.returnRequest.status]}>
+            {getReturnRequestBadgeLabel(record)}
+          </Tag>
+        ) : (
+          <Text type="secondary">-</Text>
+        ),
+    },
+    {
       title: "Tạo lúc",
       dataIndex: "createdAt",
       key: "createdAt",
@@ -685,7 +714,7 @@ export function AdminOrdersPage() {
           columns={columns}
           dataSource={filteredOrders}
           loading={loading || saving}
-          scroll={{ x: 1300 }}
+          scroll={{ x: 1500 }}
           pagination={{
             current: page,
             pageSize,
@@ -773,7 +802,7 @@ export function AdminOrdersPage() {
             {activeReturnRequest ? (
               <Card
                 size="small"
-                title="Yêu cầu đổi/trả"
+                title="Yêu cầu đổi hàng"
                 className="rounded-2xl! border-amber-200! bg-amber-50/40 shadow-sm!"
               >
                 <div className="space-y-3 text-sm">
@@ -799,6 +828,15 @@ export function AdminOrdersPage() {
                     </div>
                   ) : null}
 
+                  {activeReturnRequest.replacementOrderNumber ? (
+                    <div>
+                      <Text type="secondary">Đơn đổi đã tạo</Text>
+                      <div className="font-semibold text-slate-900">
+                        {activeReturnRequest.replacementOrderNumber}
+                      </div>
+                    </div>
+                  ) : null}
+
                   {activeReturnRequest.images.length > 0 ? (
                     <div>
                       <Text type="secondary">Ảnh minh chứng</Text>
@@ -811,7 +849,7 @@ export function AdminOrdersPage() {
                             rel="noreferrer"
                             className="block overflow-hidden rounded-lg border border-slate-200 bg-white"
                           >
-                            <img src={imageUrl} alt="Ảnh minh chứng đổi trả" className="h-24 w-full object-cover" />
+                            <img src={imageUrl} alt="Ảnh minh chứng đổi hàng" className="h-24 w-full object-cover" />
                           </a>
                         ))}
                       </div>
@@ -825,14 +863,13 @@ export function AdminOrdersPage() {
                     {activeReturnRequest.status === "approved" && activeReturnRequest.type === "exchange"
                       ? "Yêu cầu đã được duyệt. Sau khi đã xử lý đổi hàng cho khách, bấm Hoàn tất yêu cầu."
                       : null}
-                    {activeReturnRequest.status === "approved" && activeReturnRequest.type === "return"
-                      ? "Yêu cầu đã được duyệt. Khi nhận lại hàng thành công, chuyển trạng thái đơn sang Đã hoàn để kết thúc yêu cầu."
-                      : null}
                     {activeReturnRequest.status === "rejected"
                       ? "Yêu cầu đã bị từ chối. Nếu khách gửi lại yêu cầu mới hợp lệ, hệ thống sẽ ghi nhận lại."
                       : null}
                     {activeReturnRequest.status === "completed"
-                      ? "Yêu cầu đổi/trả đã hoàn tất."
+                      ? activeReturnRequest.replacementOrderNumber
+                        ? `Yêu cầu đổi hàng đã hoàn tất. Đơn đổi mới: ${activeReturnRequest.replacementOrderNumber}.`
+                        : "Yêu cầu đổi hàng đã hoàn tất."
                       : null}
                   </div>
 
