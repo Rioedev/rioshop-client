@@ -37,7 +37,7 @@ type AdminAccountFormValues = {
 };
 type AccountStatusFilter = "all" | "active" | "inactive";
 
-const STAFF_ROLES: AdminRole[] = ["warehouse", "cs", "marketer", "sales"];
+const STAFF_ROLES: AdminRole[] = ["warehouse", "sales"];
 const ALL_ROLES: AdminRole[] = ["superadmin", "manager", ...STAFF_ROLES];
 const ACCOUNT_STATUS_OPTIONS: { value: AccountStatusFilter; label: string }[] = [
   { value: "all", label: "Tất cả trạng thái" },
@@ -49,8 +49,6 @@ const ROLE_LABEL_MAP: Record<AdminRole, string> = {
   superadmin: "Quản trị tối cao",
   manager: "Quản lý",
   warehouse: "Nhân viên kho",
-  cs: "Nhân viên chăm sóc khách hàng",
-  marketer: "Nhân viên marketing",
   sales: "Nhân viên bán hàng",
 };
 
