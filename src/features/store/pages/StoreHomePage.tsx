@@ -582,40 +582,10 @@ export function StoreHomePage() {
       .slice(0, HERO_SLIDE_LIMIT)
       .map((sale) => toFlashCandidate(sale, "flash_active"));
 
-    const source = (featuredProducts.length > 0 ? featuredProducts : productPool).slice(0, HERO_SLIDE_LIMIT);
-    const fallbackProductSlides: HeroCandidate[] = source
-      .map((product, index) => ({
-        id: product.id,
-        image: product.image,
-        href: `/products/${product.slug}`,
-        secondaryHref: product.categorySlug ? `/products?category=${encodeURIComponent(product.categorySlug)}` : "/products",
-        kicker: index === 0 ? homeContent.hero.kicker : product.categoryName ?? homeContent.hero.sideKicker,
-        titleLine1: index === 0 ? homeContent.hero.titleLine1 : product.name,
-        titleLine2:
-          index === 0
-            ? homeContent.hero.titleLine2
-            : product.categoryName
-              ? `${product.categoryName} chọn lọc cho mùa này`
-              : homeContent.hero.sideTitleLine2,
-        description:
-          index === 0
-            ? homeContent.hero.description
-            : homeContent.hero.sideDescription,
-        primaryLabel: index === 0 ? homeContent.hero.primaryCtaLabel : homeContent.labels.buyDeal,
-        secondaryLabel: index === 0 ? homeContent.hero.secondaryCtaLabel : homeContent.labels.heroSlideSecondaryLabel,
-        priceLabel: formatCurrency(product.price),
-        meta: product.sold,
-        badge: product.badge ?? (index === 0 ? homeContent.labels.flashDeal : homeContent.labels.exploreNow),
-        source: "product" as const,
-        dedupeKey: `/products/${product.slug}`,
-        imageKey: product.image,
-      }));
-
     const orderedCandidates: HeroCandidate[] = [
       ...flashUpcomingSlides,
       ...flashActiveSlides,
       ...collectionSlides,
-      ...fallbackProductSlides,
     ];
 
     const sourceCounter: Record<HeroSource, number> = {
@@ -678,11 +648,12 @@ export function StoreHomePage() {
     }
 
     return slides.slice(0, HERO_SLIDE_LIMIT);
-  }, [collectionSections, featuredProducts, homeContent, homeFlashSales, productPool]);
+  }, [collectionSections, featuredProducts, homeContent, homeFlashSales]);
 
   const campaignImage =
     heroSlides[0]?.image ??
-    featuredProducts[0]?.image ??
+    collectionSections.find((section) => Boolean(section.bannerImage))?.bannerImage ??
+    resolveImageUrl(homeFlashSales.find((sale) => Boolean(resolveImageUrl(sale.banner)))?.banner) ??
     "https://images.unsplash.com/photo-1523381210434-271e8be1f52b?auto=format&fit=crop&w=1800&q=80";
 
   useEffect(() => {
