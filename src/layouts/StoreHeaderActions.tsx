@@ -1,4 +1,4 @@
-import {
+﻿import {
   BellOutlined,
   HeartOutlined,
   LogoutOutlined,
@@ -112,17 +112,6 @@ export function StoreHeaderActions({
               <UserOutlined />
               Tài khoản của tôi
             </Link>
-            <button
-              type="button"
-              className="store-user-dropdown-item"
-              onClick={() => {
-                onCloseAccountMenu();
-                onOpenNotificationModal();
-              }}
-            >
-              <BellOutlined />
-              Thông báo của tôi
-            </button>
             <Link
               to="/orders"
               className="store-user-dropdown-item"
@@ -189,3 +178,4 @@ export function StoreHeaderActions({
     </div>
   );
 }
+

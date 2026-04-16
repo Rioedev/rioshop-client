@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, type ReactNode } from "react";
+import { useMemo, useState, type ReactNode } from "react";
 import { Link } from "react-router-dom";
 
 type StoreProductGridCardProps = {
@@ -29,15 +29,13 @@ export function StoreProductGridCard({
   colorSwatches,
   footer,
 }: StoreProductGridCardProps) {
-  const [activeColorKey, setActiveColorKey] = useState(colorSwatches?.[0]?.key ?? "");
-
-  useEffect(() => {
-    setActiveColorKey(colorSwatches?.[0]?.key ?? "");
-  }, [href, colorSwatches]);
+  const [selectedColorKey, setSelectedColorKey] = useState<string | null>(null);
 
   const activeColor = useMemo(
-    () => colorSwatches?.find((color) => color.key === activeColorKey) ?? colorSwatches?.[0],
-    [activeColorKey, colorSwatches],
+    () =>
+      colorSwatches?.find((color) => color.key === selectedColorKey) ??
+      colorSwatches?.[0],
+    [selectedColorKey, colorSwatches],
   );
 
   const displayedImage = activeColor?.imageUrl ?? imageUrl;
@@ -81,7 +79,7 @@ export function StoreProductGridCard({
                 onClick={(event) => {
                   event.preventDefault();
                   event.stopPropagation();
-                  setActiveColorKey(color.key);
+                  setSelectedColorKey(color.key);
                 }}
                 onKeyDown={(event) => {
                   if (event.key !== "Enter" && event.key !== " ") {
@@ -89,7 +87,7 @@ export function StoreProductGridCard({
                   }
                   event.preventDefault();
                   event.stopPropagation();
-                  setActiveColorKey(color.key);
+                  setSelectedColorKey(color.key);
                 }}
               />
             ))}

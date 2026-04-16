@@ -1,5 +1,5 @@
 import { PhoneOutlined, SearchOutlined } from "@ant-design/icons";
-import { Input } from "antd";
+import { Input, type InputRef } from "antd";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Link, Outlet, useLocation, useNavigate } from "react-router-dom";
 import { AppNotificationsModal } from "../components/notifications/AppNotificationsModal";
@@ -68,7 +68,6 @@ export function StoreLayout() {
   const [isAccountMenuOpen, setIsAccountMenuOpen] = useState(false);
   const [isMegaMenuOpen, setIsMegaMenuOpen] = useState(false);
   const [isNotificationModalOpen, setIsNotificationModalOpen] = useState(false);
-  const [searchKeyword, setSearchKeyword] = useState("");
   const [categoryTree, setCategoryTree] = useState<Category[]>([]);
   const [collections, setCollections] = useState<Collection[]>([]);
   const [footerSocialLinks, setFooterSocialLinks] = useState<{
@@ -81,6 +80,7 @@ export function StoreLayout() {
   const accountMenuRef = useRef<HTMLDivElement | null>(null);
   const megaMenuRef = useRef<HTMLDivElement | null>(null);
   const megaMenuCloseTimerRef = useRef<number | null>(null);
+  const searchInputRef = useRef<InputRef | null>(null);
 
   const fullName = user?.fullName ?? "";
   const initials = fullName
@@ -254,17 +254,15 @@ export function StoreLayout() {
     window.scrollTo(0, 0);
   }, [location.pathname]);
 
-  useEffect(() => {
+  const searchKeywordFromUrl = useMemo(() => {
     if (location.pathname !== "/products") {
-      return;
+      return "";
     }
-
-    const keyword = new URLSearchParams(location.search).get("q")?.trim() ?? "";
-    setSearchKeyword(keyword);
+    return new URLSearchParams(location.search).get("q")?.trim() ?? "";
   }, [location.pathname, location.search]);
 
-  const onSearch = () => {
-    const keyword = searchKeyword.trim();
+  const onSearch = (rawKeyword?: string) => {
+    const keyword = (rawKeyword ?? searchInputRef.current?.input?.value ?? "").trim();
     if (keyword) {
       void analyticsTracker.track({
         event: "search",
@@ -394,13 +392,14 @@ export function StoreLayout() {
 
             <div className="order-3 w-full lg:order-0 lg:flex-1">
               <Input
+                key={`${location.pathname}|${location.search}`}
+                ref={searchInputRef}
                 allowClear
-                value={searchKeyword}
-                onChange={(event) => setSearchKeyword(event.target.value)}
-                onPressEnter={onSearch}
+                defaultValue={searchKeywordFromUrl}
+                onPressEnter={(event) => onSearch(event.currentTarget.value)}
                 suffix={
                   <SearchOutlined
-                    onClick={onSearch}
+                    onClick={() => onSearch()}
                     className="cursor-pointer text-slate-500 transition hover:text-slate-700"
                   />
                 }

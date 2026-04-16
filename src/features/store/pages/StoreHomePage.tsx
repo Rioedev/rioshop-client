@@ -41,6 +41,9 @@ import {
 import { StoreHomeHeroSection, type HomeHeroSlide } from "./StoreHomeHeroSection";
 import { StoreHomeProductCard } from "./StoreHomeProductCard";
 
+const HOME_NOW_TICK_MS = 60_000;
+const HOME_INITIAL_NOW = Date.now();
+
 export function StoreHomePage() {
   const [messageApi, contextHolder] = message.useMessage();
   const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
@@ -56,10 +59,21 @@ export function StoreHomePage() {
   const [savedCouponCodes, setSavedCouponCodes] = useState<string[]>(() => readSavedCouponCodes());
   const [isLoading, setIsLoading] = useState(true);
   const [activeHeroIndex, setActiveHeroIndex] = useState(0);
+  const [nowTimestamp, setNowTimestamp] = useState(HOME_INITIAL_NOW);
 
   useEffect(() => {
     writeSavedCouponCodes(savedCouponCodes);
   }, [savedCouponCodes]);
+
+  useEffect(() => {
+    const intervalId = window.setInterval(() => {
+      setNowTimestamp(Date.now());
+    }, HOME_NOW_TICK_MS);
+
+    return () => {
+      window.clearInterval(intervalId);
+    };
+  }, []);
 
   useEffect(() => {
     let active = true;
@@ -303,16 +317,15 @@ export function StoreHomePage() {
       products: HomeProduct[];
     }> = [];
 
-    const now = Date.now();
     const activeCollections = sortedCollections.filter((collection) => {
       const startsAt = collection.startsAt ? new Date(collection.startsAt).getTime() : Number.NEGATIVE_INFINITY;
       const endsAt = collection.endsAt ? new Date(collection.endsAt).getTime() : Number.POSITIVE_INFINITY;
 
-      if (Number.isFinite(startsAt) && startsAt > now) {
+      if (Number.isFinite(startsAt) && startsAt > nowTimestamp) {
         return false;
       }
 
-      if (Number.isFinite(endsAt) && endsAt <= now) {
+      if (Number.isFinite(endsAt) && endsAt <= nowTimestamp) {
         return false;
       }
 
@@ -401,7 +414,7 @@ export function StoreHomePage() {
           FALLBACK_CATEGORY_IMAGES[index % FALLBACK_CATEGORY_IMAGES.length],
         products: item.products,
       }));
-  }, [productPool, sortedCollections]);
+  }, [nowTimestamp, productPool, sortedCollections]);
 
   const blogCards = useMemo(() => {
     const fallbackImages = [
@@ -469,7 +482,6 @@ export function StoreHomePage() {
   const heroSlides = useMemo(() => {
     const HERO_SLIDE_LIMIT = 5;
     const HERO_SOURCE_BALANCE_LIMIT = 2;
-    const now = Date.now();
     const saleDateFormatter = new Intl.DateTimeFormat("vi-VN", {
       day: "2-digit",
       month: "2-digit",
@@ -522,18 +534,18 @@ export function StoreHomePage() {
 
       const startsAt = new Date(sale.startsAt).getTime();
       const endsAt = new Date(sale.endsAt).getTime();
-      return !Number.isFinite(endsAt) || endsAt > now || startsAt > now;
+      return !Number.isFinite(endsAt) || endsAt > nowTimestamp || startsAt > nowTimestamp;
     });
 
     const upcomingFlashSales = [...availableFlashSales]
-      .filter((sale) => new Date(sale.startsAt).getTime() > now)
+      .filter((sale) => new Date(sale.startsAt).getTime() > nowTimestamp)
       .sort((a, b) => new Date(a.startsAt).getTime() - new Date(b.startsAt).getTime());
 
     const activeFlashSales = [...availableFlashSales]
       .filter((sale) => {
         const startsAt = new Date(sale.startsAt).getTime();
         const endsAt = new Date(sale.endsAt).getTime();
-        return startsAt <= now && (!Number.isFinite(endsAt) || endsAt > now);
+        return startsAt <= nowTimestamp && (!Number.isFinite(endsAt) || endsAt > nowTimestamp);
       })
       .sort((a, b) => new Date(b.startsAt).getTime() - new Date(a.startsAt).getTime());
 
@@ -648,7 +660,7 @@ export function StoreHomePage() {
     }
 
     return slides.slice(0, HERO_SLIDE_LIMIT);
-  }, [collectionSections, featuredProducts, homeContent, homeFlashSales]);
+  }, [collectionSections, featuredProducts, homeContent, homeFlashSales, nowTimestamp]);
 
   const campaignImage =
     heroSlides[0]?.image ??

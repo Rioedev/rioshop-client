@@ -1,5 +1,5 @@
 import { StarFilled } from "@ant-design/icons";
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { formatStoreCurrency as formatCurrency } from "../utils/storeFormatting";
 import type { HomeProduct } from "../shared/home";
@@ -15,17 +15,13 @@ export function StoreHomeProductCard({
 }: StoreHomeProductCardProps) {
   const hasDiscount =
     typeof product.originalPrice === "number" && product.originalPrice > product.price;
-  const [activeColorKey, setActiveColorKey] = useState(product.colors?.[0]?.key ?? "");
-
-  useEffect(() => {
-    setActiveColorKey(product.colors?.[0]?.key ?? "");
-  }, [product.id, product.colors]);
+  const [selectedColorKey, setSelectedColorKey] = useState<string | null>(null);
 
   const activeColor = useMemo(
     () =>
-      product.colors?.find((color) => color.key === activeColorKey) ??
+      product.colors?.find((color) => color.key === selectedColorKey) ??
       product.colors?.[0],
-    [activeColorKey, product.colors],
+    [selectedColorKey, product.colors],
   );
   const displayedImage = activeColor?.image ?? product.image;
 
@@ -60,7 +56,7 @@ export function StoreHomeProductCard({
                 onClick={(event) => {
                   event.preventDefault();
                   event.stopPropagation();
-                  setActiveColorKey(color.key);
+                  setSelectedColorKey(color.key);
                 }}
                 onKeyDown={(event) => {
                   if (event.key !== "Enter" && event.key !== " ") {
@@ -68,7 +64,7 @@ export function StoreHomeProductCard({
                   }
                   event.preventDefault();
                   event.stopPropagation();
-                  setActiveColorKey(color.key);
+                  setSelectedColorKey(color.key);
                 }}
               />
             ))}
