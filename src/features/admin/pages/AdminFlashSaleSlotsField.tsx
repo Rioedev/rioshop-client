@@ -76,7 +76,7 @@ export function AdminFlashSaleSlotsField({
                         { required: true, message: "Vui lòng chọn sản phẩm." },
                         {
                           pattern: OBJECT_ID_PATTERN,
-                          message: "productId không hợp lệ.",
+                          message: "Mã sản phẩm không hợp lệ.",
                         },
                       ]}
                     >

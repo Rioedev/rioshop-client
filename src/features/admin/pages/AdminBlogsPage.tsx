@@ -448,16 +448,35 @@ export function AdminBlogsPage() {
             <Form.Item
               label="Tiêu đề"
               name="title"
-              rules={[{ required: true, message: "Vui lòng nhập tiêu đề bài viết" }]}
+              rules={[
+                { required: true, message: "Vui lòng nhập tiêu đề bài viết" },
+                { min: 3, message: "Tiêu đề phải có ít nhất 3 ký tự." },
+                { max: 220, message: "Tiêu đề không được vượt quá 220 ký tự." },
+              ]}
             >
               <Input placeholder="Ví dụ: Bí quyết phối đồ công sở nam 2026" />
             </Form.Item>
 
-            <Form.Item label="Slug" name="slug">
+            <Form.Item
+              label="Slug"
+              name="slug"
+              rules={[
+                { min: 3, message: "Slug phải có ít nhất 3 ký tự." },
+                { max: 260, message: "Slug không được vượt quá 260 ký tự." },
+                {
+                  pattern: /^[a-z0-9]+(?:-[a-z0-9]+)*$/,
+                  message: "Slug chỉ được gồm chữ thường, số và dấu gạch ngang.",
+                },
+              ]}
+            >
               <Input placeholder="Để trống để hệ thống tự sinh theo tiêu đề" />
             </Form.Item>
 
-            <Form.Item label="Tác giả" name="authorName">
+            <Form.Item
+              label="Tác giả"
+              name="authorName"
+              rules={[{ max: 120, message: "Tên tác giả không được vượt quá 120 ký tự." }]}
+            >
               <Input placeholder="RioShop" />
             </Form.Item>
 
@@ -466,11 +485,28 @@ export function AdminBlogsPage() {
             </Form.Item>
           </div>
 
-          <Form.Item label="Tóm tắt" name="excerpt">
+          <Form.Item
+            label="Tóm tắt"
+            name="excerpt"
+            rules={[{ max: 600, message: "Tóm tắt không được vượt quá 600 ký tự." }]}
+          >
             <Input.TextArea rows={3} placeholder="Mô tả ngắn hiển thị ở danh sách blog..." />
           </Form.Item>
 
-          <Form.Item label="Tags (phân tách bằng dấu phẩy)" name="tagsText">
+          <Form.Item
+            label="Tags (phân tách bằng dấu phẩy)"
+            name="tagsText"
+            rules={[
+              {
+                validator: async (_, value?: string) => {
+                  const hasOverLimitTag = parseTagsText(value).some((tag) => tag.length > 60);
+                  if (hasOverLimitTag) {
+                    throw new Error("Mỗi tag không được vượt quá 60 ký tự.");
+                  }
+                },
+              },
+            ]}
+          >
             <Input placeholder="quần jean nam, xu hướng 2026, phối đồ" />
           </Form.Item>
 

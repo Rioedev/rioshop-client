@@ -138,6 +138,22 @@ const PATTERN_MESSAGE_MAP: Array<{ pattern: RegExp; message: string }> = [
     pattern: /network error|failed to fetch|load failed/,
     message: "Loi ket noi mang. Vui long kiem tra internet va thu lai.",
   },
+  { pattern: /^".+" is required$/, message: "Du lieu bat buoc dang bi thieu." },
+  { pattern: /^".+" is not allowed to be empty$/, message: "Du lieu khong duoc de trong." },
+  { pattern: /^".+" must be a valid email$/, message: "Email khong dung dinh dang." },
+  { pattern: /^".+" must be one of /, message: "Gia tri du lieu khong hop le." },
+  {
+    pattern: /^".+" length must be at least \d+ characters long$/,
+    message: "Du lieu qua ngan so voi quy dinh.",
+  },
+  {
+    pattern: /^".+" length must be less than or equal to \d+ characters long$/,
+    message: "Du lieu vuot qua do dai cho phep.",
+  },
+  {
+    pattern: /^".+" with value ".+" fails to match the required pattern/,
+    message: "Du lieu nhap khong dung dinh dang.",
+  },
   { pattern: /request failed with status code 4\d\d/, message: "Yeu cau khong hop le. Vui long kiem tra lai du lieu." },
   { pattern: /request failed with status code 5\d\d/, message: "He thong dang ban. Vui long thu lai sau." },
   { pattern: /timeout|timed out|ecconnaborted/, message: "Het thoi gian cho phan hoi. Vui long thu lai." },

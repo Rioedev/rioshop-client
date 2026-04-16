@@ -439,6 +439,8 @@ export function AdminCategoriesPage() {
               name="name"
               rules={[
                 { required: true, message: "Vui lòng nhập tên danh mục" },
+                { min: 2, message: "Tên danh mục phải có ít nhất 2 ký tự" },
+                { max: 100, message: "Tên danh mục không được vượt quá 100 ký tự" },
               ]}
             >
               <Input placeholder="Ví dụ: Áo thun nam" />
@@ -454,16 +456,28 @@ export function AdminCategoriesPage() {
               />
             </Form.Item>
 
-            <Form.Item label="Vị trí hiển thị" name="position">
+            <Form.Item
+              label="Vị trí hiển thị"
+              name="position"
+              rules={[{ type: "number", min: 0, message: "Vị trí phải lớn hơn hoặc bằng 0" }]}
+            >
               <InputNumber min={0} className="w-full!" />
             </Form.Item>
 
-            <Form.Item label="Icon" name="icon">
+            <Form.Item
+              label="Icon"
+              name="icon"
+              rules={[{ max: 80, message: "Icon không được vượt quá 80 ký tự" }]}
+            >
               <Input placeholder="Ví dụ: tshirt-outline" />
             </Form.Item>
           </div>
 
-          <Form.Item label="Mô tả" name="description">
+          <Form.Item
+            label="Mô tả"
+            name="description"
+            rules={[{ max: 500, message: "Mô tả không được vượt quá 500 ký tự" }]}
+          >
             <Input.TextArea
               rows={3}
               placeholder="Nhập mô tả ngắn cho danh mục"

@@ -402,17 +402,29 @@ export function AdminCollectionsPage() {
             <Form.Item
               label="Tên bộ sưu tập"
               name="name"
-              rules={[{ required: true, message: "Vui lòng nhập tên bộ sưu tập" }]}
+              rules={[
+                { required: true, message: "Vui lòng nhập tên bộ sưu tập" },
+                { min: 2, message: "Tên bộ sưu tập phải có ít nhất 2 ký tự" },
+                { max: 120, message: "Tên bộ sưu tập không được vượt quá 120 ký tự" },
+              ]}
             >
               <Input placeholder="Ví dụ: BST Thu Đông 2026" />
             </Form.Item>
 
-            <Form.Item label="Vị trí hiển thị" name="position">
+            <Form.Item
+              label="Vị trí hiển thị"
+              name="position"
+              rules={[{ type: "number", min: 0, message: "Vị trí phải lớn hơn hoặc bằng 0" }]}
+            >
               <InputNumber min={0} className="w-full!" />
             </Form.Item>
           </div>
 
-          <Form.Item label="Mô tả" name="description">
+          <Form.Item
+            label="Mô tả"
+            name="description"
+            rules={[{ max: 1000, message: "Mô tả không được vượt quá 1000 ký tự" }]}
+          >
             <Input.TextArea rows={3} placeholder="Mô tả ngắn cho bộ sưu tập" />
           </Form.Item>
 

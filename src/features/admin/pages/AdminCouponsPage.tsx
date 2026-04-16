@@ -624,7 +624,11 @@ export function AdminCouponsPage() {
               <Form.Item
                 label="Mã giảm giá"
                 name="code"
-                rules={[{ required: true, message: "Vui lòng nhập mã giảm giá." }]}
+                rules={[
+                  { required: true, message: "Vui lòng nhập mã giảm giá." },
+                  { min: 2, message: "Mã giảm giá phải có ít nhất 2 ký tự." },
+                  { max: 50, message: "Mã giảm giá không được vượt quá 50 ký tự." },
+                ]}
               >
                 <Input placeholder="Ví dụ: WELCOME10" />
               </Form.Item>
@@ -633,7 +637,10 @@ export function AdminCouponsPage() {
                   <Form.Item
                     label="Giá trị đơn hàng"
                     name="orderValue"
-                    rules={[{ required: true, message: "Vui lòng nhập giá trị đơn hàng." }]}
+                    rules={[
+                      { required: true, message: "Vui lòng nhập giá trị đơn hàng." },
+                      { type: "number", min: 0, message: "Giá trị đơn hàng phải lớn hơn hoặc bằng 0." },
+                    ]}
                   >
                     <InputNumber min={0} className="w-full" />
                   </Form.Item>
@@ -697,7 +704,11 @@ export function AdminCouponsPage() {
               <Form.Item
                 name="code"
                 label="Mã coupon"
-                rules={[{ required: true, message: "Vui lòng nhập mã coupon." }]}
+                rules={[
+                  { required: true, message: "Vui lòng nhập mã coupon." },
+                  { min: 2, message: "Mã coupon phải có ít nhất 2 ký tự." },
+                  { max: 50, message: "Mã coupon không được vượt quá 50 ký tự." },
+                ]}
               >
                 <Input placeholder="Ví dụ: WELCOME10" />
               </Form.Item>
@@ -706,7 +717,11 @@ export function AdminCouponsPage() {
               <Form.Item
                 name="name"
                 label="Tên chương trình"
-                rules={[{ required: true, message: "Vui lòng nhập tên chương trình." }]}
+                rules={[
+                  { required: true, message: "Vui lòng nhập tên chương trình." },
+                  { min: 2, message: "Tên chương trình phải có ít nhất 2 ký tự." },
+                  { max: 120, message: "Tên chương trình không được vượt quá 120 ký tự." },
+                ]}
               >
                 <Input placeholder="Ví dụ: Chào khách mới" />
               </Form.Item>
@@ -731,7 +746,10 @@ export function AdminCouponsPage() {
               <Form.Item
                 name="value"
                 label="Giá trị"
-                rules={[{ required: true, message: "Vui lòng nhập giá trị coupon." }]}
+                rules={[
+                  { required: true, message: "Vui lòng nhập giá trị coupon." },
+                  { type: "number", min: 0, message: "Giá trị coupon phải lớn hơn hoặc bằng 0." },
+                ]}
               >
                 <InputNumber min={0} className="w-full" />
               </Form.Item>
@@ -745,22 +763,44 @@ export function AdminCouponsPage() {
 
           <Row gutter={12}>
             <Col xs={24} md={6}>
-              <Form.Item name="maxDiscount" label="Giảm tối đa">
+              <Form.Item
+                name="maxDiscount"
+                label="Giảm tối đa"
+                rules={[{ type: "number", min: 0, message: "Giảm tối đa phải lớn hơn hoặc bằng 0." }]}
+              >
                 <InputNumber min={0} className="w-full" />
               </Form.Item>
             </Col>
             <Col xs={24} md={6}>
-              <Form.Item name="minOrderValue" label="Đơn tối thiểu">
+              <Form.Item
+                name="minOrderValue"
+                label="Đơn tối thiểu"
+                rules={[{ type: "number", min: 0, message: "Đơn tối thiểu phải lớn hơn hoặc bằng 0." }]}
+              >
                 <InputNumber min={0} className="w-full" />
               </Form.Item>
             </Col>
             <Col xs={24} md={6}>
-              <Form.Item name="usageLimit" label="Giới hạn lượt dùng">
+              <Form.Item
+                name="usageLimit"
+                label="Giới hạn lượt dùng"
+                rules={[
+                  { type: "number", min: 0, message: "Giới hạn lượt dùng phải lớn hơn hoặc bằng 0." },
+                  { type: "integer", message: "Giới hạn lượt dùng phải là số nguyên." },
+                ]}
+              >
                 <InputNumber min={0} className="w-full" />
               </Form.Item>
             </Col>
             <Col xs={24} md={6}>
-              <Form.Item name="perUserLimit" label="Giới hạn/user">
+              <Form.Item
+                name="perUserLimit"
+                label="Giới hạn/user"
+                rules={[
+                  { type: "number", min: 0, message: "Giới hạn mỗi người dùng phải lớn hơn hoặc bằng 0." },
+                  { type: "integer", message: "Giới hạn mỗi người dùng phải là số nguyên." },
+                ]}
+              >
                 <InputNumber min={0} className="w-full" />
               </Form.Item>
             </Col>
@@ -780,7 +820,24 @@ export function AdminCouponsPage() {
               <Form.Item
                 name="expiresAt"
                 label="Kết thúc"
-                rules={[{ required: true, message: "Vui lòng chọn thời gian kết thúc." }]}
+                dependencies={["startsAt"]}
+                rules={[
+                  { required: true, message: "Vui lòng chọn thời gian kết thúc." },
+                  ({ getFieldValue }) => ({
+                    validator(_, value: string) {
+                      const startsAt = getFieldValue("startsAt") as string | undefined;
+                      if (!startsAt || !value) {
+                        return Promise.resolve();
+                      }
+
+                      if (new Date(value).getTime() > new Date(startsAt).getTime()) {
+                        return Promise.resolve();
+                      }
+
+                      return Promise.reject(new Error("Thời gian kết thúc phải sau thời gian bắt đầu."));
+                    },
+                  }),
+                ]}
               >
                 <Input type="datetime-local" />
               </Form.Item>
