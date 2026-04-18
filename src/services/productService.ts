@@ -137,6 +137,18 @@ export type PaginatedProductData = {
 };
 
 export type ProductSort = Record<string, 1 | -1>;
+export type ProductImportCsvError = {
+  row?: number;
+  sku?: string;
+  message: string;
+};
+
+export type ProductImportCsvResult = {
+  created: number;
+  updated: number;
+  failed: number;
+  errors: ProductImportCsvError[];
+};
 
 export type ProductQueryParams = {
   page?: number;
@@ -204,5 +216,34 @@ export const productService = {
 
   async uploadProductImage(file: File): Promise<string> {
     return uploadImageToApi("/api/products/upload-image", file);
+  },
+
+  async exportProductsCsv(params: ProductQueryParams = {}): Promise<Blob> {
+    const response = await apiClient.get<Blob>("/api/products/export-csv", {
+      params: {
+        ...params,
+        sort: params.sort ? JSON.stringify(params.sort) : undefined,
+      },
+      responseType: "blob",
+    });
+
+    return response.data;
+  },
+
+  async importProductsCsv(file: File): Promise<ProductImportCsvResult> {
+    const formData = new FormData();
+    formData.append("file", file);
+
+    const response = await apiClient.post<ApiResponse<ProductImportCsvResult>>(
+      "/api/products/import-csv",
+      formData,
+      {
+        headers: {
+          "Content-Type": "multipart/form-data",
+        },
+      },
+    );
+
+    return response.data.data;
   },
 };

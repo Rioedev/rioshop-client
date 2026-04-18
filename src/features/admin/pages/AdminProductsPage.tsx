@@ -13,9 +13,10 @@
   Space,
   Table,
   Tag,
+  Upload,
   message,
 } from "antd";
-import { PlusOutlined } from "@ant-design/icons";
+import { DownloadOutlined, PlusOutlined, UploadOutlined } from "@ant-design/icons";
 import type { ColumnsType, TablePaginationConfig } from "antd/es/table";
 import type { UploadProps } from "antd/es/upload";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -75,6 +76,8 @@ export function AdminProductsPage() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [searchText, setSearchText] = useState("");
+  const [importingCsv, setImportingCsv] = useState(false);
+  const [exportingCsv, setExportingCsv] = useState(false);
   const watchedName = Form.useWatch("name", form);
   const watchedCategoryId = Form.useWatch("categoryId", form);
   const watchedSku = Form.useWatch("sku", form);
@@ -364,6 +367,81 @@ export function AdminProductsPage() {
     }
   };
 
+  const handleExportCsv = async () => {
+    try {
+      setExportingCsv(true);
+      const blob = await productService.exportProductsCsv({
+        q: keyword.trim() || undefined,
+        category: keyword.trim() ? undefined : categoryId,
+        collection: keyword.trim() ? undefined : collectionId,
+        status: statusFilter,
+        sort: { createdAt: -1 },
+      });
+
+      const downloadUrl = window.URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = downloadUrl;
+      link.download = `products-export-${new Date().toISOString().slice(0, 10)}.csv`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(downloadUrl);
+      messageApi.success("Đã xuất file CSV sản phẩm.");
+    } catch (error) {
+      messageApi.error(getErrorMessage(error));
+    } finally {
+      setExportingCsv(false);
+    }
+  };
+
+  const beforeImportCsv: UploadProps["beforeUpload"] = (file) => {
+    const isCsvFile = file.type.includes("csv") || file.name.toLowerCase().endsWith(".csv");
+    if (!isCsvFile) {
+      messageApi.error("Chỉ chấp nhận file .csv");
+      return Upload.LIST_IGNORE;
+    }
+    return true;
+  };
+
+  const handleImportCsv: UploadProps["customRequest"] = async ({ file, onSuccess, onError }) => {
+    try {
+      setImportingCsv(true);
+      const result = await productService.importProductsCsv(file as File);
+      onSuccess?.("ok");
+
+      if (result.failed > 0) {
+        messageApi.warning(
+          `Import xong: tạo ${result.created}, cập nhật ${result.updated}, lỗi ${result.failed}.`,
+        );
+      } else {
+        messageApi.success(
+          `Import thành công: tạo ${result.created}, cập nhật ${result.updated}.`,
+        );
+      }
+
+      if (result.errors.length > 0) {
+        const firstError = result.errors[0];
+        messageApi.warning(
+          `Lỗi đầu tiên: ${firstError.message}${firstError.sku ? ` (SKU: ${firstError.sku})` : ""}`,
+        );
+      }
+
+      await loadProducts({
+        page: 1,
+        pageSize,
+        keyword,
+        categoryId,
+        collectionId,
+        statusFilter,
+      });
+    } catch (error) {
+      onError?.(error as Error);
+      messageApi.error(getErrorMessage(error));
+    } finally {
+      setImportingCsv(false);
+    }
+  };
+
   const openCreateModal = () => {
     setEditingProduct(null);
     resetPendingFiles();
@@ -620,7 +698,28 @@ export function AdminProductsPage() {
           <Title level={3} className="mb-1! mt-0!">Quản lý sản phẩm</Title>
           <Paragraph className="mb-0!" type="secondary">Quản lý thông tin, ảnh và biến thể sản phẩm.</Paragraph>
         </div>
-        <Button type="primary" icon={<PlusOutlined />} onClick={openCreateModal}>Thêm sản phẩm</Button>
+        <Space wrap>
+          <Upload
+            accept=".csv,text/csv"
+            showUploadList={false}
+            beforeUpload={beforeImportCsv}
+            customRequest={handleImportCsv}
+            disabled={importingCsv || exportingCsv || saving}
+          >
+            <Button icon={<UploadOutlined />} loading={importingCsv}>
+              Nhập CSV
+            </Button>
+          </Upload>
+          <Button
+            icon={<DownloadOutlined />}
+            onClick={() => void handleExportCsv()}
+            loading={exportingCsv}
+            disabled={importingCsv || saving}
+          >
+            Xuất CSV
+          </Button>
+          <Button type="primary" icon={<PlusOutlined />} onClick={openCreateModal}>Thêm sản phẩm</Button>
+        </Space>
       </div>
 
       <Row gutter={[12, 12]}>
