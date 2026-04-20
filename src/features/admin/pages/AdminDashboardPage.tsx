@@ -26,7 +26,7 @@ import {
   type OrderItem,
   type RevenueItem,
   type StockItem,
-} from "../mockData";
+} from "../shared/dashboard";
 import { getErrorMessage } from "../../../utils/errorMessage";
 
 const { Title, Text } = Typography;

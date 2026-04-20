@@ -230,6 +230,14 @@ export const productService = {
     return response.data;
   },
 
+  async downloadProductsImportTemplateCsv(): Promise<Blob> {
+    const response = await apiClient.get<Blob>("/api/products/import-template-csv", {
+      responseType: "blob",
+    });
+
+    return response.data;
+  },
+
   async importProductsCsv(file: File): Promise<ProductImportCsvResult> {
     const formData = new FormData();
     formData.append("file", file);

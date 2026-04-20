@@ -1,4 +1,4 @@
-import {
+﻿import {
   Alert,
   Button,
   Card,
@@ -425,7 +425,7 @@ export function AdminInventoriesPage() {
   ];
 
   return (
-    <div className="space-y-5">
+    <div className="space-y-6">
       {contextHolder}
 
       <div>
@@ -437,8 +437,9 @@ export function AdminInventoriesPage() {
         </Paragraph>
       </div>
 
-      <Card>
-        <div className="mb-4 flex flex-wrap items-center gap-3">
+      <div className="grid gap-6">
+        <Card>
+          <div className="mb-4 flex flex-wrap items-center gap-3">
           <InputNumber
             min={0}
             value={thresholdInput}
@@ -456,35 +457,35 @@ export function AdminInventoriesPage() {
           </Text>
         </div>
 
-        <Table<InventoryRecord>
-          rowKey="id"
-          columns={lowStockColumns}
-          dataSource={lowStockItems}
-          loading={lowStockLoading || saving}
-          scroll={{ x: 1400 }}
-          pagination={{
-            current: lowStockPage,
-            pageSize: lowStockPageSize,
-            total: lowStockTotal,
-            showSizeChanger: true,
-            showTotal: (value) => `Tổng ${value} bản ghi sắp hết hàng`,
-          }}
-          onChange={(pagination: TablePaginationConfig) => {
-            const nextPage = pagination.current ?? lowStockPage;
-            const nextPageSize = pagination.pageSize ?? lowStockPageSize;
-            void loadLowStockItems({
-              page: nextPage,
-              pageSize: nextPageSize,
-              threshold,
-            }).catch((error) => {
-              messageApi.error(getErrorMessage(error));
-            });
-          }}
-        />
-      </Card>
+          <Table<InventoryRecord>
+            rowKey="id"
+            columns={lowStockColumns}
+            dataSource={lowStockItems}
+            loading={lowStockLoading || saving}
+            scroll={{ x: 1400 }}
+            pagination={{
+              current: lowStockPage,
+              pageSize: lowStockPageSize,
+              total: lowStockTotal,
+              showSizeChanger: true,
+              showTotal: (value) => `Tổng ${value} bản ghi sắp hết hàng`,
+            }}
+            onChange={(pagination: TablePaginationConfig) => {
+              const nextPage = pagination.current ?? lowStockPage;
+              const nextPageSize = pagination.pageSize ?? lowStockPageSize;
+              void loadLowStockItems({
+                page: nextPage,
+                pageSize: nextPageSize,
+                threshold,
+              }).catch((error) => {
+                messageApi.error(getErrorMessage(error));
+              });
+            }}
+          />
+        </Card>
 
-      <Card>
-        <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+        <Card>
+          <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
           <Space wrap>
             <Input
               value={variantSkuInput}
@@ -500,57 +501,58 @@ export function AdminInventoriesPage() {
           <Button onClick={openCreateModal}>Thêm bản ghi tồn kho</Button>
         </div>
 
-        {currentVariantSku ? (
-          <div className="mb-4 grid gap-3 md:grid-cols-4">
-            <Card size="small">
-              <Statistic title="Tồn kho" value={inventorySummary.onHand} />
-            </Card>
-            <Card size="small">
-              <Statistic title="Đã giữ" value={inventorySummary.reserved} />
-            </Card>
-            <Card size="small">
-              <Statistic title="Khả dụng" value={inventorySummary.available} />
-            </Card>
-            <Card size="small">
-              <Statistic title="Sắp về" value={inventorySummary.incoming} />
-            </Card>
-          </div>
-        ) : (
-          <Alert
-            showIcon
-            type="info"
-            className="mb-4"
-            message="Chưa chọn SKU biến thể"
-            description="Nhập SKU và bấm Tra cứu SKU để xem tồn kho chi tiết."
-          />
-        )}
+          {currentVariantSku ? (
+            <div className="mb-4 grid gap-3 md:grid-cols-4">
+              <Card size="small">
+                <Statistic title="Tồn kho" value={inventorySummary.onHand} />
+              </Card>
+              <Card size="small">
+                <Statistic title="Đã giữ" value={inventorySummary.reserved} />
+              </Card>
+              <Card size="small">
+                <Statistic title="Khả dụng" value={inventorySummary.available} />
+              </Card>
+              <Card size="small">
+                <Statistic title="Sắp về" value={inventorySummary.incoming} />
+              </Card>
+            </div>
+          ) : (
+            <Alert
+              showIcon
+              type="info"
+              className="mb-4"
+              message="Chưa chọn SKU biến thể"
+              description="Nhập SKU và bấm Tra cứu SKU để xem tồn kho chi tiết."
+            />
+          )}
 
-        <Table<InventoryRecord>
-          rowKey="id"
-          columns={inventoryColumns}
-          dataSource={inventoryItems}
-          loading={inventoryLoading || saving}
-          scroll={{ x: 1400 }}
-          pagination={{
-            current: inventoryPage,
-            pageSize: inventoryPageSize,
-            total: inventoryTotal,
-            showSizeChanger: true,
-            showTotal: (value) => `Tổng ${value} bản ghi tồn kho`,
-          }}
-          onChange={(pagination: TablePaginationConfig) => {
-            if (!currentVariantSku) return;
-            const nextPage = pagination.current ?? inventoryPage;
-            const nextPageSize = pagination.pageSize ?? inventoryPageSize;
-            void loadInventoryByVariantSku(currentVariantSku, {
-              page: nextPage,
-              pageSize: nextPageSize,
-            }).catch((error) => {
-              messageApi.error(getErrorMessage(error));
-            });
-          }}
-        />
-      </Card>
+          <Table<InventoryRecord>
+            rowKey="id"
+            columns={inventoryColumns}
+            dataSource={inventoryItems}
+            loading={inventoryLoading || saving}
+            scroll={{ x: 1400 }}
+            pagination={{
+              current: inventoryPage,
+              pageSize: inventoryPageSize,
+              total: inventoryTotal,
+              showSizeChanger: true,
+              showTotal: (value) => `Tổng ${value} bản ghi tồn kho`,
+            }}
+            onChange={(pagination: TablePaginationConfig) => {
+              if (!currentVariantSku) return;
+              const nextPage = pagination.current ?? inventoryPage;
+              const nextPageSize = pagination.pageSize ?? inventoryPageSize;
+              void loadInventoryByVariantSku(currentVariantSku, {
+                page: nextPage,
+                pageSize: nextPageSize,
+              }).catch((error) => {
+                messageApi.error(getErrorMessage(error));
+              });
+            }}
+          />
+        </Card>
+      </div>
 
       <Modal
         title={editingItem ? "Cập nhật bản ghi tồn kho" : "Thêm bản ghi tồn kho"}

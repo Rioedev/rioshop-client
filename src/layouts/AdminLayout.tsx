@@ -77,6 +77,7 @@ const pageTitleMap: Record<string, string> = {
   "/admin/blogs": "Blog",
   "/admin/brand-config": "Cấu hình thương hiệu",
   "/admin/admin-accounts": "Tài khoản admin",
+  "/admin/profile": "Hồ sơ cá nhân",
 };
 
 export function AdminLayout() {
@@ -116,14 +117,17 @@ export function AdminLayout() {
       ]
     : baseAdminMenuItems;
 
-  const activeKey =
+  const matchedMenuKey =
     adminMenuItems.find((item) =>
       location.pathname.startsWith(String(item?.key)),
-    )?.key ?? "/admin/dashboard";
+    )?.key;
+  const activeKey = location.pathname === "/admin/profile"
+    ? undefined
+    : (matchedMenuKey ?? "/admin/dashboard");
 
   const activePageTitle = useMemo(
-    () => pageTitleMap[String(activeKey)] ?? "Bảng điều khiển",
-    [activeKey],
+    () => pageTitleMap[location.pathname] ?? pageTitleMap[String(activeKey)] ?? "Bảng điều khiển",
+    [activeKey, location.pathname],
   );
 
   const userFullName = user?.fullName ?? "Admin";
@@ -221,7 +225,7 @@ export function AdminLayout() {
         <div className="px-3 py-2">
           <Menu
             mode="inline"
-            selectedKeys={[String(activeKey)]}
+            selectedKeys={activeKey ? [String(activeKey)] : []}
             items={adminMenuItems}
             theme={isDarkMode ? "dark" : "light"}
             className="border-r-0! bg-transparent! admin-menu-upgrade"
@@ -301,7 +305,7 @@ export function AdminLayout() {
                         icon={<UserOutlined className="text-lg" />}
                         onClick={() => {
                           setIsProfileMenuOpen(false);
-                          messageApi.info("Trang chỉnh hồ sơ sẽ được bổ sung sớm.");
+                          navigate("/admin/profile");
                         }}
                       >
                         Hồ sơ cá nhân

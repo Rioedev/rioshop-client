@@ -1,5 +1,5 @@
 ﻿import { Card, Progress, Space, Typography } from "antd";
-import type { RevenueItem } from "../mockData";
+import type { RevenueItem } from "../shared/dashboard";
 
 const { Text, Title } = Typography;
 const formatCurrency = new Intl.NumberFormat("vi-VN");

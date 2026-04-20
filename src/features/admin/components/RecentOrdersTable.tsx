@@ -6,7 +6,7 @@
 import { Avatar, Card, Table, Tag, Typography } from "antd";
 import type { ColumnsType } from "antd/es/table";
 import type { ReactNode } from "react";
-import type { OrderItem } from "../mockData";
+import type { OrderItem } from "../shared/dashboard";
 
 const { Text, Title } = Typography;
 

@@ -1,4 +1,4 @@
-import {
+﻿import {
   Button,
   Card,
   Col,
@@ -467,7 +467,7 @@ export function AdminCouponsPage() {
   ];
 
   return (
-    <div className="space-y-5">
+    <div className="space-y-6">
       {contextHolder}
 
       <div>
@@ -506,7 +506,7 @@ export function AdminCouponsPage() {
         </Col>
       </Row>
 
-      <Card>
+      <Card className="mt-6">
         <div className="mb-4 flex flex-wrap items-center gap-3">
           <Input
             value={keywordInput}
@@ -569,7 +569,7 @@ export function AdminCouponsPage() {
         />
       </Card>
 
-      <Row gutter={[16, 16]}>
+      <Row gutter={[16, 16]} className="mt-6">
         <Col xs={24} xl={12}>
           <Card title="Tra cứu coupon theo mã">
             <Space.Compact className="mb-4 w-full">

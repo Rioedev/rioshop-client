@@ -3,7 +3,7 @@
   InboxOutlined,
 } from "@ant-design/icons";
 import { Avatar, Card, List, Tag, Typography } from "antd";
-import type { StockItem } from "../mockData";
+import type { StockItem } from "../shared/dashboard";
 
 const { Text, Title } = Typography;
 

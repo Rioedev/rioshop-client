@@ -160,6 +160,10 @@ export const authService = {
     await apiClient.post("/api/auth/change-password", payload);
   },
 
+  async changeAdminPassword(payload: ChangePasswordPayload): Promise<void> {
+    await apiClient.post("/api/admins/change-password", payload);
+  },
+
   async forgotPassword(payload: ForgotPasswordPayload): Promise<void> {
     await apiClient.post("/api/auth/forgot-password", payload);
   },

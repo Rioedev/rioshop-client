@@ -82,6 +82,11 @@ const AdminBlogsPage = lazy(() =>
     default: module.AdminBlogsPage,
   })),
 );
+const AdminProfilePage = lazy(() =>
+  import("../features/admin/pages/AdminProfilePage").then((module) => ({
+    default: module.AdminProfilePage,
+  })),
+);
 
 const StoreHomePage = lazy(() =>
   import("../features/store/pages/StoreHomePage").then((module) => ({
@@ -231,6 +236,7 @@ export const appRouter = createBrowserRouter([
           { path: "collections", element: <AdminCollectionsPage /> },
           { path: "users", element: <AdminUsersPage /> },
           { path: "admin-accounts", element: <AdminAccountsPage /> },
+          { path: "profile", element: <AdminProfilePage /> },
           { path: "brand-config", element: <AdminBrandConfigPage /> },
           { path: "blogs", element: <AdminBlogsPage /> },
           { path: "*", element: <Navigate to="/admin/dashboard" replace /> },

@@ -7,7 +7,7 @@
   UndoOutlined,
 } from "@ant-design/icons";
 import { Card, Typography } from "antd";
-import type { KpiItem } from "../mockData";
+import type { KpiItem } from "../shared/dashboard";
 
 const { Text, Title } = Typography;
 

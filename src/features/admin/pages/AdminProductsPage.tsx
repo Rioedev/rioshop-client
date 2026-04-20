@@ -78,6 +78,7 @@ export function AdminProductsPage() {
   const [searchText, setSearchText] = useState("");
   const [importingCsv, setImportingCsv] = useState(false);
   const [exportingCsv, setExportingCsv] = useState(false);
+  const [downloadingTemplate, setDownloadingTemplate] = useState(false);
   const watchedName = Form.useWatch("name", form);
   const watchedCategoryId = Form.useWatch("categoryId", form);
   const watchedSku = Form.useWatch("sku", form);
@@ -394,6 +395,26 @@ export function AdminProductsPage() {
     }
   };
 
+  const handleDownloadImportTemplate = async () => {
+    try {
+      setDownloadingTemplate(true);
+      const blob = await productService.downloadProductsImportTemplateCsv();
+      const downloadUrl = window.URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = downloadUrl;
+      link.download = "products-import-template.csv";
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(downloadUrl);
+      messageApi.success("Đã tải file mẫu import sản phẩm.");
+    } catch (error) {
+      messageApi.error(getErrorMessage(error));
+    } finally {
+      setDownloadingTemplate(false);
+    }
+  };
+
   const beforeImportCsv: UploadProps["beforeUpload"] = (file) => {
     const isCsvFile = file.type.includes("csv") || file.name.toLowerCase().endsWith(".csv");
     if (!isCsvFile) {
@@ -704,7 +725,7 @@ export function AdminProductsPage() {
             showUploadList={false}
             beforeUpload={beforeImportCsv}
             customRequest={handleImportCsv}
-            disabled={importingCsv || exportingCsv || saving}
+            disabled={importingCsv || exportingCsv || downloadingTemplate || saving}
           >
             <Button icon={<UploadOutlined />} loading={importingCsv}>
               Nhập CSV
@@ -712,9 +733,17 @@ export function AdminProductsPage() {
           </Upload>
           <Button
             icon={<DownloadOutlined />}
+            onClick={() => void handleDownloadImportTemplate()}
+            loading={downloadingTemplate}
+            disabled={importingCsv || exportingCsv || saving}
+          >
+            Tải file mẫu
+          </Button>
+          <Button
+            icon={<DownloadOutlined />}
             onClick={() => void handleExportCsv()}
             loading={exportingCsv}
-            disabled={importingCsv || saving}
+            disabled={importingCsv || downloadingTemplate || saving}
           >
             Xuất CSV
           </Button>
