@@ -1,9 +1,14 @@
-import { lazy } from "react";
+import { lazy, type ReactElement } from "react";
 import { createBrowserRouter, Navigate } from "react-router-dom";
 import { RequireAuth } from "../components/route/RequireAuth";
 import { RequireStoreAuth } from "../components/route/RequireStoreAuth";
 import { PublicOnlyRoute } from "../components/route/PublicOnlyRoute";
 import { AdminPublicOnlyRoute } from "../components/route/AdminPublicOnlyRoute";
+import {
+  ADMIN_DEFAULT_PATH,
+  ADMIN_ROUTE_META,
+  type AdminRouteSegment,
+} from "../features/admin/shared/adminRoutes";
 
 const AdminLayout = lazy(() =>
   import("../layouts/AdminLayout").then((module) => ({ default: module.AdminLayout })),
@@ -180,6 +185,50 @@ const AdminLoginPage = lazy(() =>
   })),
 );
 
+const getAdminRouteElement = (segment: AdminRouteSegment): ReactElement => {
+  switch (segment) {
+    case "dashboard":
+      return <AdminDashboardPage />;
+    case "categories":
+      return <AdminCategoriesPage />;
+    case "collections":
+      return <AdminCollectionsPage />;
+    case "products":
+      return <AdminProductsPage />;
+    case "inventories":
+      return <AdminInventoriesPage />;
+    case "orders":
+      return <AdminOrdersPage />;
+    case "reviews":
+      return <AdminReviewsPage />;
+    case "flash-sales":
+      return <AdminFlashSalesPage />;
+    case "coupons":
+      return <AdminCouponsPage />;
+    case "users":
+      return <AdminUsersPage />;
+    case "analytics-events":
+      return <AdminAnalyticsEventsPage />;
+    case "blogs":
+      return <AdminBlogsPage />;
+    case "brand-config":
+      return <AdminBrandConfigPage />;
+    case "admin-accounts":
+      return <AdminAccountsPage />;
+    case "profile":
+      return <AdminProfilePage />;
+    default: {
+      const exhaustiveCheck: never = segment;
+      throw new Error(`Unhandled admin route segment: ${exhaustiveCheck}`);
+    }
+  }
+};
+
+const adminChildRoutes = ADMIN_ROUTE_META.map((route) => ({
+  path: route.segment,
+  element: getAdminRouteElement(route.segment),
+}));
+
 export const appRouter = createBrowserRouter([
   {
     element: <PublicOnlyRoute />,
@@ -223,23 +272,9 @@ export const appRouter = createBrowserRouter([
         path: "/admin",
         element: <AdminLayout />,
         children: [
-          { index: true, element: <Navigate to="/admin/dashboard" replace /> },
-          { path: "dashboard", element: <AdminDashboardPage /> },
-          { path: "orders", element: <AdminOrdersPage /> },
-          { path: "products", element: <AdminProductsPage /> },
-          { path: "reviews", element: <AdminReviewsPage /> },
-          { path: "flash-sales", element: <AdminFlashSalesPage /> },
-          { path: "analytics-events", element: <AdminAnalyticsEventsPage /> },
-          { path: "inventories", element: <AdminInventoriesPage /> },
-          { path: "coupons", element: <AdminCouponsPage /> },
-          { path: "categories", element: <AdminCategoriesPage /> },
-          { path: "collections", element: <AdminCollectionsPage /> },
-          { path: "users", element: <AdminUsersPage /> },
-          { path: "admin-accounts", element: <AdminAccountsPage /> },
-          { path: "profile", element: <AdminProfilePage /> },
-          { path: "brand-config", element: <AdminBrandConfigPage /> },
-          { path: "blogs", element: <AdminBlogsPage /> },
-          { path: "*", element: <Navigate to="/admin/dashboard" replace /> },
+          { index: true, element: <Navigate to={ADMIN_DEFAULT_PATH} replace /> },
+          ...adminChildRoutes,
+          { path: "*", element: <Navigate to={ADMIN_DEFAULT_PATH} replace /> },
         ],
       },
     ],

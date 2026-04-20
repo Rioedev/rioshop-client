@@ -22,9 +22,17 @@
 } from "@ant-design/icons";
 import { Avatar, Badge, Button, Dropdown, Layout, Menu, Typography, message } from "antd";
 import type { ItemType } from "antd/es/menu/interface";
-import { useEffect, useMemo, useState } from "react";
+import { type ReactNode, useEffect, useMemo, useState } from "react";
 import { Outlet, useLocation, useNavigate } from "react-router-dom";
 import { AppNotificationsModal } from "../components/notifications/AppNotificationsModal";
+import {
+  ADMIN_DEFAULT_PATH,
+  ADMIN_PAGE_TITLE_MAP,
+  getAdminMenuRouteMeta,
+  toAdminFullPath,
+  type AdminMenuIcon,
+  type AdminRouteMeta,
+} from "../features/admin/shared/adminRoutes";
 import { subscribeUserNotifications } from "../services/socketClient";
 import { useAuthStore } from "../stores/authStore";
 import { useNotificationStore } from "../stores/notificationStore";
@@ -34,51 +42,27 @@ const { Header, Content, Sider } = Layout;
 const { Text, Title } = Typography;
 const ADMIN_THEME_STORAGE_KEY = "rioshop_admin_theme";
 
-const baseAdminMenuItems: ItemType[] = [
-  { key: "/admin/dashboard", icon: <HomeOutlined />, label: "Tổng quan" },
-  { key: "/admin/categories", icon: <TagsOutlined />, label: "Danh mục" },
-  { key: "/admin/collections", icon: <TagsOutlined />, label: "Bộ sưu tập" },
-  { key: "/admin/products", icon: <AppstoreOutlined />, label: "Sản phẩm" },
-  { key: "/admin/inventories", icon: <InboxOutlined />, label: "Tồn kho" },
-  { key: "/admin/orders", icon: <ShoppingCartOutlined />, label: "Đơn hàng" },
-  { key: "/admin/reviews", icon: <StarOutlined />, label: "Đánh giá" },
-  {
-    key: "/admin/flash-sales",
-    icon: <ThunderboltOutlined />,
-    label: "Flash Sales",
-  },
-  { key: "/admin/coupons", icon: <GiftOutlined />, label: "Mã giảm giá" },
-  { key: "/admin/users", icon: <TeamOutlined />, label: "Khách hàng" },
-  {
-    key: "/admin/analytics-events",
-    icon: <LineChartOutlined />,
-    label: "Analytics Events",
-  },
-  { key: "/admin/blogs", icon: <ReadOutlined />, label: "Blog" },
-  {
-    key: "/admin/brand-config",
-    icon: <BgColorsOutlined />,
-    label: "Cấu hình thương hiệu",
-  },
-];
-
-const pageTitleMap: Record<string, string> = {
-  "/admin/dashboard": "Tổng quan",
-  "/admin/categories": "Danh mục",
-  "/admin/collections": "Bộ sưu tập",
-  "/admin/products": "Sản phẩm",
-  "/admin/inventories": "Tồn kho",
-  "/admin/orders": "Đơn hàng",
-  "/admin/reviews": "Đánh giá",
-  "/admin/flash-sales": "Flash Sales",
-  "/admin/coupons": "Mã giảm giá",
-  "/admin/users": "Khách hàng",
-  "/admin/analytics-events": "Analytics Events",
-  "/admin/blogs": "Blog",
-  "/admin/brand-config": "Cấu hình thương hiệu",
-  "/admin/admin-accounts": "Tài khoản admin",
-  "/admin/profile": "Hồ sơ cá nhân",
+const ADMIN_MENU_ICON_MAP: Record<AdminMenuIcon, ReactNode> = {
+  home: <HomeOutlined />,
+  tags: <TagsOutlined />,
+  appstore: <AppstoreOutlined />,
+  inbox: <InboxOutlined />,
+  "shopping-cart": <ShoppingCartOutlined />,
+  star: <StarOutlined />,
+  thunderbolt: <ThunderboltOutlined />,
+  gift: <GiftOutlined />,
+  team: <TeamOutlined />,
+  "line-chart": <LineChartOutlined />,
+  read: <ReadOutlined />,
+  "bg-colors": <BgColorsOutlined />,
+  "user-switch": <UserSwitchOutlined />,
 };
+
+const toAdminMenuItem = (route: AdminRouteMeta): ItemType => ({
+  key: toAdminFullPath(route.segment),
+  icon: route.menuIcon ? ADMIN_MENU_ICON_MAP[route.menuIcon] : undefined,
+  label: route.menuLabel ?? route.title,
+});
 
 export function AdminLayout() {
   const location = useLocation();
@@ -106,27 +90,24 @@ export function AdminLayout() {
 
   const canManageAdminAccounts =
     user?.role === "superadmin" || user?.role === "manager";
-  const adminMenuItems: ItemType[] = canManageAdminAccounts
-    ? [
-        ...baseAdminMenuItems,
-        {
-          key: "/admin/admin-accounts",
-          icon: <UserSwitchOutlined />,
-          label: "Tài khoản admin",
-        },
-      ]
-    : baseAdminMenuItems;
+  const adminMenuItems = useMemo<ItemType[]>(
+    () => getAdminMenuRouteMeta(canManageAdminAccounts).map(toAdminMenuItem),
+    [canManageAdminAccounts],
+  );
 
   const matchedMenuKey =
     adminMenuItems.find((item) =>
       location.pathname.startsWith(String(item?.key)),
     )?.key;
-  const activeKey = location.pathname === "/admin/profile"
+  const activeKey = location.pathname === toAdminFullPath("profile")
     ? undefined
-    : (matchedMenuKey ?? "/admin/dashboard");
+    : (matchedMenuKey ?? ADMIN_DEFAULT_PATH);
 
   const activePageTitle = useMemo(
-    () => pageTitleMap[location.pathname] ?? pageTitleMap[String(activeKey)] ?? "Bảng điều khiển",
+    () =>
+      ADMIN_PAGE_TITLE_MAP[location.pathname] ??
+      (activeKey ? ADMIN_PAGE_TITLE_MAP[String(activeKey)] : undefined) ??
+      "Bảng điều khiển",
     [activeKey, location.pathname],
   );
 

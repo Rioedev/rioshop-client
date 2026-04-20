@@ -157,7 +157,7 @@ export function StoreHomePage() {
             return {
               id: category._id,
               name: category.name,
-              count: productCount > 0 ? `${productCount} sáº£n pháº©m` : resolvedHomeContent.labels.updatingLabel,
+              count: productCount > 0 ? `${productCount} sản phẩm` : resolvedHomeContent.labels.updatingLabel,
               slug: category.slug || "",
               image:
                 resolveImageUrl(category.image) ??
@@ -188,14 +188,14 @@ export function StoreHomePage() {
           const current = derived.get(categoryId);
           if (current) {
             current.productCount += 1;
-            current.count = `${current.productCount} sáº£n pháº©m`;
+            current.count = `${current.productCount} sản phẩm`;
             return;
           }
 
           derived.set(categoryId, {
             id: categoryId,
             name: categoryName,
-            count: "1 sáº£n pháº©m",
+            count: "1 sản phẩm",
             slug: product.category?.slug ?? "",
             image: getProductImage(product, index),
             productCount: 1,
@@ -874,7 +874,7 @@ export function StoreHomePage() {
           <Link
             to={`/products?collection=${encodeURIComponent(section.slug || section.id)}`}
             className="store-home-v3-collection-banner"
-            aria-label={`Xem sáº£n pháº©m collection ${section.name}`}
+            aria-label={`Xem sản phẩm collection ${section.name}`}
           >
             <img src={section.bannerImage} alt={section.name} className="h-full w-full object-cover" />
           </Link>
