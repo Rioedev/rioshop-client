@@ -1,10 +1,15 @@
 import { create } from "zustand";
 import { getErrorMessage } from "../utils/errorMessage";
 import {
+  type GetOrdersQueryParams,
   orderService,
   type OrderRecord,
   type OrderStatus,
+  type PaginatedOrdersData,
   type PaymentStatus,
+  type SyncActiveShipmentsResult,
+  type SyncShipmentResult,
+  type UpdateReturnRequestStatusPayload,
   type UpdateOrderStatusPayload,
 } from "../services/orderService";
 
@@ -25,8 +30,16 @@ type OrderStoreState = {
   }) => Promise<void>;
   setStatusFilter: (statusFilter: OrderStatus | "all") => void;
   setPaymentStatusFilter: (paymentStatusFilter: PaymentStatus | "all") => void;
+  getOrderById: (id: string) => Promise<OrderRecord>;
   updateOrderStatus: (id: string, payload: UpdateOrderStatusPayload) => Promise<void>;
+  updateReturnRequestStatus: (
+    id: string,
+    payload: UpdateReturnRequestStatusPayload,
+  ) => Promise<OrderRecord>;
   cancelOrder: (id: string, note?: string) => Promise<void>;
+  syncShipmentFromGhn: (shipmentId: string) => Promise<SyncShipmentResult>;
+  syncActiveGhnShipments: (limit?: number) => Promise<SyncActiveShipmentsResult>;
+  fetchOrders: (params?: GetOrdersQueryParams) => Promise<PaginatedOrdersData>;
 };
 
 export const useOrderStore = create<OrderStoreState>((set, get) => ({
@@ -73,6 +86,14 @@ export const useOrderStore = create<OrderStoreState>((set, get) => ({
   setStatusFilter: (statusFilter) => set({ statusFilter }),
   setPaymentStatusFilter: (paymentStatusFilter) => set({ paymentStatusFilter }),
 
+  getOrderById: async (id) => {
+    try {
+      return await orderService.getOrderById(id);
+    } catch (error) {
+      throw new Error(getErrorMessage(error));
+    }
+  },
+
   updateOrderStatus: async (id, payload) => {
     set({ saving: true });
     try {
@@ -84,6 +105,17 @@ export const useOrderStore = create<OrderStoreState>((set, get) => ({
         statusFilter: state.statusFilter,
         paymentStatusFilter: state.paymentStatusFilter,
       });
+    } catch (error) {
+      throw new Error(getErrorMessage(error));
+    } finally {
+      set({ saving: false });
+    }
+  },
+
+  updateReturnRequestStatus: async (id, payload) => {
+    set({ saving: true });
+    try {
+      return await orderService.updateReturnRequestStatus(id, payload);
     } catch (error) {
       throw new Error(getErrorMessage(error));
     } finally {
@@ -106,6 +138,30 @@ export const useOrderStore = create<OrderStoreState>((set, get) => ({
       throw new Error(getErrorMessage(error));
     } finally {
       set({ saving: false });
+    }
+  },
+
+  syncShipmentFromGhn: async (shipmentId) => {
+    try {
+      return await orderService.syncShipmentFromGhn(shipmentId);
+    } catch (error) {
+      throw new Error(getErrorMessage(error));
+    }
+  },
+
+  syncActiveGhnShipments: async (limit = 30) => {
+    try {
+      return await orderService.syncActiveGhnShipments(limit);
+    } catch (error) {
+      throw new Error(getErrorMessage(error));
+    }
+  },
+
+  fetchOrders: async (params = {}) => {
+    try {
+      return await orderService.getOrders(params);
+    } catch (error) {
+      throw new Error(getErrorMessage(error));
     }
   },
 }));

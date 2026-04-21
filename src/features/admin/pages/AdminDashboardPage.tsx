@@ -8,14 +8,14 @@ import {
 import { Button, Card, Col, Row, Spin, Typography, message } from "antd";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import {
-  analyticsEventService,
-  type AnalyticsDashboardData,
-} from "../../../services/analyticsEventService";
-import { inventoryService, type InventoryRecord } from "../../../services/inventoryService";
-import { orderService, type OrderRecord } from "../../../services/orderService";
-import { productService } from "../../../services/productService";
+import { type AnalyticsDashboardData } from "../../../services/analyticsEventService";
+import { type InventoryRecord } from "../../../services/inventoryService";
+import { type OrderRecord } from "../../../services/orderService";
 import { subscribeAdminRealtime } from "../../../services/socketClient";
+import { useAnalyticsEventStore } from "../../../stores/analyticsEventStore";
+import { useInventoryStore } from "../../../stores/inventoryStore";
+import { useOrderStore } from "../../../stores/orderStore";
+import { useProductStore } from "../../../stores/productStore";
 import { DashboardDonutCard, DashboardLineChartCard, DashboardOrdersColumnCard, DashboardRankBarCard } from "../components/DashboardCharts";
 import { KpiCard } from "../components/KpiCard";
 import { LowStockList } from "../components/LowStockList";
@@ -268,6 +268,10 @@ const buildDashboardKpis = (payload: {
 export function AdminDashboardPage() {
   const [messageApi, contextHolder] = message.useMessage();
   const navigate = useNavigate();
+  const fetchDashboard = useAnalyticsEventStore((state) => state.fetchDashboard);
+  const fetchOrders = useOrderStore((state) => state.fetchOrders);
+  const fetchLowStockItems = useInventoryStore((state) => state.fetchLowStockItems);
+  const fetchProducts = useProductStore((state) => state.fetchProducts);
 
   const [loading, setLoading] = useState(true);
   const [rangePreset, setRangePreset] = useState<RangePreset>("30d");
@@ -326,34 +330,34 @@ export function AdminDashboardPage() {
         lowStockPage,
         activeProductsPage,
       ] = await Promise.all([
-        analyticsEventService.getAnalyticsDashboard({
+        fetchDashboard({
           startDate: currentPeriodStart.toISOString(),
           endDate: now.toISOString(),
         }),
-        analyticsEventService.getAnalyticsDashboard({
+        fetchDashboard({
           startDate: previousPeriodStart.toISOString(),
           endDate: previousPeriodEnd.toISOString(),
         }),
-        analyticsEventService.getAnalyticsDashboard({
+        fetchDashboard({
           startDate: todayStart.toISOString(),
           endDate: now.toISOString(),
         }),
-        analyticsEventService.getAnalyticsDashboard({
+        fetchDashboard({
           startDate: sixMonthsStart.toISOString(),
           endDate: now.toISOString(),
         }),
-        orderService.getOrders({
+        fetchOrders({
           page: 1,
           limit: 8,
           status: "all",
           paymentStatus: "all",
         }),
-        inventoryService.getLowStockItems({
+        fetchLowStockItems({
           page: 1,
           limit: 8,
           threshold: 10,
         }),
-        productService.getProducts({
+        fetchProducts({
           page: 1,
           limit: 1,
           status: "active",
@@ -406,7 +410,7 @@ export function AdminDashboardPage() {
         setLoading(false);
       }
     }
-  }, [messageApi, rangePreset]);
+  }, [fetchDashboard, fetchLowStockItems, fetchOrders, fetchProducts, messageApi, rangePreset]);
 
   useEffect(() => {
     void loadDashboard();

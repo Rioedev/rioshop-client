@@ -2,7 +2,9 @@ import { create } from "zustand";
 import { getErrorMessage } from "../utils/errorMessage";
 import {
   inventoryService,
+  type GetLowStockParams,
   type InventoryRecord,
+  type PaginatedInventoryData,
   type UpdateInventoryPayload,
 } from "../services/inventoryService";
 
@@ -33,6 +35,7 @@ type InventoryState = {
   setCurrentVariantSku: (variantSku: string) => void;
   setThreshold: (threshold?: number) => void;
   updateInventory: (variantSku: string, payload: UpdateInventoryPayload) => Promise<void>;
+  fetchLowStockItems: (params?: GetLowStockParams) => Promise<PaginatedInventoryData>;
 };
 
 const EMPTY_SUMMARY: InventorySummary = {
@@ -139,6 +142,14 @@ export const useInventoryStore = create<InventoryState>((set, get) => ({
       throw new Error(getErrorMessage(error));
     } finally {
       set({ saving: false });
+    }
+  },
+
+  fetchLowStockItems: async (params = {}) => {
+    try {
+      return await inventoryService.getLowStockItems(params);
+    } catch (error) {
+      throw new Error(getErrorMessage(error));
     }
   },
 }));

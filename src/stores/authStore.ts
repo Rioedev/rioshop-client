@@ -3,6 +3,7 @@ import {
   authService,
   type AccountType,
   type AuthUser,
+  type ChangePasswordPayload,
   type LoginPayload,
   type RegisterPayload,
 } from "../services/authService";
@@ -32,6 +33,7 @@ type AuthState = {
   logout: () => Promise<void>;
   hydrate: () => Promise<void>;
   refreshUser: () => Promise<void>;
+  changeAdminPassword: (payload: ChangePasswordPayload) => Promise<void>;
 };
 
 const AUTH_STORAGE_KEY = "rioshop_auth";
@@ -318,6 +320,17 @@ export const useAuthStore = create<AuthState>((set, get) => {
         });
       } catch (error) {
         throw new Error(getErrorMessage(error));
+      }
+    },
+
+    changeAdminPassword: async (payload) => {
+      set({ isLoading: true });
+      try {
+        await authService.changeAdminPassword(payload);
+      } catch (error) {
+        throw new Error(getErrorMessage(error));
+      } finally {
+        set({ isLoading: false });
       }
     },
   };

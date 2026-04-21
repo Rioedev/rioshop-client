@@ -22,7 +22,6 @@ import type { ColumnsType, TablePaginationConfig } from "antd/es/table";
 import type { UploadProps } from "antd/es/upload";
 import { useEffect, useMemo, useState } from "react";
 import {
-  categoryService,
   type Category,
   type CategoryPayload,
 } from "../../../services/categoryService";
@@ -104,6 +103,7 @@ export function AdminCategoriesPage() {
     createCategory,
     updateCategory,
     deleteCategory,
+    uploadCategoryImage,
   } = useCategoryStore();
 
   const [searchText, setSearchText] = useState(keyword);
@@ -183,7 +183,7 @@ export function AdminCategoriesPage() {
     const { file, onSuccess, onError } = options;
     try {
       setImageUploading(true);
-      const imageUrl = await categoryService.uploadCategoryImage(file as File);
+      const imageUrl = await uploadCategoryImage(file as File);
       setUploadedImageUrl(imageUrl);
       form.setFieldValue("image", imageUrl);
       onSuccess?.("ok");

@@ -26,6 +26,7 @@ type CategoryState = {
   createCategory: (payload: CategoryPayload) => Promise<void>;
   updateCategory: (id: string, payload: CategoryPayload) => Promise<void>;
   deleteCategory: (id: string) => Promise<void>;
+  uploadCategoryImage: (file: File) => Promise<string>;
 };
 
 const toIsActive = (statusFilter: CategoryStatusFilter): boolean | undefined => {
@@ -126,6 +127,14 @@ export const useCategoryStore = create<CategoryState>((set, get) => ({
       throw new Error(getErrorMessage(error));
     } finally {
       set({ saving: false });
+    }
+  },
+
+  uploadCategoryImage: async (file) => {
+    try {
+      return await categoryService.uploadCategoryImage(file);
+    } catch (error) {
+      throw new Error(getErrorMessage(error));
     }
   },
 }));

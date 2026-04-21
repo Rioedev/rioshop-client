@@ -21,7 +21,6 @@ import type { ColumnsType, TablePaginationConfig } from "antd/es/table";
 import type { UploadProps } from "antd/es/upload";
 import { useEffect, useState } from "react";
 import {
-  collectionService,
   type Collection,
   type CollectionPayload,
 } from "../../../services/collectionService";
@@ -74,6 +73,7 @@ export function AdminCollectionsPage() {
     createCollection,
     updateCollection,
     deleteCollection,
+    uploadCollectionImage,
   } = useCollectionStore();
 
   useEffect(() => {
@@ -143,7 +143,7 @@ export function AdminCollectionsPage() {
     const { file, onSuccess, onError } = options;
     try {
       setImageUploading(true);
-      const imageUrl = await collectionService.uploadCollectionImage(file as File);
+      const imageUrl = await uploadCollectionImage(file as File);
       setUploadedImageUrl(imageUrl);
       form.setFieldValue("image", imageUrl);
       onSuccess?.("ok");
@@ -160,7 +160,7 @@ export function AdminCollectionsPage() {
     const { file, onSuccess, onError } = options;
     try {
       setBannerImageUploading(true);
-      const imageUrl = await collectionService.uploadCollectionImage(file as File);
+      const imageUrl = await uploadCollectionImage(file as File);
       setUploadedBannerImageUrl(imageUrl);
       form.setFieldValue("bannerImage", imageUrl);
       onSuccess?.("ok");

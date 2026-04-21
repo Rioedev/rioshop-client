@@ -19,10 +19,11 @@
 import type { ColumnsType, TablePaginationConfig } from "antd/es/table";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { FlashSale } from "../../../services/flashSaleService";
-import { productService, type Product } from "../../../services/productService";
+import type { Product } from "../../../services/productService";
 import { subscribeAdminRealtime } from "../../../services/socketClient";
 import { useFlashSaleStore } from "../../../stores/flashSaleStore";
 import { useAuthStore } from "../../../stores/authStore";
+import { useProductStore } from "../../../stores/productStore";
 import { getErrorMessage } from "../../../utils/errorMessage";
 import { AdminFlashSaleSlotsField } from "./AdminFlashSaleSlotsField";
 import {
@@ -64,6 +65,8 @@ export function AdminFlashSalesPage() {
   const createFlashSale = useFlashSaleStore((state) => state.createFlashSale);
   const updateFlashSale = useFlashSaleStore((state) => state.updateFlashSale);
   const deleteFlashSale = useFlashSaleStore((state) => state.deleteFlashSale);
+  const fetchProducts = useProductStore((state) => state.fetchProducts);
+  const uploadProductImage = useProductStore((state) => state.uploadProductImage);
   const realtimeRefreshTimerRef = useRef<number | null>(null);
 
   const refreshCurrentFlashSalePage = useCallback(() => {
@@ -120,7 +123,7 @@ export function AdminFlashSalesPage() {
     const loadProducts = async () => {
       setProductLoading(true);
       try {
-        const result = await productService.getProducts({
+        const result = await fetchProducts({
           page: 1,
           limit: 100,
           status: "active",
@@ -148,7 +151,7 @@ export function AdminFlashSalesPage() {
     return () => {
       active = false;
     };
-  }, []);
+  }, [fetchProducts]);
 
   const productById = useMemo(() => {
     const map = new Map<string, Product>();
@@ -282,7 +285,7 @@ export function AdminFlashSalesPage() {
 
     setBannerUploading(true);
     try {
-      const url = await productService.uploadProductImage(file);
+      const url = await uploadProductImage(file);
       form.setFieldValue("banner", url);
       messageApi.success("Tải ảnh banner thành công.");
     } catch (error) {

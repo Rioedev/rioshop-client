@@ -4,8 +4,11 @@ import { categoryService, type Category } from "../services/categoryService";
 import { collectionService } from "../services/collectionService";
 import {
   productService,
+  type ProductImportCsvResult,
+  type PaginatedProductData,
   type Product,
   type ProductPayload,
+  type ProductQueryParams,
   type ProductStatusFilter,
 } from "../services/productService";
 
@@ -66,6 +69,11 @@ type ProductState = {
   createProduct: (payload: ProductPayload) => Promise<void>;
   updateProduct: (id: string, payload: Partial<ProductPayload>) => Promise<void>;
   deleteProduct: (id: string) => Promise<void>;
+  uploadProductImage: (file: File) => Promise<string>;
+  exportProductsCsv: (params?: ProductQueryParams) => Promise<Blob>;
+  downloadProductsImportTemplateCsv: () => Promise<Blob>;
+  importProductsCsv: (file: File) => Promise<ProductImportCsvResult>;
+  fetchProducts: (params?: ProductQueryParams) => Promise<PaginatedProductData>;
 };
 
 const buildCategoryData = (
@@ -253,6 +261,46 @@ export const useProductStore = create<ProductState>((set, get) => ({
       throw new Error(getErrorMessage(error));
     } finally {
       set({ saving: false });
+    }
+  },
+
+  uploadProductImage: async (file) => {
+    try {
+      return await productService.uploadProductImage(file);
+    } catch (error) {
+      throw new Error(getErrorMessage(error));
+    }
+  },
+
+  exportProductsCsv: async (params = {}) => {
+    try {
+      return await productService.exportProductsCsv(params);
+    } catch (error) {
+      throw new Error(getErrorMessage(error));
+    }
+  },
+
+  downloadProductsImportTemplateCsv: async () => {
+    try {
+      return await productService.downloadProductsImportTemplateCsv();
+    } catch (error) {
+      throw new Error(getErrorMessage(error));
+    }
+  },
+
+  importProductsCsv: async (file) => {
+    try {
+      return await productService.importProductsCsv(file);
+    } catch (error) {
+      throw new Error(getErrorMessage(error));
+    }
+  },
+
+  fetchProducts: async (params = {}) => {
+    try {
+      return await productService.getProducts(params);
+    } catch (error) {
+      throw new Error(getErrorMessage(error));
     }
   },
 }));

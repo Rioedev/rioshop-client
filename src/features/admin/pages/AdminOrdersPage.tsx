@@ -16,7 +16,6 @@ import type { ColumnsType, TablePaginationConfig } from "antd/es/table";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import {
-  orderService,
   type OrderRecord,
   type OrderStatus,
   type PaymentStatus,
@@ -256,8 +255,12 @@ export function AdminOrdersPage() {
   const loadOrders = useOrderStore((state) => state.loadOrders);
   const setStatusFilter = useOrderStore((state) => state.setStatusFilter);
   const setPaymentStatusFilter = useOrderStore((state) => state.setPaymentStatusFilter);
+  const getOrderById = useOrderStore((state) => state.getOrderById);
   const updateOrderStatus = useOrderStore((state) => state.updateOrderStatus);
+  const updateReturnRequestStatus = useOrderStore((state) => state.updateReturnRequestStatus);
   const cancelOrder = useOrderStore((state) => state.cancelOrder);
+  const syncShipmentFromGhn = useOrderStore((state) => state.syncShipmentFromGhn);
+  const syncActiveGhnShipments = useOrderStore((state) => state.syncActiveGhnShipments);
   const realtimeRefreshTimerRef = useRef<number | null>(null);
   const handledFocusOrderIdRef = useRef("");
 
@@ -442,7 +445,7 @@ export function AdminOrdersPage() {
 
     void (async () => {
       try {
-        const focusedOrder = await orderService.getOrderById(focusOrderId);
+        const focusedOrder = await getOrderById(focusOrderId);
         setSearchText(focusedOrder.orderNumber || "");
         openManageModal(focusedOrder);
       } catch (error) {
@@ -451,7 +454,7 @@ export function AdminOrdersPage() {
         clearFocusOrderIdFromUrl();
       }
     })();
-  }, [clearFocusOrderIdFromUrl, focusOrderId, messageApi]);
+  }, [clearFocusOrderIdFromUrl, focusOrderId, getOrderById, messageApi]);
 
   const handleUpdateOrder = async () => {
     if (!managingOrder) {
@@ -484,7 +487,7 @@ export function AdminOrdersPage() {
 
     setUpdatingReturnRequest(true);
     try {
-      const updatedOrder = await orderService.updateReturnRequestStatus(managingOrder.id, {
+      const updatedOrder = await updateReturnRequestStatus(managingOrder.id, {
         status: nextStatus,
         note: manageNote.trim() || undefined,
       });
@@ -528,14 +531,14 @@ export function AdminOrdersPage() {
 
     setSyncingShipment(true);
     try {
-      const result = await orderService.syncShipmentFromGhn(managingOrder.shipmentId);
+      const result = await syncShipmentFromGhn(managingOrder.shipmentId);
       if (result.updated) {
         messageApi.success("Đồng bộ GHN thành công.");
       } else {
         messageApi.info(`GHN chưa có thay đổi mới (${result.reason || "status_unchanged"}).`);
       }
 
-      const refreshedOrder = await orderService.getOrderById(managingOrder.id);
+      const refreshedOrder = await getOrderById(managingOrder.id);
       setManagingOrder(refreshedOrder);
       refreshCurrentOrderPage();
     } catch (error) {
@@ -548,7 +551,7 @@ export function AdminOrdersPage() {
   const handleSyncActiveGhn = async () => {
     setSyncingActiveGhn(true);
     try {
-      const result = await orderService.syncActiveGhnShipments(30);
+      const result = await syncActiveGhnShipments(30);
       messageApi.success(
         `Đồng bộ GHN: ${result.updated} cập nhật, ${result.unchanged} không đổi, ${result.failed} lỗi.`,
       );

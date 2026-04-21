@@ -1,6 +1,5 @@
 ﻿import { Alert, Button, Card, Descriptions, Form, Input, Typography, message } from "antd";
 import { useState } from "react";
-import { authService } from "../../../services/authService";
 import { useAuthStore } from "../../../stores/authStore";
 import { getErrorMessage } from "../../../utils/errorMessage";
 
@@ -34,11 +33,12 @@ export function AdminProfilePage() {
 
   const user = useAuthStore((state) => state.user);
   const accountType = useAuthStore((state) => state.accountType);
+  const changeAdminPassword = useAuthStore((state) => state.changeAdminPassword);
 
   const handleChangePassword = async (values: ChangePasswordFormValues) => {
     setIsChangingPassword(true);
     try {
-      await authService.changeAdminPassword(values);
+      await changeAdminPassword(values);
       form.resetFields();
       messageApi.success("Đổi mật khẩu thành công.");
     } catch (error) {

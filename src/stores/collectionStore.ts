@@ -28,6 +28,7 @@ type CollectionState = {
   createCollection: (payload: CollectionPayload) => Promise<void>;
   updateCollection: (id: string, payload: CollectionPayload) => Promise<void>;
   deleteCollection: (id: string) => Promise<void>;
+  uploadCollectionImage: (file: File) => Promise<string>;
 };
 
 const toIsActive = (statusFilter: CollectionStatusFilter): boolean | undefined => {
@@ -120,6 +121,14 @@ export const useCollectionStore = create<CollectionState>((set, get) => ({
       throw new Error(getErrorMessage(error));
     } finally {
       set({ saving: false });
+    }
+  },
+
+  uploadCollectionImage: async (file) => {
+    try {
+      return await collectionService.uploadCollectionImage(file);
+    } catch (error) {
+      throw new Error(getErrorMessage(error));
     }
   },
 }));

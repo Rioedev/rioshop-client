@@ -20,13 +20,12 @@ import type { ColumnsType, TablePaginationConfig } from "antd/es/table";
 import type { UploadProps } from "antd/es/upload";
 import { useCallback, useEffect, useState } from "react";
 import { RichTextEditor } from "../../../components/editor/RichTextEditor";
-import { blogService, type BlogPayload, type BlogPost } from "../../../services/blogService";
+import { type BlogPayload, type BlogPost } from "../../../services/blogService";
 import { ensureImageFile, getImageValidationError } from "../../../services/mediaUploadService";
+import { useBlogStore, type BlogStatusFilter } from "../../../stores/blogStore";
 import { getErrorMessage } from "../../../utils/errorMessage";
 
 const { Text, Title } = Typography;
-
-type BlogFilter = "all" | "published" | "unpublished";
 
 type BlogFormValues = {
   title: string;
@@ -41,7 +40,7 @@ type BlogFormValues = {
   publishedAt?: string;
 };
 
-const BLOG_STATUS_OPTIONS: Array<{ label: string; value: BlogFilter }> = [
+const BLOG_STATUS_OPTIONS: Array<{ label: string; value: BlogStatusFilter }> = [
   { label: "Tất cả bài viết", value: "all" },
   { label: "Đã xuất bản", value: "published" },
   { label: "Bản nháp", value: "unpublished" },
@@ -83,75 +82,72 @@ const parseTagsText = (value?: string) =>
     .map((item) => item.trim())
     .filter(Boolean);
 
-const resolvePublishedFilter = (value: BlogFilter): boolean | "all" => {
-  if (value === "published") return true;
-  if (value === "unpublished") return false;
-  return "all";
-};
-
 export function AdminBlogsPage() {
   const [form] = Form.useForm<BlogFormValues>();
   const [messageApi, contextHolder] = message.useMessage();
 
-  const [blogs, setBlogs] = useState<BlogPost[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [saving, setSaving] = useState(false);
-  const [page, setPage] = useState(1);
-  const [pageSize, setPageSize] = useState(10);
-  const [total, setTotal] = useState(0);
-  const [searchText, setSearchText] = useState("");
-  const [debouncedSearchText, setDebouncedSearchText] = useState("");
-  const [statusFilter, setStatusFilter] = useState<BlogFilter>("all");
+  const blogs = useBlogStore((state) => state.blogs);
+  const loading = useBlogStore((state) => state.loading);
+  const saving = useBlogStore((state) => state.saving);
+  const page = useBlogStore((state) => state.page);
+  const pageSize = useBlogStore((state) => state.pageSize);
+  const total = useBlogStore((state) => state.total);
+  const keyword = useBlogStore((state) => state.keyword);
+  const statusFilter = useBlogStore((state) => state.statusFilter);
+  const loadBlogs = useBlogStore((state) => state.loadBlogs);
+  const setKeyword = useBlogStore((state) => state.setKeyword);
+  const setStatusFilter = useBlogStore((state) => state.setStatusFilter);
+  const createBlog = useBlogStore((state) => state.createBlog);
+  const updateBlog = useBlogStore((state) => state.updateBlog);
+  const deleteBlog = useBlogStore((state) => state.deleteBlog);
+  const uploadBlogImage = useBlogStore((state) => state.uploadBlogImage);
+
+  const [searchText, setSearchText] = useState(keyword);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingBlog, setEditingBlog] = useState<BlogPost | null>(null);
   const [coverUploading, setCoverUploading] = useState(false);
   const [uploadedCoverUrl, setUploadedCoverUrl] = useState("");
 
-  useEffect(() => {
-    const timer = window.setTimeout(() => {
-      setDebouncedSearchText(searchText.trim());
-    }, 350);
-    return () => window.clearTimeout(timer);
-  }, [searchText]);
-
-  const loadBlogs = useCallback(async (params?: {
-    nextPage?: number;
-    nextPageSize?: number;
-    nextKeyword?: string;
-    nextFilter?: BlogFilter;
+  const loadBlogsWithFeedback = useCallback(async (params?: {
+    page?: number;
+    pageSize?: number;
+    keyword?: string;
+    statusFilter?: BlogStatusFilter;
   }) => {
-    const resolvedPage = params?.nextPage ?? page;
-    const resolvedPageSize = params?.nextPageSize ?? pageSize;
-    const resolvedKeyword = params?.nextKeyword ?? debouncedSearchText;
-    const resolvedFilter = params?.nextFilter ?? statusFilter;
-
-    setLoading(true);
     try {
-      const result = await blogService.getBlogs({
-        page: resolvedPage,
-        limit: resolvedPageSize,
-        q: resolvedKeyword || undefined,
-        isPublished: resolvePublishedFilter(resolvedFilter),
-      });
-      setBlogs(result.docs);
-      setPage(result.page);
-      setPageSize(result.limit);
-      setTotal(result.totalDocs);
+      await loadBlogs(params);
     } catch (error) {
       messageApi.error(getErrorMessage(error));
-    } finally {
-      setLoading(false);
     }
-  }, [debouncedSearchText, messageApi, page, pageSize, statusFilter]);
+  }, [loadBlogs, messageApi]);
 
   useEffect(() => {
-    void loadBlogs({
-      nextPage: 1,
-      nextPageSize: pageSize,
-      nextKeyword: debouncedSearchText,
-      nextFilter: statusFilter,
+    void loadBlogsWithFeedback({
+      page: 1,
+      pageSize: 10,
+      keyword: "",
+      statusFilter: "all",
     });
-  }, [debouncedSearchText, loadBlogs, pageSize, statusFilter]);
+  }, [loadBlogsWithFeedback]);
+
+  useEffect(() => {
+    const timer = window.setTimeout(() => {
+      const searchKeyword = searchText.trim();
+      setKeyword(searchKeyword);
+      void loadBlogsWithFeedback({
+        page: 1,
+        pageSize,
+        keyword: searchKeyword,
+        statusFilter,
+      });
+    }, 350);
+
+    return () => window.clearTimeout(timer);
+  }, [loadBlogsWithFeedback, pageSize, searchText, setKeyword, statusFilter]);
+
+  const handleStatusFilterChange = (value: BlogStatusFilter) => {
+    setStatusFilter(value);
+  };
 
   const resetFormState = () => {
     form.resetFields();
@@ -195,7 +191,7 @@ export function AdminBlogsPage() {
   const uploadCoverImage: UploadProps["customRequest"] = async ({ file, onError, onSuccess }) => {
     try {
       setCoverUploading(true);
-      const url = await blogService.uploadBlogImage(file as File);
+      const url = await uploadBlogImage(file as File);
       setUploadedCoverUrl(url);
       form.setFieldValue("coverImage", url);
       onSuccess?.("ok");
@@ -220,14 +216,12 @@ export function AdminBlogsPage() {
 
   const handleEditorImageUpload = async (file: File) => {
     ensureImageFile(file, 5);
-    return blogService.uploadBlogImage(file);
+    return uploadBlogImage(file);
   };
 
   const handleSaveBlog = async () => {
     try {
       const values = await form.validateFields();
-      setSaving(true);
-
       const payload: BlogPayload = {
         title: values.title.trim(),
         slug: values.slug?.trim() || undefined,
@@ -242,32 +236,30 @@ export function AdminBlogsPage() {
       };
 
       if (editingBlog?._id) {
-        await blogService.updateBlog(editingBlog._id, payload);
+        await updateBlog(editingBlog._id, payload);
         messageApi.success("Cập nhật bài viết thành công");
       } else {
-        await blogService.createBlog(payload);
+        await createBlog(payload);
         messageApi.success("Tạo bài viết thành công");
       }
 
       resetFormState();
-      await loadBlogs({ nextPage: 1 });
+      await loadBlogsWithFeedback({ page: 1, pageSize, keyword, statusFilter });
     } catch (error) {
       if (error instanceof Error && "errorFields" in error) {
         return;
       }
       messageApi.error(getErrorMessage(error));
-    } finally {
-      setSaving(false);
     }
   };
 
   const handleDeleteBlog = async (id: string) => {
     try {
-      await blogService.deleteBlog(id);
+      await deleteBlog(id);
       messageApi.success("Xóa bài viết thành công");
 
       const nextPage = blogs.length === 1 && page > 1 ? page - 1 : page;
-      await loadBlogs({ nextPage });
+      await loadBlogsWithFeedback({ page: nextPage, pageSize, keyword, statusFilter });
     } catch (error) {
       messageApi.error(getErrorMessage(error));
     }
@@ -391,10 +383,10 @@ export function AdminBlogsPage() {
             allowClear
             placeholder="Tìm theo tiêu đề, mô tả hoặc nội dung..."
           />
-          <Select<BlogFilter>
+          <Select<BlogStatusFilter>
             value={statusFilter}
             options={BLOG_STATUS_OPTIONS}
-            onChange={(value) => setStatusFilter(value)}
+            onChange={handleStatusFilterChange}
           />
         </div>
 
@@ -412,9 +404,9 @@ export function AdminBlogsPage() {
             showTotal: (value) => `Tổng ${value} bài viết`,
           }}
           onChange={(pagination: TablePaginationConfig) => {
-            void loadBlogs({
-              nextPage: pagination.current ?? page,
-              nextPageSize: pagination.pageSize ?? pageSize,
+            void loadBlogsWithFeedback({
+              page: pagination.current ?? page,
+              pageSize: pagination.pageSize ?? pageSize,
             });
           }}
         />

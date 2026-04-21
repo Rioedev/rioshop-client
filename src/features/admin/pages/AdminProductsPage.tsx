@@ -21,7 +21,6 @@ import type { ColumnsType, TablePaginationConfig } from "antd/es/table";
 import type { UploadProps } from "antd/es/upload";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
-  productService,
   type Product,
   type ProductPayload,
   type ProductStatus,
@@ -111,6 +110,10 @@ export function AdminProductsPage() {
     createProduct,
     updateProduct,
     deleteProduct,
+    uploadProductImage,
+    exportProductsCsv,
+    downloadProductsImportTemplateCsv,
+    importProductsCsv,
   } = useProductStore();
 
   useEffect(() => {
@@ -312,7 +315,7 @@ export function AdminProductsPage() {
 
   const handleEditorImageUpload = async (file: File) => {
     ensureImageFile(file, 5);
-    return productService.uploadProductImage(file);
+    return uploadProductImage(file);
   };
 
   const handleCategoryChange = async (value: string) => {
@@ -371,7 +374,7 @@ export function AdminProductsPage() {
   const handleExportCsv = async () => {
     try {
       setExportingCsv(true);
-      const blob = await productService.exportProductsCsv({
+      const blob = await exportProductsCsv({
         q: keyword.trim() || undefined,
         category: keyword.trim() ? undefined : categoryId,
         collection: keyword.trim() ? undefined : collectionId,
@@ -398,7 +401,7 @@ export function AdminProductsPage() {
   const handleDownloadImportTemplate = async () => {
     try {
       setDownloadingTemplate(true);
-      const blob = await productService.downloadProductsImportTemplateCsv();
+      const blob = await downloadProductsImportTemplateCsv();
       const downloadUrl = window.URL.createObjectURL(blob);
       const link = document.createElement("a");
       link.href = downloadUrl;
@@ -427,7 +430,7 @@ export function AdminProductsPage() {
   const handleImportCsv: UploadProps["customRequest"] = async ({ file, onSuccess, onError }) => {
     try {
       setImportingCsv(true);
-      const result = await productService.importProductsCsv(file as File);
+      const result = await importProductsCsv(file as File);
       onSuccess?.("ok");
 
       if (result.failed > 0) {
@@ -554,7 +557,7 @@ export function AdminProductsPage() {
           if (!pendingFile) {
             return messageApi.error("Thiếu một ảnh màu cục bộ. Vui lòng chọn lại.");
           }
-          const url = await productService.uploadProductImage(pendingFile);
+          const url = await uploadProductImage(pendingFile);
           resolvedImageItems.push({ ...imageItem, url, pendingFileId: undefined });
         }
 

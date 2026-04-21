@@ -28,6 +28,7 @@ type AnalyticsEventState = {
   loadDashboard: (params?: { startDate?: string; endDate?: string }) => Promise<void>;
   setEventFilter: (eventFilter?: AnalyticsEventType) => void;
   setDateRange: (startDate?: string, endDate?: string) => void;
+  fetchDashboard: (params?: { startDate?: string; endDate?: string }) => Promise<AnalyticsDashboardData>;
 };
 
 export const useAnalyticsEventStore = create<AnalyticsEventState>((set, get) => ({
@@ -97,6 +98,14 @@ export const useAnalyticsEventStore = create<AnalyticsEventState>((set, get) => 
 
   setEventFilter: (eventFilter) => set({ eventFilter }),
   setDateRange: (startDate, endDate) => set({ startDate, endDate }),
+
+  fetchDashboard: async (params) => {
+    try {
+      return await analyticsEventService.getAnalyticsDashboard(params);
+    } catch (error) {
+      throw new Error(getErrorMessage(error));
+    }
+  },
 }));
 
 
