@@ -108,6 +108,11 @@ const AdminLoginPage = lazy(() =>
     default: module.AdminLoginPage,
   })),
 );
+const NotFoundPage = lazy(() =>
+  import("./pages/NotFoundPage").then((module) => ({
+    default: module.NotFoundPage,
+  })),
+);
 
 const adminChildRoutes = ADMIN_ROUTE_META.map((route) => {
   const PageComponent = ADMIN_PAGE_COMPONENT_MAP[route.segment];
@@ -162,10 +167,10 @@ export const appRouter = createBrowserRouter([
         children: [
           { index: true, element: <Navigate to={ADMIN_DEFAULT_PATH} replace /> },
           ...adminChildRoutes,
-          { path: "*", element: <Navigate to={ADMIN_DEFAULT_PATH} replace /> },
+          { path: "*", element: <NotFoundPage /> },
         ],
       },
     ],
   },
-  { path: "*", element: <Navigate to="/" replace /> },
+  { path: "*", element: <NotFoundPage /> },
 ]);
