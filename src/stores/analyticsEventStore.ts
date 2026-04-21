@@ -1,11 +1,11 @@
 import { create } from "zustand";
-import { getErrorMessage } from "../utils/errorMessage";
 import {
   analyticsEventService,
   type AnalyticsDashboardData,
   type AnalyticsEvent,
   type AnalyticsEventType,
 } from "../services/analyticsEventService";
+import { runStoreTask, runStoreTaskWithFlag } from "./storeAsync";
 
 type AnalyticsEventState = {
   events: AnalyticsEvent[];
@@ -51,8 +51,7 @@ export const useAnalyticsEventStore = create<AnalyticsEventState>((set, get) => 
     const nextStartDate = params?.startDate ?? state.startDate;
     const nextEndDate = params?.endDate ?? state.endDate;
 
-    set({ loading: true });
-    try {
+    await runStoreTaskWithFlag(set, "loading", async () => {
       const result = await analyticsEventService.getAnalyticsEvents({
         page: nextPage,
         limit: nextPageSize,
@@ -70,11 +69,7 @@ export const useAnalyticsEventStore = create<AnalyticsEventState>((set, get) => 
         startDate: nextStartDate,
         endDate: nextEndDate,
       });
-    } catch (error) {
-      throw new Error(getErrorMessage(error));
-    } finally {
-      set({ loading: false });
-    }
+    });
   },
 
   loadDashboard: async (params) => {
@@ -82,29 +77,20 @@ export const useAnalyticsEventStore = create<AnalyticsEventState>((set, get) => 
     const nextStartDate = params?.startDate ?? state.startDate;
     const nextEndDate = params?.endDate ?? state.endDate;
 
-    set({ dashboardLoading: true });
-    try {
+    await runStoreTaskWithFlag(set, "dashboardLoading", async () => {
       const result = await analyticsEventService.getAnalyticsDashboard({
         startDate: nextStartDate,
         endDate: nextEndDate,
       });
       set({ dashboard: result });
-    } catch (error) {
-      throw new Error(getErrorMessage(error));
-    } finally {
-      set({ dashboardLoading: false });
-    }
+    });
   },
 
   setEventFilter: (eventFilter) => set({ eventFilter }),
   setDateRange: (startDate, endDate) => set({ startDate, endDate }),
 
   fetchDashboard: async (params) => {
-    try {
-      return await analyticsEventService.getAnalyticsDashboard(params);
-    } catch (error) {
-      throw new Error(getErrorMessage(error));
-    }
+    return runStoreTask(() => analyticsEventService.getAnalyticsDashboard(params));
   },
 }));
 

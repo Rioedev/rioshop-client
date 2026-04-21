@@ -1,12 +1,12 @@
 import { AxiosError } from "axios";
 import { create } from "zustand";
-import { getErrorMessage } from "../utils/errorMessage";
 import {
   adminAccountService,
   type AdminAccount,
   type CreateAdminAccountPayload,
   type UpdateAdminAccountPayload,
 } from "../services/adminAccountService";
+import { runStoreTaskWithFlag } from "./storeAsync";
 
 type AdminAccountState = {
   accounts: AdminAccount[];
@@ -26,56 +26,41 @@ export const useAdminAccountStore = create<AdminAccountState>((set, get) => ({
   isForbidden: false,
 
   loadAdminAccounts: async () => {
-    set({ loading: true });
-    try {
-      const result = await adminAccountService.getAdminAccounts();
-      set({ accounts: result, isForbidden: false });
-    } catch (error) {
-      const axiosError = error as AxiosError;
-      if (axiosError.response?.status === 403) {
-        set({ accounts: [], isForbidden: true });
-        return;
+    await runStoreTaskWithFlag(set, "loading", async () => {
+      try {
+        const result = await adminAccountService.getAdminAccounts();
+        set({ accounts: result, isForbidden: false });
+      } catch (error) {
+        const axiosError = error as AxiosError;
+        if (axiosError.response?.status === 403) {
+          set({ accounts: [], isForbidden: true });
+          return;
+        }
+
+        throw error;
       }
-      throw new Error(getErrorMessage(error));
-    } finally {
-      set({ loading: false });
-    }
+    });
   },
 
   createAdminAccount: async (payload) => {
-    set({ saving: true });
-    try {
+    await runStoreTaskWithFlag(set, "saving", async () => {
       await adminAccountService.createAdminAccount(payload);
       await get().loadAdminAccounts();
-    } catch (error) {
-      throw new Error(getErrorMessage(error));
-    } finally {
-      set({ saving: false });
-    }
+    });
   },
 
   updateAdminAccount: async (id, payload) => {
-    set({ saving: true });
-    try {
+    await runStoreTaskWithFlag(set, "saving", async () => {
       await adminAccountService.updateAdminAccount(id, payload);
       await get().loadAdminAccounts();
-    } catch (error) {
-      throw new Error(getErrorMessage(error));
-    } finally {
-      set({ saving: false });
-    }
+    });
   },
 
   deleteAdminAccount: async (id) => {
-    set({ saving: true });
-    try {
+    await runStoreTaskWithFlag(set, "saving", async () => {
       await adminAccountService.deleteAdminAccount(id);
       await get().loadAdminAccounts();
-    } catch (error) {
-      throw new Error(getErrorMessage(error));
-    } finally {
-      set({ saving: false });
-    }
+    });
   },
 }));
 

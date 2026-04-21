@@ -1,5 +1,4 @@
 import { create } from "zustand";
-import { getErrorMessage } from "../utils/errorMessage";
 import {
   type GetOrdersQueryParams,
   orderService,
@@ -12,6 +11,7 @@ import {
   type UpdateReturnRequestStatusPayload,
   type UpdateOrderStatusPayload,
 } from "../services/orderService";
+import { runStoreTask, runStoreTaskWithFlag } from "./storeAsync";
 
 type OrderStoreState = {
   orders: OrderRecord[];
@@ -59,8 +59,7 @@ export const useOrderStore = create<OrderStoreState>((set, get) => ({
     const nextStatusFilter = params?.statusFilter ?? state.statusFilter;
     const nextPaymentStatusFilter = params?.paymentStatusFilter ?? state.paymentStatusFilter;
 
-    set({ loading: true });
-    try {
+    await runStoreTaskWithFlag(set, "loading", async () => {
       const result = await orderService.getOrders({
         page: nextPage,
         limit: nextPageSize,
@@ -76,27 +75,18 @@ export const useOrderStore = create<OrderStoreState>((set, get) => ({
         statusFilter: nextStatusFilter,
         paymentStatusFilter: nextPaymentStatusFilter,
       });
-    } catch (error) {
-      throw new Error(getErrorMessage(error));
-    } finally {
-      set({ loading: false });
-    }
+    });
   },
 
   setStatusFilter: (statusFilter) => set({ statusFilter }),
   setPaymentStatusFilter: (paymentStatusFilter) => set({ paymentStatusFilter }),
 
   getOrderById: async (id) => {
-    try {
-      return await orderService.getOrderById(id);
-    } catch (error) {
-      throw new Error(getErrorMessage(error));
-    }
+    return runStoreTask(() => orderService.getOrderById(id));
   },
 
   updateOrderStatus: async (id, payload) => {
-    set({ saving: true });
-    try {
+    await runStoreTaskWithFlag(set, "saving", async () => {
       await orderService.updateOrderStatus(id, payload);
       const state = get();
       await state.loadOrders({
@@ -105,27 +95,17 @@ export const useOrderStore = create<OrderStoreState>((set, get) => ({
         statusFilter: state.statusFilter,
         paymentStatusFilter: state.paymentStatusFilter,
       });
-    } catch (error) {
-      throw new Error(getErrorMessage(error));
-    } finally {
-      set({ saving: false });
-    }
+    });
   },
 
   updateReturnRequestStatus: async (id, payload) => {
-    set({ saving: true });
-    try {
+    return runStoreTaskWithFlag(set, "saving", async () => {
       return await orderService.updateReturnRequestStatus(id, payload);
-    } catch (error) {
-      throw new Error(getErrorMessage(error));
-    } finally {
-      set({ saving: false });
-    }
+    });
   },
 
   cancelOrder: async (id, note) => {
-    set({ saving: true });
-    try {
+    await runStoreTaskWithFlag(set, "saving", async () => {
       await orderService.cancelOrder(id, note);
       const state = get();
       await state.loadOrders({
@@ -134,35 +114,19 @@ export const useOrderStore = create<OrderStoreState>((set, get) => ({
         statusFilter: state.statusFilter,
         paymentStatusFilter: state.paymentStatusFilter,
       });
-    } catch (error) {
-      throw new Error(getErrorMessage(error));
-    } finally {
-      set({ saving: false });
-    }
+    });
   },
 
   syncShipmentFromGhn: async (shipmentId) => {
-    try {
-      return await orderService.syncShipmentFromGhn(shipmentId);
-    } catch (error) {
-      throw new Error(getErrorMessage(error));
-    }
+    return runStoreTask(() => orderService.syncShipmentFromGhn(shipmentId));
   },
 
   syncActiveGhnShipments: async (limit = 30) => {
-    try {
-      return await orderService.syncActiveGhnShipments(limit);
-    } catch (error) {
-      throw new Error(getErrorMessage(error));
-    }
+    return runStoreTask(() => orderService.syncActiveGhnShipments(limit));
   },
 
   fetchOrders: async (params = {}) => {
-    try {
-      return await orderService.getOrders(params);
-    } catch (error) {
-      throw new Error(getErrorMessage(error));
-    }
+    return runStoreTask(() => orderService.getOrders(params));
   },
 }));
 

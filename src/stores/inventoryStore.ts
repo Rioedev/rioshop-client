@@ -1,5 +1,4 @@
 import { create } from "zustand";
-import { getErrorMessage } from "../utils/errorMessage";
 import {
   inventoryService,
   type GetLowStockParams,
@@ -7,6 +6,7 @@ import {
   type PaginatedInventoryData,
   type UpdateInventoryPayload,
 } from "../services/inventoryService";
+import { runStoreTask, runStoreTaskWithFlag } from "./storeAsync";
 
 type InventorySummary = {
   onHand: number;
@@ -67,8 +67,7 @@ export const useInventoryStore = create<InventoryState>((set, get) => ({
     const nextPageSize = params?.pageSize ?? state.lowStockPageSize;
     const nextThreshold = params?.threshold ?? state.threshold;
 
-    set({ lowStockLoading: true });
-    try {
+    await runStoreTaskWithFlag(set, "lowStockLoading", async () => {
       const result = await inventoryService.getLowStockItems({
         page: nextPage,
         limit: nextPageSize,
@@ -82,11 +81,7 @@ export const useInventoryStore = create<InventoryState>((set, get) => ({
         lowStockPageSize: result.limit,
         threshold: nextThreshold,
       });
-    } catch (error) {
-      throw new Error(getErrorMessage(error));
-    } finally {
-      set({ lowStockLoading: false });
-    }
+    });
   },
 
   loadInventoryByVariantSku: async (variantSku, params) => {
@@ -94,8 +89,7 @@ export const useInventoryStore = create<InventoryState>((set, get) => ({
     const nextPage = params?.page ?? state.inventoryPage;
     const nextPageSize = params?.pageSize ?? state.inventoryPageSize;
 
-    set({ inventoryLoading: true });
-    try {
+    await runStoreTaskWithFlag(set, "inventoryLoading", async () => {
       const result = await inventoryService.getInventoryByVariantSku(variantSku, {
         page: nextPage,
         limit: nextPageSize,
@@ -109,19 +103,14 @@ export const useInventoryStore = create<InventoryState>((set, get) => ({
         inventoryPage: result.page,
         inventoryPageSize: result.limit,
       });
-    } catch (error) {
-      throw new Error(getErrorMessage(error));
-    } finally {
-      set({ inventoryLoading: false });
-    }
+    });
   },
 
   setCurrentVariantSku: (variantSku) => set({ currentVariantSku: variantSku }),
   setThreshold: (threshold) => set({ threshold }),
 
   updateInventory: async (variantSku, payload) => {
-    set({ saving: true });
-    try {
+    await runStoreTaskWithFlag(set, "saving", async () => {
       await inventoryService.updateInventory(variantSku, payload);
 
       const state = get();
@@ -138,19 +127,11 @@ export const useInventoryStore = create<InventoryState>((set, get) => ({
           pageSize: state.inventoryPageSize,
         });
       }
-    } catch (error) {
-      throw new Error(getErrorMessage(error));
-    } finally {
-      set({ saving: false });
-    }
+    });
   },
 
   fetchLowStockItems: async (params = {}) => {
-    try {
-      return await inventoryService.getLowStockItems(params);
-    } catch (error) {
-      throw new Error(getErrorMessage(error));
-    }
+    return runStoreTask(() => inventoryService.getLowStockItems(params));
   },
 }));
 

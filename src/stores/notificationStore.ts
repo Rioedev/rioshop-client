@@ -3,7 +3,7 @@ import {
   notificationService,
   type NotificationItem,
 } from "../services/notificationService";
-import { getErrorMessage } from "../utils/errorMessage";
+import { runStoreTask, runStoreTaskWithFlag } from "./storeAsync";
 
 type NotificationState = {
   notifications: NotificationItem[];
@@ -44,8 +44,7 @@ export const useNotificationStore = create<NotificationState>((set, get) => ({
     const nextPageSize = params?.pageSize ?? state.pageSize;
     const nextUnreadOnly = params?.unreadOnly ?? state.unreadOnly;
 
-    set({ loading: true });
-    try {
+    await runStoreTaskWithFlag(set, "loading", async () => {
       const result = await notificationService.getNotifications({
         page: nextPage,
         limit: nextPageSize,
@@ -59,11 +58,7 @@ export const useNotificationStore = create<NotificationState>((set, get) => ({
         pageSize: result.limit,
         unreadOnly: nextUnreadOnly,
       });
-    } catch (error) {
-      throw new Error(getErrorMessage(error));
-    } finally {
-      set({ loading: false });
-    }
+    });
   },
 
   refreshUnreadCount: async () => {
@@ -73,22 +68,16 @@ export const useNotificationStore = create<NotificationState>((set, get) => ({
     }
 
     if (unreadCountRequest) {
-      try {
-        const unreadCount = await unreadCountRequest;
-        set({ unreadCount });
-        return;
-      } catch (error) {
-        throw new Error(getErrorMessage(error));
-      }
+      const unreadCount = await runStoreTask(async () => unreadCountRequest as Promise<number>);
+      set({ unreadCount });
+      return;
     }
 
+    unreadCountRequest = notificationService.getUnreadCount();
     try {
-      unreadCountRequest = notificationService.getUnreadCount();
-      const unreadCount = await unreadCountRequest;
+      const unreadCount = await runStoreTask(async () => unreadCountRequest as Promise<number>);
       set({ unreadCount });
       lastUnreadCountFetchedAt = Date.now();
-    } catch (error) {
-      throw new Error(getErrorMessage(error));
     } finally {
       unreadCountRequest = null;
     }
@@ -97,8 +86,7 @@ export const useNotificationStore = create<NotificationState>((set, get) => ({
   setUnreadOnly: (unreadOnly) => set({ unreadOnly }),
 
   markAsRead: async (id) => {
-    set({ saving: true });
-    try {
+    await runStoreTaskWithFlag(set, "saving", async () => {
       const wasUnread = get().notifications.some((item) => item.id === id && !item.isRead);
       await notificationService.markAsRead(id);
       const state = get();
@@ -112,16 +100,11 @@ export const useNotificationStore = create<NotificationState>((set, get) => ({
           unreadCount: Math.max(0, current.unreadCount - 1),
         }));
       }
-    } catch (error) {
-      throw new Error(getErrorMessage(error));
-    } finally {
-      set({ saving: false });
-    }
+    });
   },
 
   markAllAsRead: async () => {
-    set({ saving: true });
-    try {
+    await runStoreTaskWithFlag(set, "saving", async () => {
       await notificationService.markAllAsRead();
       const state = get();
       await state.loadNotifications({
@@ -130,16 +113,11 @@ export const useNotificationStore = create<NotificationState>((set, get) => ({
         unreadOnly: state.unreadOnly,
       });
       set({ unreadCount: 0 });
-    } catch (error) {
-      throw new Error(getErrorMessage(error));
-    } finally {
-      set({ saving: false });
-    }
+    });
   },
 
   deleteNotification: async (id) => {
-    set({ saving: true });
-    try {
+    await runStoreTaskWithFlag(set, "saving", async () => {
       const wasUnread = get().notifications.some((item) => item.id === id && !item.isRead);
       await notificationService.deleteNotification(id);
       const state = get();
@@ -153,11 +131,7 @@ export const useNotificationStore = create<NotificationState>((set, get) => ({
           unreadCount: Math.max(0, current.unreadCount - 1),
         }));
       }
-    } catch (error) {
-      throw new Error(getErrorMessage(error));
-    } finally {
-      set({ saving: false });
-    }
+    });
   },
 
   applyRealtimeNotification: (payload) =>

@@ -1,11 +1,11 @@
 import { AxiosError } from "axios";
 import { create } from "zustand";
-import { getErrorMessage } from "../utils/errorMessage";
 import {
   brandConfigService,
   type BrandConfig,
   type UpdateBrandConfigPayload,
 } from "../services/brandConfigService";
+import { runStoreTaskWithFlag } from "./storeAsync";
 
 type BrandConfigState = {
   config: BrandConfig | null;
@@ -23,32 +23,26 @@ export const useBrandConfigStore = create<BrandConfigState>((set) => ({
   notFound: false,
 
   loadBrandConfig: async (brandKey) => {
-    set({ loading: true });
-    try {
-      const result = await brandConfigService.getBrandConfig(brandKey);
-      set({ config: result, notFound: false });
-    } catch (error) {
-      const axiosError = error as AxiosError;
-      if (axiosError.response?.status === 404) {
-        set({ config: null, notFound: true });
-        return;
+    await runStoreTaskWithFlag(set, "loading", async () => {
+      try {
+        const result = await brandConfigService.getBrandConfig(brandKey);
+        set({ config: result, notFound: false });
+      } catch (error) {
+        const axiosError = error as AxiosError;
+        if (axiosError.response?.status === 404) {
+          set({ config: null, notFound: true });
+          return;
+        }
+        throw error;
       }
-      throw new Error(getErrorMessage(error));
-    } finally {
-      set({ loading: false });
-    }
+    });
   },
 
   updateBrandConfig: async (brandKey, payload) => {
-    set({ saving: true });
-    try {
+    await runStoreTaskWithFlag(set, "saving", async () => {
       const result = await brandConfigService.updateBrandConfig(brandKey, payload);
       set({ config: result, notFound: false });
-    } catch (error) {
-      throw new Error(getErrorMessage(error));
-    } finally {
-      set({ saving: false });
-    }
+    });
   },
 }));
 

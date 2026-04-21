@@ -1,5 +1,4 @@
 import { create } from "zustand";
-import { getErrorMessage } from "../utils/errorMessage";
 import {
   couponService,
   type Coupon,
@@ -10,6 +9,7 @@ import {
   type GetAdminCouponsParams,
   type ValidateCouponPayload,
 } from "../services/couponService";
+import { runStoreTaskWithFlag } from "./storeAsync";
 
 type CouponState = {
   coupons: Coupon[];
@@ -61,8 +61,7 @@ export const useCouponStore = create<CouponState>((set, get) => ({
     const nextType = params?.type ?? state.typeFilter;
     const nextActiveFilter = params?.isActive ?? state.activeFilter;
 
-    set({ loading: true });
-    try {
+    await runStoreTaskWithFlag(set, "loading", async () => {
       const result = await couponService.getAdminCoupons({
         page: nextPage,
         limit: nextPageSize,
@@ -79,16 +78,11 @@ export const useCouponStore = create<CouponState>((set, get) => ({
         typeFilter: nextType,
         activeFilter: nextActiveFilter,
       });
-    } catch (error) {
-      throw new Error(getErrorMessage(error));
-    } finally {
-      set({ loading: false });
-    }
+    });
   },
 
   createCoupon: async (payload) => {
-    set({ saving: true });
-    try {
+    await runStoreTaskWithFlag(set, "saving", async () => {
       await couponService.createCoupon(payload);
       const state = get();
       await state.loadCoupons({
@@ -98,16 +92,11 @@ export const useCouponStore = create<CouponState>((set, get) => ({
         type: state.typeFilter,
         isActive: state.activeFilter,
       });
-    } catch (error) {
-      throw new Error(getErrorMessage(error));
-    } finally {
-      set({ saving: false });
-    }
+    });
   },
 
   updateCoupon: async (id, payload) => {
-    set({ saving: true });
-    try {
+    await runStoreTaskWithFlag(set, "saving", async () => {
       await couponService.updateCoupon(id, payload);
       const state = get();
       await state.loadCoupons({
@@ -117,16 +106,11 @@ export const useCouponStore = create<CouponState>((set, get) => ({
         type: state.typeFilter,
         isActive: state.activeFilter,
       });
-    } catch (error) {
-      throw new Error(getErrorMessage(error));
-    } finally {
-      set({ saving: false });
-    }
+    });
   },
 
   deleteCoupon: async (id) => {
-    set({ saving: true });
-    try {
+    await runStoreTaskWithFlag(set, "saving", async () => {
       await couponService.deleteCoupon(id);
       const state = get();
       await state.loadCoupons({
@@ -136,35 +120,21 @@ export const useCouponStore = create<CouponState>((set, get) => ({
         type: state.typeFilter,
         isActive: state.activeFilter,
       });
-    } catch (error) {
-      throw new Error(getErrorMessage(error));
-    } finally {
-      set({ saving: false });
-    }
+    });
   },
 
   findCouponByCode: async (code) => {
-    set({ findingByCode: true });
-    try {
+    await runStoreTaskWithFlag(set, "findingByCode", async () => {
       const coupon = await couponService.getCouponByCode(code);
       set({ selectedCoupon: coupon });
-    } catch (error) {
-      throw new Error(getErrorMessage(error));
-    } finally {
-      set({ findingByCode: false });
-    }
+    });
   },
 
   validateCoupon: async (payload) => {
-    set({ validating: true });
-    try {
+    await runStoreTaskWithFlag(set, "validating", async () => {
       const result = await couponService.validateCoupon(payload);
       set({ validationResult: result });
-    } catch (error) {
-      throw new Error(getErrorMessage(error));
-    } finally {
-      set({ validating: false });
-    }
+    });
   },
 
   setKeyword: (keyword) => set({ keyword }),

@@ -1,4 +1,4 @@
-import { lazy, type ReactElement } from "react";
+import { lazy } from "react";
 import { createBrowserRouter, Navigate } from "react-router-dom";
 import { RequireAuth } from "../components/route/RequireAuth";
 import { RequireStoreAuth } from "../components/route/RequireStoreAuth";
@@ -7,90 +7,14 @@ import { AdminPublicOnlyRoute } from "../components/route/AdminPublicOnlyRoute";
 import {
   ADMIN_DEFAULT_PATH,
   ADMIN_ROUTE_META,
-  type AdminRouteSegment,
 } from "../features/admin/shared/adminRoutes";
+import { ADMIN_PAGE_COMPONENT_MAP } from "../features/admin/shared/adminPageRegistry";
 
 const AdminLayout = lazy(() =>
   import("../layouts/AdminLayout").then((module) => ({ default: module.AdminLayout })),
 );
 const StoreLayout = lazy(() =>
   import("../layouts/StoreLayout").then((module) => ({ default: module.StoreLayout })),
-);
-
-const AdminDashboardPage = lazy(() =>
-  import("../features/admin/pages/AdminDashboardPage").then((module) => ({
-    default: module.AdminDashboardPage,
-  })),
-);
-const AdminOrdersPage = lazy(() =>
-  import("../features/admin/pages/AdminOrdersPage").then((module) => ({
-    default: module.AdminOrdersPage,
-  })),
-);
-const AdminProductsPage = lazy(() =>
-  import("../features/admin/pages/AdminProductsPage").then((module) => ({
-    default: module.AdminProductsPage,
-  })),
-);
-const AdminInventoriesPage = lazy(() =>
-  import("../features/admin/pages/AdminInventoriesPage").then((module) => ({
-    default: module.AdminInventoriesPage,
-  })),
-);
-const AdminCouponsPage = lazy(() =>
-  import("../features/admin/pages/AdminCouponsPage").then((module) => ({
-    default: module.AdminCouponsPage,
-  })),
-);
-const AdminReviewsPage = lazy(() =>
-  import("../features/admin/pages/AdminReviewsPage").then((module) => ({
-    default: module.AdminReviewsPage,
-  })),
-);
-const AdminFlashSalesPage = lazy(() =>
-  import("../features/admin/pages/AdminFlashSalesPage").then((module) => ({
-    default: module.AdminFlashSalesPage,
-  })),
-);
-const AdminAnalyticsEventsPage = lazy(() =>
-  import("../features/admin/pages/AdminAnalyticsEventsPage").then((module) => ({
-    default: module.AdminAnalyticsEventsPage,
-  })),
-);
-const AdminCategoriesPage = lazy(() =>
-  import("../features/admin/pages/AdminCategoriesPage").then((module) => ({
-    default: module.AdminCategoriesPage,
-  })),
-);
-const AdminCollectionsPage = lazy(() =>
-  import("../features/admin/pages/AdminCollectionsPage").then((module) => ({
-    default: module.AdminCollectionsPage,
-  })),
-);
-const AdminUsersPage = lazy(() =>
-  import("../features/admin/pages/AdminUsersPage").then((module) => ({
-    default: module.AdminUsersPage,
-  })),
-);
-const AdminAccountsPage = lazy(() =>
-  import("../features/admin/pages/AdminAccountsPage").then((module) => ({
-    default: module.AdminAccountsPage,
-  })),
-);
-const AdminBrandConfigPage = lazy(() =>
-  import("../features/admin/pages/AdminBrandConfigPage").then((module) => ({
-    default: module.AdminBrandConfigPage,
-  })),
-);
-const AdminBlogsPage = lazy(() =>
-  import("../features/admin/pages/AdminBlogsPage").then((module) => ({
-    default: module.AdminBlogsPage,
-  })),
-);
-const AdminProfilePage = lazy(() =>
-  import("../features/admin/pages/AdminProfilePage").then((module) => ({
-    default: module.AdminProfilePage,
-  })),
 );
 
 const StoreHomePage = lazy(() =>
@@ -185,49 +109,13 @@ const AdminLoginPage = lazy(() =>
   })),
 );
 
-const getAdminRouteElement = (segment: AdminRouteSegment): ReactElement => {
-  switch (segment) {
-    case "dashboard":
-      return <AdminDashboardPage />;
-    case "categories":
-      return <AdminCategoriesPage />;
-    case "collections":
-      return <AdminCollectionsPage />;
-    case "products":
-      return <AdminProductsPage />;
-    case "inventories":
-      return <AdminInventoriesPage />;
-    case "orders":
-      return <AdminOrdersPage />;
-    case "reviews":
-      return <AdminReviewsPage />;
-    case "flash-sales":
-      return <AdminFlashSalesPage />;
-    case "coupons":
-      return <AdminCouponsPage />;
-    case "users":
-      return <AdminUsersPage />;
-    case "analytics-events":
-      return <AdminAnalyticsEventsPage />;
-    case "blogs":
-      return <AdminBlogsPage />;
-    case "brand-config":
-      return <AdminBrandConfigPage />;
-    case "admin-accounts":
-      return <AdminAccountsPage />;
-    case "profile":
-      return <AdminProfilePage />;
-    default: {
-      const exhaustiveCheck: never = segment;
-      throw new Error(`Unhandled admin route segment: ${exhaustiveCheck}`);
-    }
-  }
-};
-
-const adminChildRoutes = ADMIN_ROUTE_META.map((route) => ({
-  path: route.segment,
-  element: getAdminRouteElement(route.segment),
-}));
+const adminChildRoutes = ADMIN_ROUTE_META.map((route) => {
+  const PageComponent = ADMIN_PAGE_COMPONENT_MAP[route.segment];
+  return {
+    path: route.segment,
+    element: <PageComponent />,
+  };
+});
 
 export const appRouter = createBrowserRouter([
   {

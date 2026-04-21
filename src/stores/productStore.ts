@@ -1,5 +1,4 @@
 import { create } from "zustand";
-import { getErrorMessage } from "../utils/errorMessage";
 import { categoryService, type Category } from "../services/categoryService";
 import { collectionService } from "../services/collectionService";
 import {
@@ -11,6 +10,7 @@ import {
   type ProductQueryParams,
   type ProductStatusFilter,
 } from "../services/productService";
+import { runStoreTask, runStoreTaskWithFlag } from "./storeAsync";
 
 type CategoryOption = {
   value: string;
@@ -128,8 +128,7 @@ export const useProductStore = create<ProductState>((set, get) => ({
     const nextStatusFilter = params?.statusFilter ?? state.statusFilter;
     const query = nextKeyword.trim();
 
-    set({ loading: true });
-    try {
+    await runStoreTaskWithFlag(set, "loading", async () => {
       const result = query
         ? await productService.searchProducts(
             query,
@@ -156,32 +155,22 @@ export const useProductStore = create<ProductState>((set, get) => ({
         collectionId: query ? undefined : nextCollectionId,
         statusFilter: nextStatusFilter,
       });
-    } catch (error) {
-      throw new Error(getErrorMessage(error));
-    } finally {
-      set({ loading: false });
-    }
+    });
   },
 
   loadCategoryOptions: async () => {
-    set({ categoryLoading: true });
-    try {
+    await runStoreTaskWithFlag(set, "categoryLoading", async () => {
       const categoryTree = await categoryService.getCategoryTree();
       const { options, lookup } = buildCategoryData(categoryTree);
       set({
         categoryOptions: options,
         categoryLookup: lookup,
       });
-    } catch (error) {
-      throw new Error(getErrorMessage(error));
-    } finally {
-      set({ categoryLoading: false });
-    }
+    });
   },
 
   loadCollectionOptions: async () => {
-    set({ collectionLoading: true });
-    try {
+    await runStoreTaskWithFlag(set, "collectionLoading", async () => {
       const firstPage = await collectionService.getCollections({ page: 1, limit: 100 });
       const allCollections = [...firstPage.docs];
 
@@ -216,11 +205,7 @@ export const useProductStore = create<ProductState>((set, get) => ({
           label: item.name,
         })),
       });
-    } catch (error) {
-      throw new Error(getErrorMessage(error));
-    } finally {
-      set({ collectionLoading: false });
-    }
+    });
   },
 
   setKeyword: (keyword) => set({ keyword }),
@@ -229,79 +214,44 @@ export const useProductStore = create<ProductState>((set, get) => ({
   setStatusFilter: (statusFilter) => set({ statusFilter }),
 
   createProduct: async (payload) => {
-    set({ saving: true });
-    try {
+    await runStoreTaskWithFlag(set, "saving", async () => {
       await productService.createProduct(payload);
       await get().loadProducts();
-    } catch (error) {
-      throw new Error(getErrorMessage(error));
-    } finally {
-      set({ saving: false });
-    }
+    });
   },
 
   updateProduct: async (id, payload) => {
-    set({ saving: true });
-    try {
+    await runStoreTaskWithFlag(set, "saving", async () => {
       await productService.updateProduct(id, payload);
       await get().loadProducts();
-    } catch (error) {
-      throw new Error(getErrorMessage(error));
-    } finally {
-      set({ saving: false });
-    }
+    });
   },
 
   deleteProduct: async (id) => {
-    set({ saving: true });
-    try {
+    await runStoreTaskWithFlag(set, "saving", async () => {
       await productService.deleteProduct(id);
       await get().loadProducts();
-    } catch (error) {
-      throw new Error(getErrorMessage(error));
-    } finally {
-      set({ saving: false });
-    }
+    });
   },
 
   uploadProductImage: async (file) => {
-    try {
-      return await productService.uploadProductImage(file);
-    } catch (error) {
-      throw new Error(getErrorMessage(error));
-    }
+    return runStoreTask(() => productService.uploadProductImage(file));
   },
 
   exportProductsCsv: async (params = {}) => {
-    try {
-      return await productService.exportProductsCsv(params);
-    } catch (error) {
-      throw new Error(getErrorMessage(error));
-    }
+    return runStoreTask(() => productService.exportProductsCsv(params));
   },
 
   downloadProductsImportTemplateCsv: async () => {
-    try {
-      return await productService.downloadProductsImportTemplateCsv();
-    } catch (error) {
-      throw new Error(getErrorMessage(error));
-    }
+    return runStoreTask(() => productService.downloadProductsImportTemplateCsv());
   },
 
   importProductsCsv: async (file) => {
-    try {
-      return await productService.importProductsCsv(file);
-    } catch (error) {
-      throw new Error(getErrorMessage(error));
-    }
+    return runStoreTask(() => productService.importProductsCsv(file));
   },
 
   fetchProducts: async (params = {}) => {
-    try {
-      return await productService.getProducts(params);
-    } catch (error) {
-      throw new Error(getErrorMessage(error));
-    }
+    return runStoreTask(() => productService.getProducts(params));
   },
 }));
 

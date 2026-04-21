@@ -4,7 +4,7 @@ import {
   type BlogPayload,
   type BlogPost,
 } from "../services/blogService";
-import { getErrorMessage } from "../utils/errorMessage";
+import { runStoreTask, runStoreTaskWithFlag } from "./storeAsync";
 
 export type BlogStatusFilter = "all" | "published" | "unpublished";
 
@@ -61,8 +61,7 @@ export const useBlogStore = create<BlogState>((set, get) => ({
     const nextStatusFilter = params?.statusFilter ?? state.statusFilter;
     const query = nextKeyword.trim();
 
-    set({ loading: true });
-    try {
+    await runStoreTaskWithFlag(set, "loading", async () => {
       const result = await blogService.getBlogs({
         page: nextPage,
         limit: nextPageSize,
@@ -78,55 +77,31 @@ export const useBlogStore = create<BlogState>((set, get) => ({
         keyword: nextKeyword,
         statusFilter: nextStatusFilter,
       });
-    } catch (error) {
-      throw new Error(getErrorMessage(error));
-    } finally {
-      set({ loading: false });
-    }
+    });
   },
 
   setKeyword: (keyword) => set({ keyword }),
   setStatusFilter: (statusFilter) => set({ statusFilter }),
 
   createBlog: async (payload) => {
-    set({ saving: true });
-    try {
+    await runStoreTaskWithFlag(set, "saving", async () => {
       await blogService.createBlog(payload);
-    } catch (error) {
-      throw new Error(getErrorMessage(error));
-    } finally {
-      set({ saving: false });
-    }
+    });
   },
 
   updateBlog: async (id, payload) => {
-    set({ saving: true });
-    try {
+    await runStoreTaskWithFlag(set, "saving", async () => {
       await blogService.updateBlog(id, payload);
-    } catch (error) {
-      throw new Error(getErrorMessage(error));
-    } finally {
-      set({ saving: false });
-    }
+    });
   },
 
   deleteBlog: async (id) => {
-    set({ saving: true });
-    try {
+    await runStoreTaskWithFlag(set, "saving", async () => {
       await blogService.deleteBlog(id);
-    } catch (error) {
-      throw new Error(getErrorMessage(error));
-    } finally {
-      set({ saving: false });
-    }
+    });
   },
 
   uploadBlogImage: async (file) => {
-    try {
-      return await blogService.uploadBlogImage(file);
-    } catch (error) {
-      throw new Error(getErrorMessage(error));
-    }
+    return runStoreTask(() => blogService.uploadBlogImage(file));
   },
 }));
-

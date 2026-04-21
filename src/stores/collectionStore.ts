@@ -1,10 +1,10 @@
 import { create } from "zustand";
-import { getErrorMessage } from "../utils/errorMessage";
 import {
   collectionService,
   type Collection,
   type CollectionPayload,
 } from "../services/collectionService";
+import { runStoreTask, runStoreTaskWithFlag } from "./storeAsync";
 
 export type CollectionStatusFilter = "all" | "active" | "inactive";
 
@@ -59,8 +59,7 @@ export const useCollectionStore = create<CollectionState>((set, get) => ({
     const nextStatus = params?.statusFilter ?? state.statusFilter;
     const isActive = toIsActive(nextStatus);
 
-    set({ loading: true });
-    try {
+    await runStoreTaskWithFlag(set, "loading", async () => {
       const query = nextKeyword.trim();
       const result = query
         ? await collectionService.searchCollections(query, nextPage, nextPageSize, isActive)
@@ -78,57 +77,34 @@ export const useCollectionStore = create<CollectionState>((set, get) => ({
         keyword: nextKeyword,
         statusFilter: nextStatus,
       });
-    } catch (error) {
-      throw new Error(getErrorMessage(error));
-    } finally {
-      set({ loading: false });
-    }
+    });
   },
 
   setKeyword: (keyword) => set({ keyword }),
   setStatusFilter: (statusFilter) => set({ statusFilter }),
 
   createCollection: async (payload) => {
-    set({ saving: true });
-    try {
+    await runStoreTaskWithFlag(set, "saving", async () => {
       await collectionService.createCollection(payload);
       await get().loadCollections();
-    } catch (error) {
-      throw new Error(getErrorMessage(error));
-    } finally {
-      set({ saving: false });
-    }
+    });
   },
 
   updateCollection: async (id, payload) => {
-    set({ saving: true });
-    try {
+    await runStoreTaskWithFlag(set, "saving", async () => {
       await collectionService.updateCollection(id, payload);
       await get().loadCollections();
-    } catch (error) {
-      throw new Error(getErrorMessage(error));
-    } finally {
-      set({ saving: false });
-    }
+    });
   },
 
   deleteCollection: async (id) => {
-    set({ saving: true });
-    try {
+    await runStoreTaskWithFlag(set, "saving", async () => {
       await collectionService.deleteCollection(id);
       await get().loadCollections();
-    } catch (error) {
-      throw new Error(getErrorMessage(error));
-    } finally {
-      set({ saving: false });
-    }
+    });
   },
 
   uploadCollectionImage: async (file) => {
-    try {
-      return await collectionService.uploadCollectionImage(file);
-    } catch (error) {
-      throw new Error(getErrorMessage(error));
-    }
+    return runStoreTask(() => collectionService.uploadCollectionImage(file));
   },
 }));

@@ -1,11 +1,11 @@
 import { create } from "zustand";
-import { getErrorMessage } from "../utils/errorMessage";
 import {
   reviewService,
   type ReviewItem,
   type ReviewStatus,
   type UpdateReviewPayload,
 } from "../services/reviewService";
+import { runStoreTaskWithFlag } from "./storeAsync";
 
 type ReviewStats = {
   count: number;
@@ -68,8 +68,7 @@ export const useReviewStore = create<ReviewState>((set, get) => ({
     const nextIncludeRejected = params?.includeRejected ?? state.includeRejected;
     const nextSearch = params?.search ?? "";
 
-    set({ loading: true });
-    try {
+    await runStoreTaskWithFlag(set, "loading", async () => {
       const result = await reviewService.getReviews({
         page: nextPage,
         limit: nextPageSize,
@@ -89,11 +88,7 @@ export const useReviewStore = create<ReviewState>((set, get) => ({
         includePending: nextIncludePending,
         includeRejected: nextIncludeRejected,
       });
-    } catch (error) {
-      throw new Error(getErrorMessage(error));
-    } finally {
-      set({ loading: false });
-    }
+    });
   },
 
   setProductId: (productId) => set({ productId }),
@@ -101,8 +96,7 @@ export const useReviewStore = create<ReviewState>((set, get) => ({
   setIncludeRejected: (value) => set({ includeRejected: value }),
 
   updateReview: async (id, payload) => {
-    set({ saving: true });
-    try {
+    await runStoreTaskWithFlag(set, "saving", async () => {
       await reviewService.updateReview(id, payload);
       const state = get();
       await state.loadReviews({
@@ -112,11 +106,7 @@ export const useReviewStore = create<ReviewState>((set, get) => ({
         includePending: state.includePending,
         includeRejected: state.includeRejected,
       });
-    } catch (error) {
-      throw new Error(getErrorMessage(error));
-    } finally {
-      set({ saving: false });
-    }
+    });
   },
 
   updateReviewStatus: async (id, status) => {
@@ -128,8 +118,7 @@ export const useReviewStore = create<ReviewState>((set, get) => ({
   },
 
   deleteReview: async (id) => {
-    set({ saving: true });
-    try {
+    await runStoreTaskWithFlag(set, "saving", async () => {
       await reviewService.deleteReview(id);
       const state = get();
       await state.loadReviews({
@@ -139,11 +128,7 @@ export const useReviewStore = create<ReviewState>((set, get) => ({
         includePending: state.includePending,
         includeRejected: state.includeRejected,
       });
-    } catch (error) {
-      throw new Error(getErrorMessage(error));
-    } finally {
-      set({ saving: false });
-    }
+    });
   },
 }));
 

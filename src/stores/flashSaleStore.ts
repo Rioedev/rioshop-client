@@ -1,11 +1,11 @@
 import { create } from "zustand";
-import { getErrorMessage } from "../utils/errorMessage";
 import {
   flashSaleService,
   type CreateFlashSalePayload,
   type FlashSale,
   type UpdateFlashSalePayload,
 } from "../services/flashSaleService";
+import { runStoreTaskWithFlag } from "./storeAsync";
 
 type FlashSaleState = {
   flashSales: FlashSale[];
@@ -46,8 +46,7 @@ export const useFlashSaleStore = create<FlashSaleState>((set, get) => ({
     const nextCurrentOnly = params?.currentOnly ?? state.currentOnly;
     const nextIsActiveFilter = params?.isActiveFilter ?? state.isActiveFilter;
 
-    set({ loading: true });
-    try {
+    await runStoreTaskWithFlag(set, "loading", async () => {
       const result = await flashSaleService.getFlashSales({
         page: nextPage,
         limit: nextPageSize,
@@ -63,19 +62,14 @@ export const useFlashSaleStore = create<FlashSaleState>((set, get) => ({
         currentOnly: nextCurrentOnly,
         isActiveFilter: nextIsActiveFilter,
       });
-    } catch (error) {
-      throw new Error(getErrorMessage(error));
-    } finally {
-      set({ loading: false });
-    }
+    });
   },
 
   setCurrentOnly: (currentOnly) => set({ currentOnly }),
   setIsActiveFilter: (isActiveFilter) => set({ isActiveFilter }),
 
   createFlashSale: async (payload) => {
-    set({ saving: true });
-    try {
+    await runStoreTaskWithFlag(set, "saving", async () => {
       await flashSaleService.createFlashSale(payload);
       const state = get();
       await state.loadFlashSales({
@@ -84,16 +78,11 @@ export const useFlashSaleStore = create<FlashSaleState>((set, get) => ({
         currentOnly: state.currentOnly,
         isActiveFilter: state.isActiveFilter,
       });
-    } catch (error) {
-      throw new Error(getErrorMessage(error));
-    } finally {
-      set({ saving: false });
-    }
+    });
   },
 
   updateFlashSale: async (id, payload) => {
-    set({ saving: true });
-    try {
+    await runStoreTaskWithFlag(set, "saving", async () => {
       await flashSaleService.updateFlashSale(id, payload);
       const state = get();
       await state.loadFlashSales({
@@ -102,16 +91,11 @@ export const useFlashSaleStore = create<FlashSaleState>((set, get) => ({
         currentOnly: state.currentOnly,
         isActiveFilter: state.isActiveFilter,
       });
-    } catch (error) {
-      throw new Error(getErrorMessage(error));
-    } finally {
-      set({ saving: false });
-    }
+    });
   },
 
   deleteFlashSale: async (id) => {
-    set({ saving: true });
-    try {
+    await runStoreTaskWithFlag(set, "saving", async () => {
       await flashSaleService.deleteFlashSale(id);
       const state = get();
       await state.loadFlashSales({
@@ -120,11 +104,7 @@ export const useFlashSaleStore = create<FlashSaleState>((set, get) => ({
         currentOnly: state.currentOnly,
         isActiveFilter: state.isActiveFilter,
       });
-    } catch (error) {
-      throw new Error(getErrorMessage(error));
-    } finally {
-      set({ saving: false });
-    }
+    });
   },
 }));
 

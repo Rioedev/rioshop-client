@@ -1,6 +1,6 @@
 import { create } from "zustand";
-import { getErrorMessage } from "../utils/errorMessage";
 import { categoryService, type Category, type CategoryPayload } from "../services/categoryService";
+import { runStoreTask, runStoreTaskWithFlag } from "./storeAsync";
 
 export type CategoryStatusFilter = "all" | "active" | "inactive";
 
@@ -60,8 +60,7 @@ export const useCategoryStore = create<CategoryState>((set, get) => ({
     const nextStatus = params?.statusFilter ?? state.statusFilter;
     const isActive = toIsActive(nextStatus);
 
-    set({ loading: true });
-    try {
+    await runStoreTaskWithFlag(set, "loading", async () => {
       const query = nextKeyword.trim();
       const result = query
         ? await categoryService.searchCategories(query, nextPage, nextPageSize, isActive)
@@ -79,11 +78,7 @@ export const useCategoryStore = create<CategoryState>((set, get) => ({
         keyword: nextKeyword,
         statusFilter: nextStatus,
       });
-    } catch (error) {
-      throw new Error(getErrorMessage(error));
-    } finally {
-      set({ loading: false });
-    }
+    });
   },
 
   loadCategoryTree: async () => {
@@ -95,47 +90,28 @@ export const useCategoryStore = create<CategoryState>((set, get) => ({
   setStatusFilter: (statusFilter) => set({ statusFilter }),
 
   createCategory: async (payload) => {
-    set({ saving: true });
-    try {
+    await runStoreTaskWithFlag(set, "saving", async () => {
       await categoryService.createCategory(payload);
       await Promise.all([get().loadCategories(), get().loadCategoryTree()]);
-    } catch (error) {
-      throw new Error(getErrorMessage(error));
-    } finally {
-      set({ saving: false });
-    }
+    });
   },
 
   updateCategory: async (id, payload) => {
-    set({ saving: true });
-    try {
+    await runStoreTaskWithFlag(set, "saving", async () => {
       await categoryService.updateCategory(id, payload);
       await Promise.all([get().loadCategories(), get().loadCategoryTree()]);
-    } catch (error) {
-      throw new Error(getErrorMessage(error));
-    } finally {
-      set({ saving: false });
-    }
+    });
   },
 
   deleteCategory: async (id) => {
-    set({ saving: true });
-    try {
+    await runStoreTaskWithFlag(set, "saving", async () => {
       await categoryService.deleteCategory(id);
       await Promise.all([get().loadCategories(), get().loadCategoryTree()]);
-    } catch (error) {
-      throw new Error(getErrorMessage(error));
-    } finally {
-      set({ saving: false });
-    }
+    });
   },
 
   uploadCategoryImage: async (file) => {
-    try {
-      return await categoryService.uploadCategoryImage(file);
-    } catch (error) {
-      throw new Error(getErrorMessage(error));
-    }
+    return runStoreTask(() => categoryService.uploadCategoryImage(file));
   },
 }));
 

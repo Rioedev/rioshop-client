@@ -1,6 +1,5 @@
 import { AxiosError } from "axios";
 import { create } from "zustand";
-import { getErrorMessage } from "../utils/errorMessage";
 import {
   customerUserService,
   type CreateCustomerPayload,
@@ -10,6 +9,7 @@ import {
   type CustomerUser,
   type UpdateCustomerPayload,
 } from "../services/customerUserService";
+import { runStoreTaskWithFlag } from "./storeAsync";
 
 export type CustomerDeletedFilter = "active_only" | "deleted_only";
 
@@ -67,49 +67,48 @@ export const useCustomerUserStore = create<CustomerUserState>((set, get) => ({
     const nextLoyaltyTierFilter = params?.loyaltyTierFilter ?? state.loyaltyTierFilter;
     const nextDeletedFilter = params?.deletedFilter ?? state.deletedFilter;
 
-    set({ loading: true });
-    try {
-      const result = await customerUserService.getCustomers({
-        page: nextPage,
-        limit: nextPageSize,
-        search: nextKeyword,
-        status: nextStatusFilter,
-        loyaltyTier: nextLoyaltyTierFilter,
-        isDeleted: nextDeletedFilter === "deleted_only" ? true : undefined,
-      });
-
-      set({
-        customers: result.docs,
-        total: result.totalDocs,
-        page: result.page,
-        pageSize: result.limit,
-        keyword: nextKeyword,
-        statusFilter: nextStatusFilter,
-        loyaltyTierFilter: nextLoyaltyTierFilter,
-        deletedFilter: nextDeletedFilter,
-        isForbidden: false,
-      });
-    } catch (error) {
-      const axiosError = error as AxiosError;
-      if (axiosError.response?.status === 403) {
-        set({
-          customers: [],
-          total: 0,
-          isForbidden: true,
+    await runStoreTaskWithFlag(set, "loading", async () => {
+      try {
+        const result = await customerUserService.getCustomers({
           page: nextPage,
-          pageSize: nextPageSize,
+          limit: nextPageSize,
+          search: nextKeyword,
+          status: nextStatusFilter,
+          loyaltyTier: nextLoyaltyTierFilter,
+          isDeleted: nextDeletedFilter === "deleted_only" ? true : undefined,
+        });
+
+        set({
+          customers: result.docs,
+          total: result.totalDocs,
+          page: result.page,
+          pageSize: result.limit,
           keyword: nextKeyword,
           statusFilter: nextStatusFilter,
           loyaltyTierFilter: nextLoyaltyTierFilter,
           deletedFilter: nextDeletedFilter,
+          isForbidden: false,
         });
-        return;
-      }
+      } catch (error) {
+        const axiosError = error as AxiosError;
+        if (axiosError.response?.status === 403) {
+          set({
+            customers: [],
+            total: 0,
+            isForbidden: true,
+            page: nextPage,
+            pageSize: nextPageSize,
+            keyword: nextKeyword,
+            statusFilter: nextStatusFilter,
+            loyaltyTierFilter: nextLoyaltyTierFilter,
+            deletedFilter: nextDeletedFilter,
+          });
+          return;
+        }
 
-      throw new Error(getErrorMessage(error));
-    } finally {
-      set({ loading: false });
-    }
+        throw error;
+      }
+    });
   },
 
   setKeyword: (keyword) => set({ keyword }),
@@ -120,51 +119,31 @@ export const useCustomerUserStore = create<CustomerUserState>((set, get) => ({
   setPageSize: (pageSize) => set({ pageSize }),
 
   createCustomer: async (payload) => {
-    set({ saving: true });
-    try {
+    await runStoreTaskWithFlag(set, "saving", async () => {
       await customerUserService.createCustomer(payload);
       await get().loadCustomers();
-    } catch (error) {
-      throw new Error(getErrorMessage(error));
-    } finally {
-      set({ saving: false });
-    }
+    });
   },
 
   updateCustomer: async (id, payload) => {
-    set({ saving: true });
-    try {
+    await runStoreTaskWithFlag(set, "saving", async () => {
       await customerUserService.updateCustomer(id, payload);
       await get().loadCustomers();
-    } catch (error) {
-      throw new Error(getErrorMessage(error));
-    } finally {
-      set({ saving: false });
-    }
+    });
   },
 
   updateCustomerStatus: async (id, status) => {
-    set({ saving: true });
-    try {
+    await runStoreTaskWithFlag(set, "saving", async () => {
       await customerUserService.updateCustomerStatus(id, status);
       await get().loadCustomers();
-    } catch (error) {
-      throw new Error(getErrorMessage(error));
-    } finally {
-      set({ saving: false });
-    }
+    });
   },
 
   softDeleteCustomer: async (id) => {
-    set({ saving: true });
-    try {
+    await runStoreTaskWithFlag(set, "saving", async () => {
       await customerUserService.softDeleteCustomer(id);
       await get().loadCustomers();
-    } catch (error) {
-      throw new Error(getErrorMessage(error));
-    } finally {
-      set({ saving: false });
-    }
+    });
   },
 }));
 
