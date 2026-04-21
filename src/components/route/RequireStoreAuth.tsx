@@ -1,25 +1,12 @@
-import { Spin } from "antd";
-import { Navigate, Outlet, useLocation } from "react-router-dom";
-import { useAuthStore } from "../../stores/authStore";
+import { createRouteGuard } from "./createRouteGuard";
 
-export function RequireStoreAuth() {
-  const location = useLocation();
-  const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
-  const isHydrated = useAuthStore((state) => state.isHydrated);
+export const RequireStoreAuth = createRouteGuard({
+  strategy: ({ isAuthenticated, pathname, search }) => {
+    if (!isAuthenticated) {
+      const redirectPath = `${pathname}${search}`;
+      return `/login?redirect=${encodeURIComponent(redirectPath)}`;
+    }
 
-  if (!isHydrated) {
-    return (
-      <div className="flex min-h-screen items-center justify-center">
-        <Spin size="large" />
-      </div>
-    );
-  }
-
-  if (!isAuthenticated) {
-    const redirectPath = `${location.pathname}${location.search}`;
-    return <Navigate to={`/login?redirect=${encodeURIComponent(redirectPath)}`} replace />;
-  }
-
-  return <Outlet />;
-}
-
+    return null;
+  },
+});

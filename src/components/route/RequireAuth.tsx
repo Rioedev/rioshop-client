@@ -1,29 +1,16 @@
-import { Spin } from "antd";
-import { Navigate, Outlet, useLocation } from "react-router-dom";
-import { useAuthStore } from "../../stores/authStore";
+import { createRouteGuard } from "./createRouteGuard";
 
-export function RequireAuth() {
-  const location = useLocation();
-  const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
-  const isHydrated = useAuthStore((state) => state.isHydrated);
-  const accountType = useAuthStore((state) => state.accountType);
+export const RequireAuth = createRouteGuard({
+  strategy: ({ isAuthenticated, accountType, pathname, search }) => {
+    if (!isAuthenticated) {
+      const redirectPath = `${pathname}${search}`;
+      return `/admin/login?redirect=${encodeURIComponent(redirectPath)}`;
+    }
 
-  if (!isHydrated) {
-    return (
-      <div className="flex min-h-screen items-center justify-center">
-        <Spin size="large" />
-      </div>
-    );
-  }
+    if (accountType !== "admin") {
+      return "/";
+    }
 
-  if (!isAuthenticated) {
-    const redirectPath = `${location.pathname}${location.search}`;
-    return <Navigate to={`/admin/login?redirect=${encodeURIComponent(redirectPath)}`} replace />;
-  }
-
-  if (accountType !== "admin") {
-    return <Navigate to="/" replace />;
-  }
-
-  return <Outlet />;
-}
+    return null;
+  },
+});
