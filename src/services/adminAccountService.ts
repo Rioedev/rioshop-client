@@ -1,11 +1,6 @@
 import { apiClient } from "./apiClient";
+import { type ApiResponse } from "./apiTypes";
 import type { AdminRole } from "./authService";
-
-type ApiResponse<T> = {
-  success: boolean;
-  message: string;
-  data: T;
-};
 
 type AdminAccountApiItem = {
   _id?: string;

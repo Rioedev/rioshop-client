@@ -1,10 +1,5 @@
 import { apiClient } from "./apiClient";
-
-type ApiResponse<T> = {
-  success: boolean;
-  message: string;
-  data: T;
-};
+import { type ApiResponse } from "./apiTypes";
 
 export type ReviewStatus = "pending" | "approved" | "rejected";
 export type ReviewFit = "true_to_size" | "runs_small" | "runs_large";

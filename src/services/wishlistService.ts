@@ -1,11 +1,6 @@
 import { apiClient } from "./apiClient";
+import { type ApiResponse } from "./apiTypes";
 import type { WishlistItem } from "../stores/wishlistStore";
-
-type ApiResponse<T> = {
-  success: boolean;
-  message: string;
-  data: T;
-};
 
 type WishlistApiItem = {
   productId?: string | { _id?: string };

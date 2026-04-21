@@ -1,4 +1,5 @@
 import { AxiosError } from "axios";
+import { repairMojibakeText } from "./mojibake";
 
 type ErrorResponseShape = {
   message?: string;
@@ -7,190 +8,162 @@ type ErrorResponseShape = {
 };
 
 const HTTP_STATUS_MESSAGE_MAP: Record<number, string> = {
-  400: "Du lieu gui len chua hop le. Vui long kiem tra lai thong tin.",
-  401: "Phien dang nhap da het han hoac khong hop le. Vui long dang nhap lai.",
-  403: "Ban khong co quyen thuc hien thao tac nay.",
-  404: "Khong tim thay du lieu yeu cau.",
-  409: "Du lieu xung dot hoac da ton tai. Vui long kiem tra lai.",
-  422: "Du lieu nhap chua dung dinh dang.",
-  429: "Ban thao tac qua nhanh. Vui long thu lai sau it phut.",
-  500: "He thong dang ban. Vui long thu lai sau.",
-  502: "Dich vu tam thoi gian doan. Vui long thu lai sau.",
-  503: "Dich vu tam thoi khong kha dung. Vui long thu lai sau.",
-  504: "He thong phan hoi qua cham. Vui long thu lai sau.",
+  400: "Dữ liệu gửi lên chưa hợp lệ. Vui lòng kiểm tra lại thông tin.",
+  401: "Phiên đăng nhập đã hết hạn hoặc không hợp lệ. Vui lòng đăng nhập lại.",
+  403: "Bạn không có quyền thực hiện thao tác này.",
+  404: "Không tìm thấy dữ liệu yêu cầu.",
+  409: "Dữ liệu xung đột hoặc đã tồn tại. Vui lòng kiểm tra lại.",
+  422: "Dữ liệu nhập chưa đúng định dạng.",
+  429: "Bạn thao tác quá nhanh. Vui lòng thử lại sau ít phút.",
+  500: "Hệ thống đang bận. Vui lòng thử lại sau.",
+  502: "Dịch vụ tạm thời gián đoạn. Vui lòng thử lại sau.",
+  503: "Dịch vụ tạm thời không khả dụng. Vui lòng thử lại sau.",
+  504: "Hệ thống phản hồi quá chậm. Vui lòng thử lại sau.",
 };
 
 const EXACT_MESSAGE_MAP: Record<string, string> = {
-  "email or password incorrect": "Email hoac mat khau khong dung.",
-  "account is not active": "Tai khoan hien chua duoc kich hoat.",
-  "invalid token": "Phien dang nhap khong hop le. Vui long dang nhap lai.",
-  "user not found": "Khong tim thay tai khoan nguoi dung.",
-  "current password is incorrect": "Mat khau hien tai khong dung.",
-  "reset token expired or invalid": "Lien ket dat lai mat khau da het han hoac khong hop le.",
-  "invalid reset token": "Ma dat lai mat khau khong hop le.",
-  "email already in use": "Email nay da duoc su dung.",
-  "phone already in use": "So dien thoai nay da duoc su dung.",
-  "admin email already exists": "Email quan tri da ton tai.",
-  "admin not found": "Khong tim thay tai khoan quan tri.",
-  "cannot delete your own admin account": "Ban khong the tu xoa tai khoan quan tri cua minh.",
-  "cart item not found": "Khong tim thay san pham trong gio hang.",
-  "item quantity is invalid": "So luong san pham khong hop le.",
-  "coupon code is required": "Vui long nhap ma giam gia.",
-  "cannot apply coupon to empty cart": "Khong the ap dung ma giam gia khi gio hang trong.",
-  "invalid cart item payload": "Du lieu san pham trong gio hang khong hop le.",
-  "cart item id is required": "Thieu ma dinh danh san pham trong gio hang.",
-  "product not found": "Khong tim thay san pham.",
-  "product is unavailable": "San pham hien khong kha dung.",
-  "variant not found or inactive": "Bien the san pham khong ton tai hoac da ngung ban.",
-  "brand config already exists": "Cau hinh thuong hieu da ton tai.",
-  "coupon not found": "Khong tim thay ma giam gia.",
-  "coupon date range is invalid": "Khoang thoi gian cua ma giam gia khong hop le.",
-  "startsat must be before expiresat": "Thoi gian bat dau phai truoc thoi gian ket thuc.",
-  "coupon code already exists": "Ma giam gia da ton tai.",
-  "flash sale not found": "Khong tim thay chuong trinh Flash Sale.",
-  "flash sale is not active": "Chuong trinh Flash Sale hien chua hoat dong.",
-  "flash sale slot not found": "Khong tim thay khung gio Flash Sale.",
-  "quantity must be greater than zero": "So luong phai lon hon 0.",
-  "flash sale stock limit exceeded": "So luong vuot qua gioi han ton kho Flash Sale.",
-  "invalid flash sale date range": "Khoang thoi gian Flash Sale khong hop le.",
-  "flash sale end date must be later than start date": "Thoi gian ket thuc Flash Sale phai sau thoi gian bat dau.",
-  "inventory record not found": "Khong tim thay du lieu ton kho.",
-  "variant sku does not belong to selected product": "Ma SKU bien the khong thuoc san pham da chon.",
-  "only single warehouse mode is allowed": "He thong chi ho tro mot kho duy nhat.",
-  "notification not found": "Khong tim thay thong bao.",
-  "order not found": "Khong tim thay don hang.",
-  "order has already been paid": "Don hang nay da duoc thanh toan.",
-  "cannot initiate payment for this order status": "Khong the tao thanh toan voi trang thai don hang hien tai.",
-  "payment method is required": "Vui long chon phuong thuc thanh toan.",
-  "payment amount is invalid": "So tien thanh toan khong hop le.",
-  "unsupported payment method": "Phuong thuc thanh toan chua duoc ho tro.",
-  "payment not found for webhook payload": "Khong tim thay giao dich thanh toan tuong ung.",
-  "payment not found": "Khong tim thay giao dich thanh toan.",
-  "refund amount is invalid": "So tien hoan khong hop le.",
-  "order must contain at least one item": "Don hang phai co it nhat mot san pham.",
-  "invalid order status": "Trang thai don hang khong hop le.",
-  "failed to create order": "Khong the tao don hang. Vui long thu lai.",
-  "failed to update order status": "Khong the cap nhat trang thai don hang.",
-  "order can no longer be cancelled": "Don hang nay khong the huy nua.",
-  "failed to cancel order": "Khong the huy don hang.",
-  "only customer can submit return request": "Chi khach hang moi co the gui yeu cau doi hang.",
-  "invalid return request type": "Loai yeu cau doi hang khong hop le.",
-  "only exchange request is supported": "He thong hien chi ho tro yeu cau doi hang.",
-  "return request reason is required": "Vui long nhap ly do doi hang.",
+  "email or password incorrect": "Email hoặc mật khẩu không đúng.",
+  "account is not active": "Tài khoản hiện chưa được kích hoạt.",
+  "invalid token": "Phiên đăng nhập không hợp lệ. Vui lòng đăng nhập lại.",
+  "user not found": "Không tìm thấy tài khoản người dùng.",
+  "current password is incorrect": "Mật khẩu hiện tại không đúng.",
+  "reset token expired or invalid": "Liên kết đặt lại mật khẩu đã hết hạn hoặc không hợp lệ.",
+  "invalid reset token": "Mã đặt lại mật khẩu không hợp lệ.",
+  "email already in use": "Email này đã được sử dụng.",
+  "phone already in use": "Số điện thoại này đã được sử dụng.",
+  "admin email already exists": "Email quản trị đã tồn tại.",
+  "admin not found": "Không tìm thấy tài khoản quản trị.",
+  "cannot delete your own admin account": "Bạn không thể tự xóa tài khoản quản trị của mình.",
+  "cart item not found": "Không tìm thấy sản phẩm trong giỏ hàng.",
+  "item quantity is invalid": "Số lượng sản phẩm không hợp lệ.",
+  "coupon code is required": "Vui lòng nhập mã giảm giá.",
+  "cannot apply coupon to empty cart": "Không thể áp dụng mã giảm giá khi giỏ hàng trống.",
+  "invalid cart item payload": "Dữ liệu sản phẩm trong giỏ hàng không hợp lệ.",
+  "cart item id is required": "Thiếu mã định danh sản phẩm trong giỏ hàng.",
+  "product not found": "Không tìm thấy sản phẩm.",
+  "product is unavailable": "Sản phẩm hiện không khả dụng.",
+  "variant not found or inactive": "Biến thể sản phẩm không tồn tại hoặc đã ngừng bán.",
+  "brand config already exists": "Cấu hình thương hiệu đã tồn tại.",
+  "coupon not found": "Không tìm thấy mã giảm giá.",
+  "coupon date range is invalid": "Khoảng thời gian của mã giảm giá không hợp lệ.",
+  "startsat must be before expiresat": "Thời gian bắt đầu phải trước thời gian kết thúc.",
+  "coupon code already exists": "Mã giảm giá đã tồn tại.",
+  "flash sale not found": "Không tìm thấy chương trình Flash Sale.",
+  "flash sale is not active": "Chương trình Flash Sale hiện chưa hoạt động.",
+  "flash sale slot not found": "Không tìm thấy khung giờ Flash Sale.",
+  "quantity must be greater than zero": "Số lượng phải lớn hơn 0.",
+  "flash sale stock limit exceeded": "Số lượng vượt quá giới hạn tồn kho Flash Sale.",
+  "invalid flash sale date range": "Khoảng thời gian Flash Sale không hợp lệ.",
+  "flash sale end date must be later than start date": "Thời gian kết thúc Flash Sale phải sau thời gian bắt đầu.",
+  "inventory record not found": "Không tìm thấy dữ liệu tồn kho.",
+  "variant sku does not belong to selected product": "Mã SKU biến thể không thuộc sản phẩm đã chọn.",
+  "only single warehouse mode is allowed": "Hệ thống chỉ hỗ trợ một kho duy nhất.",
+  "notification not found": "Không tìm thấy thông báo.",
+  "order not found": "Không tìm thấy đơn hàng.",
+  "order has already been paid": "Đơn hàng này đã được thanh toán.",
+  "cannot initiate payment for this order status": "Không thể tạo thanh toán với trạng thái đơn hàng hiện tại.",
+  "payment method is required": "Vui lòng chọn phương thức thanh toán.",
+  "payment amount is invalid": "Số tiền thanh toán không hợp lệ.",
+  "unsupported payment method": "Phương thức thanh toán chưa được hỗ trợ.",
+  "payment not found for webhook payload": "Không tìm thấy giao dịch thanh toán tương ứng.",
+  "payment not found": "Không tìm thấy giao dịch thanh toán.",
+  "refund amount is invalid": "Số tiền hoàn không hợp lệ.",
+  "order must contain at least one item": "Đơn hàng phải có ít nhất một sản phẩm.",
+  "invalid order status": "Trạng thái đơn hàng không hợp lệ.",
+  "failed to create order": "Không thể tạo đơn hàng. Vui lòng thử lại.",
+  "failed to update order status": "Không thể cập nhật trạng thái đơn hàng.",
+  "order can no longer be cancelled": "Đơn hàng này không thể hủy nữa.",
+  "failed to cancel order": "Không thể hủy đơn hàng.",
+  "only customer can submit return request": "Chỉ khách hàng mới có thể gửi yêu cầu đổi hàng.",
+  "invalid return request type": "Loại yêu cầu đổi hàng không hợp lệ.",
+  "only exchange request is supported": "Hệ thống hiện chỉ hỗ trợ yêu cầu đổi hàng.",
+  "return request reason is required": "Vui lòng nhập lý do đổi hàng.",
   "return request is only allowed for delivered or completed orders":
-    "Chi duoc gui yeu cau doi hang sau khi don da giao thanh cong.",
-  "a return request is already in progress": "Don hang nay da co yeu cau doi hang dang duoc xu ly.",
-  "invalid return request status": "Trang thai yeu cau doi hang khong hop le.",
-  "order does not have return request": "Don hang nay chua co yeu cau doi hang.",
-  "only admin can update return request status": "Chi quan tri vien moi duoc cap nhat yeu cau doi hang.",
+    "Chỉ được gửi yêu cầu đổi hàng sau khi đơn đã giao thành công.",
+  "a return request is already in progress": "Đơn hàng này đã có yêu cầu đổi hàng đang được xử lý.",
+  "invalid return request status": "Trạng thái yêu cầu đổi hàng không hợp lệ.",
+  "order does not have return request": "Đơn hàng này chưa có yêu cầu đổi hàng.",
+  "only admin can update return request status": "Chỉ quản trị viên mới được cập nhật yêu cầu đổi hàng.",
   "return request can only be completed after order is marked returned":
-    "Yeu cau doi hang chi hoan tat sau khi don duoc xu ly dung quy trinh.",
-  "failed to update return request status": "Khong the cap nhat yeu cau doi hang. Vui long thu lai.",
+    "Yêu cầu đổi hàng chỉ hoàn tất sau khi đơn được xử lý đúng quy trình.",
+  "failed to update return request status": "Không thể cập nhật yêu cầu đổi hàng. Vui lòng thử lại.",
   "cannot determine delivered date for this order":
-    "Khong xac dinh duoc thoi diem giao hang de kiem tra han doi hang.",
+    "Không xác định được thời điểm giao hàng để kiểm tra hạn đổi hàng.",
   "return request period expired (3 day(s) after delivery)":
-    "Don hang da qua han doi hang 3 ngay ke tu luc giao thanh cong.",
-  "invalid order item payload": "Du lieu san pham trong don hang khong hop le.",
-  "inventory reserved underflow": "Du lieu giu kho khong hop le.",
-  "order not found for ghn shipment creation": "Khong tim thay don hang de tao van don GHN.",
+    "Đơn hàng đã quá hạn đổi hàng (3 ngày kể từ lúc giao thành công).",
+  "invalid order item payload": "Dữ liệu sản phẩm trong đơn hàng không hợp lệ.",
+  "inventory reserved underflow": "Dữ liệu giữ kho không hợp lệ.",
+  "order not found for ghn shipment creation": "Không tìm thấy đơn hàng để tạo vận đơn GHN.",
   "cannot create ghn shipment: missing recipient name or phone":
-    "Thieu ten hoac so dien thoai nguoi nhan de tao van don GHN.",
-  "ghn did not return tracking code for shipment": "GHN chua tra ve ma van don.",
+    "Thiếu tên hoặc số điện thoại người nhận để tạo vận đơn GHN.",
+  "ghn did not return tracking code for shipment": "GHN chưa trả về mã vận đơn.",
   "customer name is required for guest checkout":
-    "Vui long nhap ten nguoi nhan khi dat hang khong can dang nhap.",
-  "failed to generate order number": "Khong the tao ma don hang. Vui long thu lai.",
-  "product sku could not be generated": "Khong the tao SKU san pham.",
-  "sku already exists": "SKU da ton tai.",
-  "review not found": "Khong tim thay danh gia.",
-  "invalid review status": "Trang thai danh gia khong hop le.",
-  "shipment not found": "Khong tim thay van don.",
-  "tracking code is missing in webhook payload": "Thieu ma van don trong du lieu webhook.",
+    "Vui lòng nhập tên người nhận khi đặt hàng không cần đăng nhập.",
+  "failed to generate order number": "Không thể tạo mã đơn hàng. Vui lòng thử lại.",
+  "product sku could not be generated": "Không thể tạo SKU sản phẩm.",
+  "sku already exists": "SKU đã tồn tại.",
+  "review not found": "Không tìm thấy đánh giá.",
+  "invalid review status": "Trạng thái đánh giá không hợp lệ.",
+  "shipment not found": "Không tìm thấy vận đơn.",
+  "tracking code is missing in webhook payload": "Thiếu mã vận đơn trong dữ liệu webhook.",
   "ghn is not configured. missing ghn_api_key or ghn_shop_id":
-    "He thong GHN chua duoc cau hinh day du.",
+    "Hệ thống GHN chưa được cấu hình đầy đủ.",
   "ghn fee calculation requires todistrictid and towardcode":
-    "Thieu quan huyen hoac phuong xa de tinh phi GHN.",
+    "Thiếu quận huyện hoặc phường xã để tính phí GHN.",
   "missing recipient district/ward for ghn shipment":
-    "Thieu quan huyen hoac phuong xa cua nguoi nhan de tao van don GHN.",
-  "wishlist item not found": "Khong tim thay san pham yeu thich.",
-  "invalid wishlist item payload": "Du lieu san pham yeu thich khong hop le.",
-  "wishlist item image is required": "Thieu anh san pham yeu thich.",
-  "file image is required": "Vui long chon anh de tai len.",
-  "only image files are allowed": "Chi chap nhan file anh.",
-  "something went wrong": "Da xay ra loi. Vui long thu lai.",
+    "Thiếu quận huyện hoặc phường xã của người nhận để tạo vận đơn GHN.",
+  "wishlist item not found": "Không tìm thấy sản phẩm yêu thích.",
+  "invalid wishlist item payload": "Dữ liệu sản phẩm yêu thích không hợp lệ.",
+  "wishlist item image is required": "Thiếu ảnh sản phẩm yêu thích.",
+  "file image is required": "Vui lòng chọn ảnh để tải lên.",
+  "only image files are allowed": "Chỉ chấp nhận file ảnh.",
+  "something went wrong": "Đã xảy ra lỗi. Vui lòng thử lại.",
 };
 
 const PATTERN_MESSAGE_MAP: Array<{ pattern: RegExp; message: string }> = [
-  { pattern: /variant .* out of stock/, message: "Bien the san pham da het hang." },
-  { pattern: /variant .* not found/, message: "Khong tim thay bien the san pham." },
-  { pattern: /variant .* is inactive/, message: "Bien the san pham hien khong con kinh doanh." },
-  { pattern: /product .* not found/, message: "Khong tim thay san pham." },
-  { pattern: /cannot change status from .*/, message: "Khong the chuyen trang thai don hang hien tai." },
+  { pattern: /variant .* out of stock/, message: "Biến thể sản phẩm đã hết hàng." },
+  { pattern: /variant .* not found/, message: "Không tìm thấy biến thể sản phẩm." },
+  { pattern: /variant .* is inactive/, message: "Biến thể sản phẩm hiện không còn kinh doanh." },
+  { pattern: /product .* not found/, message: "Không tìm thấy sản phẩm." },
+  { pattern: /cannot change status from .*/, message: "Không thể chuyển trạng thái đơn hàng hiện tại." },
   {
     pattern: /return request period expired \(\d+ day\(s\) after delivery\)/,
-    message: "Don hang da qua han doi hang theo chinh sach hien tai.",
+    message: "Đơn hàng đã quá hạn đổi hàng theo chính sách hiện tại.",
   },
   {
     pattern: /cannot change return request status from .*/,
-    message: "Khong the chuyen trang thai yeu cau doi hang theo huong nay.",
+    message: "Không thể chuyển trạng thái yêu cầu đổi hàng theo hướng này.",
   },
-  { pattern: /cloudinary .* failed/, message: "Tai anh len that bai. Vui long thu lai." },
+  { pattern: /cloudinary .* failed/, message: "Tải ảnh lên thất bại. Vui lòng thử lại." },
   {
     pattern: /network error|failed to fetch|load failed/,
-    message: "Loi ket noi mang. Vui long kiem tra internet va thu lai.",
+    message: "Lỗi kết nối mạng. Vui lòng kiểm tra internet và thử lại.",
   },
-  { pattern: /^".+" is required$/, message: "Du lieu bat buoc dang bi thieu." },
-  { pattern: /^".+" is not allowed to be empty$/, message: "Du lieu khong duoc de trong." },
-  { pattern: /^".+" must be a valid email$/, message: "Email khong dung dinh dang." },
-  { pattern: /^".+" must be one of /, message: "Gia tri du lieu khong hop le." },
+  { pattern: /^".+" is required$/, message: "Dữ liệu bắt buộc đang bị thiếu." },
+  { pattern: /^".+" is not allowed to be empty$/, message: "Dữ liệu không được để trống." },
+  { pattern: /^".+" must be a valid email$/, message: "Email không đúng định dạng." },
+  { pattern: /^".+" must be one of /, message: "Giá trị dữ liệu không hợp lệ." },
   {
     pattern: /^".+" length must be at least \d+ characters long$/,
-    message: "Du lieu qua ngan so voi quy dinh.",
+    message: "Dữ liệu quá ngắn so với quy định.",
   },
   {
     pattern: /^".+" length must be less than or equal to \d+ characters long$/,
-    message: "Du lieu vuot qua do dai cho phep.",
+    message: "Dữ liệu vượt quá độ dài cho phép.",
   },
   {
     pattern: /^".+" with value ".+" fails to match the required pattern/,
-    message: "Du lieu nhap khong dung dinh dang.",
+    message: "Dữ liệu nhập không đúng định dạng.",
   },
-  { pattern: /request failed with status code 4\d\d/, message: "Yeu cau khong hop le. Vui long kiem tra lai du lieu." },
-  { pattern: /request failed with status code 5\d\d/, message: "He thong dang ban. Vui long thu lai sau." },
-  { pattern: /timeout|timed out|ecconnaborted/, message: "Het thoi gian cho phan hoi. Vui long thu lai." },
+  { pattern: /request failed with status code 4\d\d/, message: "Yêu cầu không hợp lệ. Vui lòng kiểm tra lại dữ liệu." },
+  { pattern: /request failed with status code 5\d\d/, message: "Hệ thống đang bận. Vui lòng thử lại sau." },
+  { pattern: /timeout|timed out|ecconnaborted/, message: "Hết thời gian chờ phản hồi. Vui lòng thử lại." },
 ];
 
-const MOJIBAKE_PATTERN = /(Ã.|Â.|Ä.|Å.|Æ.|áº|á»|â€|â€œ|â€|â€“|â€”|â€¦)/;
-const VIETNAMESE_CHAR_PATTERN =
-  /[àáạảãâầấậẩẫăằắặẳẵèéẹẻẽêềếệểễìíịỉĩòóọỏõôồốộổỗơờớợởỡùúụủũưừứựửữỳýỵỷỹđÀÁẠẢÃÂẦẤẬẨẪĂẰẮẶẲẴÈÉẸẺẼÊỀẾỆỂỄÌÍỊỈĨÒÓỌỎÕÔỒỐỘỔỖƠỜỚỢỞỠÙÚỤỦŨƯỪỨỰỬỮỲÝỴỶỸĐ]/g;
-
 const normalizeMessageKey = (value: string) => value.trim().toLowerCase().replace(/\s+/g, " ");
-const countVietnameseChars = (value: string): number => (value.match(VIETNAMESE_CHAR_PATTERN) || []).length;
-
-const repairMojibakeText = (value?: string): string => {
-  const input = value?.toString() || "";
-  if (!input || !MOJIBAKE_PATTERN.test(input)) {
-    return input.trim();
-  }
-
-  try {
-    const bytes = new Uint8Array(input.length);
-    for (let index = 0; index < input.length; index += 1) {
-      bytes[index] = input.charCodeAt(index) & 0xff;
-    }
-
-    const decoded = new TextDecoder("utf-8").decode(bytes).trim();
-    if (!decoded || decoded.includes("�")) {
-      return input.trim();
-    }
-
-    return countVietnameseChars(decoded) >= countVietnameseChars(input) ? decoded : input.trim();
-  } catch {
-    return input.trim();
-  }
-};
 
 const translateToVietnamese = (rawMessage?: string): string => {
-  const normalizedMessage = repairMojibakeText(rawMessage);
+  const normalizedMessage = repairMojibakeText(rawMessage, { trim: true });
   if (!normalizedMessage) {
     return "";
   }
@@ -209,8 +182,8 @@ const translateToVietnamese = (rawMessage?: string): string => {
   return normalizedMessage;
 };
 
-export const getErrorMessage = (error: unknown, fallbackMessage = "Yeu cau that bai, vui long thu lai.") => {
-  const fallback = translateToVietnamese(fallbackMessage) || "Yeu cau that bai, vui long thu lai.";
+export const getErrorMessage = (error: unknown, fallbackMessage = "Yêu cầu thất bại, vui lòng thử lại.") => {
+  const fallback = translateToVietnamese(fallbackMessage) || "Yêu cầu thất bại, vui lòng thử lại.";
 
   if (error instanceof AxiosError) {
     const responseData = (error.response?.data as ErrorResponseShape | undefined) ?? undefined;

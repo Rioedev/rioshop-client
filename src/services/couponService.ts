@@ -1,10 +1,5 @@
 import { apiClient } from "./apiClient";
-
-type ApiResponse<T> = {
-  success: boolean;
-  message: string;
-  data: T;
-};
+import { type ApiResponse } from "./apiTypes";
 
 export type CouponType = "percent" | "fixed" | "free_ship" | "gift";
 export type CouponSource = "campaign" | "referral" | "birthday" | "manual";

@@ -1,4 +1,5 @@
 import { apiClient } from "./apiClient";
+import { type ApiResponse } from "./apiTypes";
 
 export type AccountType = "user" | "admin";
 export type AdminRole = "superadmin" | "manager" | "warehouse" | "sales";
@@ -45,12 +46,6 @@ export type ResetPasswordPayload = {
 type AuthResponse = {
   user: AuthUser;
   token: string;
-};
-
-type ApiResponse<T> = {
-  success: boolean;
-  message: string;
-  data: T;
 };
 
 export const authService = {

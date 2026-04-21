@@ -1,11 +1,6 @@
 import { apiClient } from "./apiClient";
+import { type ApiResponse } from "./apiTypes";
 import type { CartItem } from "../stores/cartStore";
-
-type ApiResponse<T> = {
-  success: boolean;
-  message: string;
-  data: T;
-};
 
 type CartApiItem = {
   itemId?: string;

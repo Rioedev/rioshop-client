@@ -1,10 +1,6 @@
 import { apiClient } from "./apiClient";
-
-type ApiResponse<T> = {
-  success: boolean;
-  message: string;
-  data: T;
-};
+import { type ApiResponse } from "./apiTypes";
+import { repairMojibakeText } from "../utils/mojibake";
 
 export type NotificationType = "order_update" | "promo" | "loyalty" | "review_reply" | "system";
 export type NotificationChannel = "in_app" | "push" | "email" | "sms";
@@ -66,41 +62,6 @@ export type NotificationQueryParams = {
 
 type UnreadCountApiData = {
   unreadCount?: number;
-};
-
-const MOJIBAKE_PATTERN = /(Ã.|Â.|Ä.|Å.|Æ.|áº|á»|â€|â€œ|â€|â€“|â€”|â€¦)/;
-const VIETNAMESE_CHAR_PATTERN =
-  /[àáạảãâầấậẩẫăằắặẳẵèéẹẻẽêềếệểễìíịỉĩòóọỏõôồốộổỗơờớợởỡùúụủũưừứựửữỳýỵỷỹđÀÁẠẢÃÂẦẤẬẨẪĂẰẮẶẲẴÈÉẸẺẼÊỀẾỆỂỄÌÍỊỈĨÒÓỌỎÕÔỒỐỘỔỖƠỜỚỢỞỠÙÚỤỦŨƯỪỨỰỬỮỲÝỴỶỸĐ]/g;
-
-const countVietnameseChars = (value: string): number => (value.match(VIETNAMESE_CHAR_PATTERN) || []).length;
-
-const repairMojibakeText = (value?: string): string => {
-  const input = value?.toString() || "";
-  if (!input || !MOJIBAKE_PATTERN.test(input)) {
-    return input;
-  }
-
-  try {
-    const bytes = new Uint8Array(input.length);
-    for (let index = 0; index < input.length; index += 1) {
-      bytes[index] = input.charCodeAt(index) & 0xff;
-    }
-
-    const decoded = new TextDecoder("utf-8").decode(bytes);
-    if (!decoded || decoded.includes("�")) {
-      return input;
-    }
-
-    const inputVnCount = countVietnameseChars(input);
-    const decodedVnCount = countVietnameseChars(decoded);
-    if (decodedVnCount < inputVnCount) {
-      return input;
-    }
-
-    return decoded;
-  } catch {
-    return input;
-  }
 };
 
 const normalizeNotification = (item: NotificationApiItem): NotificationItem => ({
