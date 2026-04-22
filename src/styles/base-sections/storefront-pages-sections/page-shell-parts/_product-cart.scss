@@ -164,4 +164,29 @@
   font-weight: 600;
 }
 
+.checkout-payment-option {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.checkout-payment-option__icon {
+  width: 24px;
+  height: 24px;
+  border-radius: 6px;
+  border: 1px solid #dbe3ef;
+  background: #fff;
+  object-fit: contain;
+}
+
+.checkout-payment-select .ant-select-selection-item {
+  display: flex;
+  align-items: center;
+}
+
+.checkout-payment-select-dropdown .ant-select-item-option-content {
+  display: flex;
+  align-items: center;
+}
+
 

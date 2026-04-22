@@ -1,5 +1,5 @@
 ﻿import { Button, Input, Select, message } from "antd";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import {
   StoreEmptyState,
@@ -38,6 +38,43 @@ const DEFAULT_SHIPPING_POLICY: ShippingPolicy = {
   ghnFallbackStandardFee: 20000,
   ghnFallbackExpressFee: 30000,
 };
+
+type CheckoutPaymentMethod = "cod" | "momo" | "vnpay";
+
+type CheckoutPaymentOption = {
+  value: CheckoutPaymentMethod;
+  label: ReactNode;
+};
+
+const PAYMENT_METHOD_OPTIONS: CheckoutPaymentOption[] = [
+  {
+    value: "cod",
+    label: (
+      <span className="checkout-payment-option">
+        <img src="/payment-methods/cod.svg" alt="" className="checkout-payment-option__icon" />
+        <span>Thanh toán khi nhận hàng</span>
+      </span>
+    ),
+  },
+  {
+    value: "momo",
+    label: (
+      <span className="checkout-payment-option">
+        <img src="/payment-methods/momo.svg" alt="" className="checkout-payment-option__icon" />
+        <span>MoMo</span>
+      </span>
+    ),
+  },
+  {
+    value: "vnpay",
+    label: (
+      <span className="checkout-payment-option">
+        <img src="/payment-methods/vnpay.svg" alt="" className="checkout-payment-option__icon" />
+        <span>VNPay</span>
+      </span>
+    ),
+  },
+];
 
 const toSafeMoney = (value: unknown, fallback = 0) => {
   const parsed = Number(value);
@@ -108,7 +145,7 @@ export function StoreCheckoutPage() {
   const [address, setAddress] = useState("");
   const [note, setNote] = useState("");
   const [shippingMethod, setShippingMethod] = useState<ShippingMethod>("standard");
-  const [paymentMethod, setPaymentMethod] = useState<"cod" | "momo" | "vnpay" | "bank_transfer">("cod");
+  const [paymentMethod, setPaymentMethod] = useState<CheckoutPaymentMethod>("cod");
   const [submitting, setSubmitting] = useState(false);
   const [locationLoading, setLocationLoading] = useState(false);
   const [shippingFeeLoading, setShippingFeeLoading] = useState(false);
@@ -784,14 +821,10 @@ export function StoreCheckoutPage() {
               <p className="mb-1 text-sm font-semibold text-slate-600">Hình thức thanh toán</p>
               <Select
                 value={paymentMethod}
-                options={[
-                  { value: "cod", label: "Thanh toán khi nhận hàng" },
-                  { value: "momo", label: "MoMo" },
-                  { value: "vnpay", label: "VNPay" },
-                  { value: "bank_transfer", label: "Chuyển khoản ngân hàng" },
-                ]}
-                onChange={(value) => setPaymentMethod(value)}
-                className="w-full"
+                options={PAYMENT_METHOD_OPTIONS}
+                onChange={(value) => setPaymentMethod(value as CheckoutPaymentMethod)}
+                className="w-full checkout-payment-select"
+                popupClassName="checkout-payment-select-dropdown"
               />
             </div>
           </div>
