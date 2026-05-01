@@ -777,7 +777,7 @@ export function AdminOrdersPage() {
         ]}
       >
         {managingOrder ? (
-          <div className="space-y-4">
+          <div className="flex flex-col gap-5">
             <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
               <div className="flex flex-wrap items-center gap-2">
                 <Tag color={STATUS_COLOR_MAP[managingOrder.status]}>{getOrderStatusLabel(managingOrder)}</Tag>
@@ -906,7 +906,8 @@ export function AdminOrdersPage() {
             ) : null}
 
             <Card size="small" title="Điều phối đơn hàng" className="rounded-2xl! border-slate-200! shadow-sm!">
-              <div className="grid gap-4 md:grid-cols-2">
+              <div className="space-y-5">
+                <div className="grid gap-5 md:grid-cols-2">
                 <div className="space-y-3">
                   <div>
                     <Text type="secondary">Trạng thái hiện tại</Text>
@@ -950,20 +951,20 @@ export function AdminOrdersPage() {
                     className="w-full"
                   />
                 </div>
-              </div>
+                </div>
 
-              <Input.TextArea
-                className="mt-3"
-                value={manageNote}
-                onChange={(event) => setManageNote(event.target.value)}
-                placeholder="Ghi chú quản trị (tùy chọn)"
-                autoSize={{ minRows: 2, maxRows: 4 }}
-                maxLength={500}
-                disabled={modalBusy}
-              />
+                <Input.TextArea
+                  value={manageNote}
+                  onChange={(event) => setManageNote(event.target.value)}
+                  placeholder="Ghi chú quản trị (tùy chọn)"
+                  autoSize={{ minRows: 2, maxRows: 4 }}
+                  maxLength={500}
+                  disabled={modalBusy}
+                />
+              </div>
             </Card>
 
-            <div className="grid gap-3 md:grid-cols-2">
+            <div className="grid gap-5 md:grid-cols-2">
               <Card size="small" title="Thông tin khách hàng" className="rounded-2xl! border-slate-200! shadow-sm!">
                 <div className="space-y-2 text-sm">
                   <div>

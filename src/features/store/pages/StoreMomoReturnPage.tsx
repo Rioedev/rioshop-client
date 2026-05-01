@@ -31,7 +31,7 @@ export function StoreMomoReturnPage() {
   const [searchParams] = useSearchParams();
   const [state, setState] = useState<ReturnState>({
     status: "loading",
-    title: "Đang xử lý kết quả MoMo test",
+    title: "Đang xử lý kết quả MoMo",
     subtitle: "Vui lòng đợi trong giây lát...",
   });
 
@@ -67,7 +67,7 @@ export function StoreMomoReturnPage() {
         if (status === "success") {
           setState({
             status: "success",
-            title: "Thanh toán MoMo test thành công",
+            title: "Thanh toán MoMo thành công",
             subtitle: "Đơn hàng đã được cập nhật trạng thái thanh toán.",
             orderId,
           });
@@ -86,7 +86,7 @@ export function StoreMomoReturnPage() {
 
         setState({
           status: "failed",
-          title: "Thanh toán MoMo test chưa thành công",
+          title: "Thanh toán MoMo chưa thành công",
           subtitle: "Bạn có thể thử thanh toán lại trong phần đơn hàng.",
           orderId,
         });

@@ -665,7 +665,7 @@ export function StoreCheckoutPage() {
             return;
           }
 
-          messageApi.warning("Đã tạo đơn và lệnh thanh toán MoMo test nhưng chưa lấy được link thanh toán.");
+          messageApi.warning("Đã tạo đơn và lệnh thanh toán MoMo nhưng chưa lấy được link thanh toán.");
           navigate("/orders", { state: { orderId: created.id } });
           return;
         } catch (error) {

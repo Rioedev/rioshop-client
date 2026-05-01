@@ -47,8 +47,8 @@ export function StoreMomoSandboxPage() {
   const goToReturn = (isSuccess: boolean) => {
     const resultCode = isSuccess ? "0" : "1006";
     const messageText = isSuccess
-      ? "MoMo test payment success"
-      : "MoMo test payment cancelled";
+      ? "MoMo payment success"
+      : "MoMo payment cancelled";
     const transId = isSuccess ? `MOCK_${requestId}` : "";
 
     const redirectUrl = buildReturnUrl(returnUrl, {
@@ -104,7 +104,7 @@ export function StoreMomoSandboxPage() {
         <StorePanelFrame>
           <Alert
             type="error"
-            message="Thiếu mã giao dịch thanh toán MoMo test"
+            message="Thiếu mã giao dịch thanh toán MoMo"
             description="Không thể tiếp tục thanh toán. Vui lòng quay lại trang checkout và thử lại."
             showIcon
           />
@@ -118,12 +118,12 @@ export function StoreMomoSandboxPage() {
       {contextHolder}
       <StorePanelFrame className="space-y-6">
         <div className="rounded-3xl border border-rose-100 bg-gradient-to-br from-rose-600 to-fuchsia-700 p-5 text-white">
-          <p className="m-0 text-xs font-semibold uppercase tracking-[0.14em] text-rose-100">Ví MoMo test</p>
+          <p className="m-0 text-xs font-semibold uppercase tracking-[0.14em] text-rose-100">Ví MoMo</p>
           <Title level={3} className="mb-2! mt-2! text-white!">
             Xác nhận thanh toán
           </Title>
           <Text className="text-rose-50!">
-            Mô phỏng giao diện ví điện tử theo luồng thực tế để kiểm thử thanh toán.
+            Xác nhận giao dịch ví điện tử theo luồng thanh toán.
           </Text>
         </div>
 
@@ -227,7 +227,7 @@ export function StoreMomoSandboxPage() {
             <div className="mt-3 space-y-2">
               <div className="flex items-center justify-between">
                 <span className="text-sm text-slate-500">Nhà cung cấp</span>
-                <strong className="text-slate-800">MoMo Sandbox</strong>
+                <strong className="text-slate-800">MoMo</strong>
               </div>
               <div className="flex items-center justify-between">
                 <span className="text-sm text-slate-500">Mã đơn hàng</span>
@@ -243,7 +243,7 @@ export function StoreMomoSandboxPage() {
               <p className="m-0 mt-1 text-2xl font-black">{formattedAmount} đ</p>
             </div>
             <p className="mt-4 mb-0 text-xs text-slate-500">
-              Đây là môi trường kiểm thử nội bộ. Bạn nhập tài khoản test đã được cấp để mô phỏng thanh toán.
+              Vui lòng nhập tài khoản đã được cấp để xác nhận giao dịch.
             </p>
           </Card>
         </div>
