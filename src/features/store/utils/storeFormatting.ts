@@ -5,6 +5,7 @@ const storeCurrencyFormatter = new Intl.NumberFormat("vi-VN", {
 });
 
 const storeApiBaseUrl = (import.meta.env.VITE_API_BASE_URL ?? "http://localhost:5000").replace(/\/$/, "");
+// Empty value → relative URL, resolves against current origin (ngrok / same-host build).
 
 export const formatStoreCurrency = (value: number) => storeCurrencyFormatter.format(value);
 
