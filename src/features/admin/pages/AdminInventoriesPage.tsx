@@ -8,9 +8,9 @@
   InputNumber,
   Modal,
   Row,
+  Select,
   Space,
   Statistic,
-  Switch,
   Table,
   Tag,
   Typography,
@@ -19,6 +19,7 @@
 import type { ColumnsType, TablePaginationConfig } from "antd/es/table";
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { InventoryRecord, UpdateInventoryPayload } from "../../../services/inventoryService";
+import { productService, type Product } from "../../../services/productService";
 import { subscribeAdminRealtime } from "../../../services/socketClient";
 import { useInventoryStore } from "../../../stores/inventoryStore";
 import { getErrorMessage } from "../../../utils/errorMessage";
@@ -29,11 +30,11 @@ type InventoryFormValues = {
   variantSku: string;
   productId?: string;
   onHand: number;
+  restockQuantity?: number;
   reserved: number;
   incoming: number;
   reorderPoint?: number | null;
   reorderQty?: number | null;
-  lowStockAlert: boolean;
 };
 
 const formatDateTime = (value?: string | null) => {
@@ -51,11 +52,11 @@ const defaultFormValues = (variantSku = ""): InventoryFormValues => ({
   variantSku,
   productId: "",
   onHand: 0,
+  restockQuantity: 0,
   reserved: 0,
   incoming: 0,
   reorderPoint: null,
   reorderQty: null,
-  lowStockAlert: false,
 });
 
 export function AdminInventoriesPage() {
@@ -63,6 +64,12 @@ export function AdminInventoriesPage() {
   const [messageApi, contextHolder] = message.useMessage();
   const [thresholdInput, setThresholdInput] = useState<number | undefined>(undefined);
   const [variantSkuInput, setVariantSkuInput] = useState("");
+  const [bulkProductOptions, setBulkProductOptions] = useState<Product[]>([]);
+  const [bulkProductId, setBulkProductId] = useState<string | undefined>(undefined);
+  const [bulkReorderPoint, setBulkReorderPoint] = useState<number | null>(5);
+  const [bulkReorderQty, setBulkReorderQty] = useState<number | null>(20);
+  const [bulkProductLoading, setBulkProductLoading] = useState(false);
+  const [bulkApplying, setBulkApplying] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingItem, setEditingItem] = useState<InventoryRecord | null>(null);
 
@@ -85,7 +92,27 @@ export function AdminInventoriesPage() {
   const setCurrentVariantSku = useInventoryStore((state) => state.setCurrentVariantSku);
   const setThreshold = useInventoryStore((state) => state.setThreshold);
   const updateInventory = useInventoryStore((state) => state.updateInventory);
+  const updateInventoryRulesByProduct = useInventoryStore((state) => state.updateInventoryRulesByProduct);
   const realtimeRefreshTimerRef = useRef<number | null>(null);
+  const watchedOnHand = Form.useWatch("onHand", form);
+  const watchedRestockQuantity = Form.useWatch("restockQuantity", form);
+  const restockPreviewOnHand =
+    Number(watchedOnHand || 0) + Math.max(0, Number(watchedRestockQuantity || 0));
+
+  const handleSearchBulkProducts = async (keyword: string) => {
+    const query = keyword.trim();
+    setBulkProductLoading(true);
+    try {
+      const result = query
+        ? await productService.searchProducts(query, 1, 12, "all")
+        : await productService.getProducts({ page: 1, limit: 12, status: "all" });
+      setBulkProductOptions(result.docs);
+    } catch (error) {
+      messageApi.error(getErrorMessage(error, "Không thể tải danh sách sản phẩm."));
+    } finally {
+      setBulkProductLoading(false);
+    }
+  };
 
   const refreshCurrentInventoryView = useCallback(() => {
     void loadLowStockItems({
@@ -183,6 +210,31 @@ export function AdminInventoriesPage() {
     }
   };
 
+  const handleApplyProductInventoryRules = async () => {
+    if (!bulkProductId) {
+      messageApi.warning("Vui lòng chọn sản phẩm.");
+      return;
+    }
+
+    if (bulkReorderPoint === null && bulkReorderQty === null) {
+      messageApi.warning("Vui lòng nhập ít nhất một giá trị để áp dụng.");
+      return;
+    }
+
+    setBulkApplying(true);
+    try {
+      const result = await updateInventoryRulesByProduct(bulkProductId, {
+        reorderPoint: bulkReorderPoint,
+        reorderQty: bulkReorderQty,
+      });
+      messageApi.success(`Đã áp dụng cho ${result.updatedCount} biến thể của sản phẩm.`);
+    } catch (error) {
+      messageApi.error(getErrorMessage(error, "Không thể áp dụng cảnh báo tồn kho."));
+    } finally {
+      setBulkApplying(false);
+    }
+  };
+
   const handleSearchVariantSku = async () => {
     const sku = variantSkuInput.trim();
     if (!sku) {
@@ -219,24 +271,27 @@ export function AdminInventoriesPage() {
       variantSku: item.variantSku,
       productId: item.productId,
       onHand: item.onHand,
+      restockQuantity: 0,
       reserved: item.reserved,
       incoming: item.incoming,
       reorderPoint: item.reorderPoint ?? null,
       reorderQty: item.reorderQty ?? null,
-      lowStockAlert: item.lowStockAlert,
     });
     setIsModalOpen(true);
   };
 
-  const buildPayload = (values: InventoryFormValues): UpdateInventoryPayload => ({
-    productId: values.productId?.trim() || undefined,
-    onHand: values.onHand ?? 0,
-    reserved: values.reserved ?? 0,
-    incoming: values.incoming ?? 0,
-    reorderPoint: values.reorderPoint ?? null,
-    reorderQty: values.reorderQty ?? null,
-    lowStockAlert: values.lowStockAlert,
-  });
+  const buildPayload = (values: InventoryFormValues): UpdateInventoryPayload => {
+    const nextOnHand = Math.max(0, Number(values.onHand ?? 0) + Math.max(0, Number(values.restockQuantity ?? 0)));
+
+    return {
+      productId: values.productId?.trim() || undefined,
+      onHand: nextOnHand,
+      reserved: values.reserved ?? 0,
+      incoming: values.incoming ?? 0,
+      reorderPoint: values.reorderPoint ?? null,
+      reorderQty: values.reorderQty ?? null,
+    };
+  };
 
   const handleSave = async () => {
     try {
@@ -300,7 +355,7 @@ export function AdminInventoriesPage() {
       ),
     },
     {
-      title: "Mức đặt lại",
+      title: "Ngưỡng cảnh báo",
       dataIndex: "reorderPoint",
       key: "reorderPoint",
       width: 120,
@@ -311,9 +366,13 @@ export function AdminInventoriesPage() {
       dataIndex: "lowStockAlert",
       key: "lowStockAlert",
       width: 120,
-      render: (value: boolean) => (
-        <Tag color={value ? "red" : "default"}>{value ? "Đang cảnh báo" : "Bình thường"}</Tag>
-      ),
+      render: (_, record) => {
+        const isLowStock =
+          record.reorderPoint !== undefined &&
+          record.reorderPoint !== null &&
+          record.available <= record.reorderPoint;
+        return <Tag color={isLowStock ? "red" : "default"}>{isLowStock ? "Đang cảnh báo" : "Bình thường"}</Tag>;
+      },
     },
     {
       title: "Cập nhật",
@@ -385,14 +444,14 @@ export function AdminInventoriesPage() {
       width: 100,
     },
     {
-      title: "Mức đặt lại",
+      title: "Ngưỡng cảnh báo",
       dataIndex: "reorderPoint",
       key: "reorderPoint",
       width: 120,
       render: (value?: number | null) => value ?? "-",
     },
     {
-      title: "SL đặt lại",
+      title: "SL nhập gợi ý",
       dataIndex: "reorderQty",
       key: "reorderQty",
       width: 120,
@@ -438,6 +497,67 @@ export function AdminInventoriesPage() {
       </div>
 
       <div className="grid gap-6">
+        <Card>
+          <div className="mb-4">
+            <Title level={5} className="mb-1! mt-0!">
+              Áp dụng cảnh báo theo sản phẩm
+            </Title>
+            <Paragraph className="mb-0!" type="secondary">
+              Thiết lập ngưỡng cảnh báo và số lượng nhập gợi ý cho toàn bộ biến thể của một sản phẩm.
+            </Paragraph>
+          </div>
+          <div className="flex flex-wrap items-end gap-3">
+            <div className="min-w-[280px] flex-1">
+              <Text className="mb-1 block">Sản phẩm</Text>
+              <Select
+                showSearch
+                allowClear
+                className="w-full"
+                placeholder="Tìm theo tên hoặc SKU sản phẩm"
+                value={bulkProductId}
+                loading={bulkProductLoading}
+                filterOption={false}
+                onFocus={() => {
+                  if (bulkProductOptions.length === 0) {
+                    void handleSearchBulkProducts("");
+                  }
+                }}
+                onSearch={(value) => void handleSearchBulkProducts(value)}
+                onChange={(value) => setBulkProductId(value)}
+                options={bulkProductOptions.map((product) => ({
+                  value: product._id,
+                  label: `${product.name} • ${product.sku} • ${product.variants?.length ?? 0} biến thể`,
+                }))}
+              />
+            </div>
+            <div>
+              <Text className="mb-1 block">Ngưỡng cảnh báo</Text>
+              <InputNumber
+                min={0}
+                value={bulkReorderPoint}
+                onChange={(value) => setBulkReorderPoint(value ?? null)}
+                placeholder="VD: 5"
+              />
+            </div>
+            <div>
+              <Text className="mb-1 block">SL nhập gợi ý</Text>
+              <InputNumber
+                min={0}
+                value={bulkReorderQty}
+                onChange={(value) => setBulkReorderQty(value ?? null)}
+                placeholder="VD: 20"
+              />
+            </div>
+            <Button
+              type="primary"
+              loading={bulkApplying || saving}
+              onClick={() => void handleApplyProductInventoryRules()}
+            >
+              Áp dụng cho sản phẩm
+            </Button>
+          </div>
+        </Card>
+
         <Card>
           <div className="mb-4 flex flex-wrap items-center gap-3">
           <InputNumber
@@ -608,37 +728,49 @@ export function AdminInventoriesPage() {
           />
 
           <Row gutter={12}>
-            <Col xs={24} md={8}>
+            <Col xs={24} md={editingItem ? 6 : 8}>
               <Form.Item label="Tồn kho" name="onHand" rules={[{ required: true, message: "Nhập số lượng tồn kho." }]}>
                 <InputNumber min={0} className="w-full" />
               </Form.Item>
             </Col>
-            <Col xs={24} md={8}>
+            {editingItem ? (
+              <Col xs={24} md={6}>
+                <Form.Item label="Nhập thêm hàng" name="restockQuantity">
+                  <InputNumber min={0} className="w-full" placeholder="VD: 10" />
+                </Form.Item>
+              </Col>
+            ) : null}
+            <Col xs={24} md={editingItem ? 6 : 8}>
               <Form.Item label="Đã giữ" name="reserved" rules={[{ required: true, message: "Nhập số lượng đã giữ." }]}>
                 <InputNumber min={0} className="w-full" />
               </Form.Item>
             </Col>
-            <Col xs={24} md={8}>
+            <Col xs={24} md={editingItem ? 6 : 8}>
               <Form.Item label="Sắp về" name="incoming" rules={[{ required: true, message: "Nhập số lượng sắp về." }]}>
                 <InputNumber min={0} className="w-full" />
               </Form.Item>
             </Col>
           </Row>
 
+          {editingItem && Number(watchedRestockQuantity || 0) > 0 ? (
+            <Alert
+              type="success"
+              showIcon
+              className="mb-4"
+              message={`Sau khi lưu, tồn kho sẽ là ${restockPreviewOnHand}.`}
+              description="Số lượng nhập thêm chỉ cộng vào Tồn kho, không làm thay đổi số lượng Đã giữ."
+            />
+          ) : null}
+
           <Row gutter={12}>
             <Col xs={24} md={8}>
-              <Form.Item label="Mức đặt lại" name="reorderPoint">
+              <Form.Item label="Ngưỡng cảnh báo" name="reorderPoint">
                 <InputNumber min={0} className="w-full" placeholder="Để trống nếu không dùng" />
               </Form.Item>
             </Col>
             <Col xs={24} md={8}>
-              <Form.Item label="Số lượng đặt lại" name="reorderQty">
-                <InputNumber min={0} className="w-full" placeholder="Để trống nếu không dùng" />
-              </Form.Item>
-            </Col>
-            <Col xs={24} md={8}>
-              <Form.Item label="Bật cảnh báo thủ công" name="lowStockAlert" valuePropName="checked">
-                <Switch checkedChildren="Bật" unCheckedChildren="Tắt" />
+              <Form.Item label="SL nhập gợi ý" name="reorderQty">
+                <InputNumber min={0} className="w-full" placeholder="Gợi ý khi cần nhập thêm" />
               </Form.Item>
             </Col>
           </Row>

@@ -1,6 +1,6 @@
-import { Button, InputNumber, Progress, Select, message } from "antd";
+import { Button, Checkbox, InputNumber, Progress, Select, message } from "antd";
 import { Link } from "react-router-dom";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   StoreEmptyState,
   StoreMetricGrid,
@@ -44,6 +44,9 @@ const DEFAULT_SHIPPING_POLICY: ShippingPolicy = {
   ghnFallbackExpressFee: 30000,
 };
 
+const resolveCartItemId = (item: CartItem) =>
+  item.itemId || buildCartItemId({ productId: item.productId, variantSku: item.variantSku });
+
 export function StoreCartPage() {
   const [messageApi, contextHolder] = message.useMessage();
   const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
@@ -65,6 +68,9 @@ export function StoreCartPage() {
   const [clearingCoupon, setClearingCoupon] = useState(false);
   const [shippingPolicy, setShippingPolicy] = useState<ShippingPolicy>(DEFAULT_SHIPPING_POLICY);
   const [shippingPolicyLoading, setShippingPolicyLoading] = useState(true);
+  const [selectedCheckoutItemIds, setSelectedCheckoutItemIds] = useState<string[]>([]);
+  const selectionInitializedRef = useRef(false);
+  const previousCartItemIdsRef = useRef<string[]>([]);
 
   useEffect(() => {
     setSelectedCouponCode(couponCode ?? undefined);
@@ -147,8 +153,6 @@ export function StoreCartPage() {
 
   const {
     subtotal,
-    discountValue,
-    total,
     freeShipProgress,
     amountToFreeShip,
     totalItems,
@@ -161,19 +165,16 @@ export function StoreCartPage() {
     const trackFreeShip = shippingPolicy.freeShipEnabled && threshold > 0;
     const eligible = trackFreeShip && subtotalValue >= threshold;
     const progress = trackFreeShip ? Math.min(100, Math.round((subtotalValue / threshold) * 100)) : 0;
-    const discount = Math.max(0, Math.min(Number(couponDiscount || 0), subtotalValue));
 
     return {
       subtotal: subtotalValue,
-      discountValue: discount,
-      total: Math.max(0, subtotalValue - discount),
       freeShipProgress: progress,
       amountToFreeShip: trackFreeShip ? Math.max(0, threshold - subtotalValue) : 0,
       totalItems: quantityValue,
       isFreeShipTracked: trackFreeShip,
       isEligibleForFreeShip: eligible,
     };
-  }, [couponDiscount, items, shippingPolicy]);
+  }, [items, shippingPolicy]);
 
   const unavailableSavedCouponCodes = useMemo(() => {
     const availableCodes = new Set(savedCoupons.map((coupon) => coupon.code.trim().toUpperCase()));
@@ -212,10 +213,29 @@ export function StoreCartPage() {
     };
   }, [items]);
 
-  const resolveItemId = (item: (typeof items)[number]) =>
-    item.itemId || buildCartItemId({ productId: item.productId, variantSku: item.variantSku });
   const resolveItemMaxQuantity = (item: CartItem) =>
     getSafeMaxQuantity(item.availableStock, getSafeMaxQuantity(item.quantity, 1));
+
+  const cartItemIds = useMemo(() => items.map((item) => resolveCartItemId(item)), [items]);
+
+  useEffect(() => {
+    setSelectedCheckoutItemIds((currentSelectedIds) => {
+      const previousCartItemIds = previousCartItemIdsRef.current;
+      const currentCartItemIdSet = new Set(cartItemIds);
+      const selectedIdSet = new Set(currentSelectedIds);
+      const wasEverythingSelected =
+        previousCartItemIds.length > 0 && previousCartItemIds.every((itemId) => selectedIdSet.has(itemId));
+
+      previousCartItemIdsRef.current = cartItemIds;
+
+      if (!selectionInitializedRef.current || wasEverythingSelected) {
+        selectionInitializedRef.current = true;
+        return cartItemIds;
+      }
+
+      return currentSelectedIds.filter((itemId) => currentCartItemIdSet.has(itemId));
+    });
+  }, [cartItemIds]);
 
   const syncCartFromServer = (cart: Awaited<ReturnType<typeof cartService.getCart>>) => {
     const couponMeta = toCartCouponMeta(cart);
@@ -228,7 +248,7 @@ export function StoreCartPage() {
   };
 
   const handleUpdateQuantity = async (item: CartItem, quantity: number) => {
-    const itemId = resolveItemId(item);
+    const itemId = resolveCartItemId(item);
     const maxQuantity = resolveItemMaxQuantity(item);
     const nextQuantity = clampQuantityByStock(quantity, maxQuantity, 1);
 
@@ -275,6 +295,54 @@ export function StoreCartPage() {
     } catch (error) {
       messageApi.error(getErrorMessage(error));
     }
+  };
+
+  const selectedCheckoutItemIdSet = useMemo(
+    () => new Set(selectedCheckoutItemIds),
+    [selectedCheckoutItemIds],
+  );
+  const selectedCheckoutItems = useMemo(
+    () => items.filter((item) => selectedCheckoutItemIdSet.has(resolveCartItemId(item))),
+    [items, selectedCheckoutItemIdSet],
+  );
+  const isAllCheckoutItemsSelected = items.length > 0 && selectedCheckoutItems.length === items.length;
+  const selectedCheckoutQuantity = selectedCheckoutItems.reduce((sum, item) => sum + item.quantity, 0);
+  const selectedCheckoutSubtotal = selectedCheckoutItems.reduce(
+    (sum, item) => sum + item.price * item.quantity,
+    0,
+  );
+  const selectedCheckoutDiscountValue = Math.max(
+    0,
+    Math.min(Number(couponDiscount || 0), selectedCheckoutSubtotal),
+  );
+  const selectedCheckoutTotal = Math.max(
+    0,
+    selectedCheckoutSubtotal - selectedCheckoutDiscountValue,
+  );
+  const checkoutUrl = useMemo(() => {
+    const params = new URLSearchParams();
+    selectedCheckoutItemIds.forEach((itemId) => params.append("item", itemId));
+    const queryString = params.toString();
+    return queryString ? `/checkout?${queryString}` : "/checkout";
+  }, [selectedCheckoutItemIds]);
+  const checkoutNavigationUrl = isAuthenticated
+    ? checkoutUrl
+    : `/login?redirect=${encodeURIComponent(checkoutUrl)}`;
+
+  const handleToggleCheckoutItem = (itemId: string, checked: boolean) => {
+    setSelectedCheckoutItemIds((currentSelectedIds) => {
+      if (checked) {
+        return currentSelectedIds.includes(itemId)
+          ? currentSelectedIds
+          : [...currentSelectedIds, itemId];
+      }
+
+      return currentSelectedIds.filter((selectedItemId) => selectedItemId !== itemId);
+    });
+  };
+
+  const handleToggleAllCheckoutItems = (checked: boolean) => {
+    setSelectedCheckoutItemIds(checked ? cartItemIds : []);
   };
 
   const handleAddRecommendation = async (item: Product) => {
@@ -450,22 +518,42 @@ export function StoreCartPage() {
             kicker="Chi tiết giỏ hàng"
             title="Sản phẩm đã chọn"
             action={
-              <Button className={storeButtonClassNames.ghost} onClick={() => void handleClearCart()}>
-                Xóa tất cả
-              </Button>
+              <div className="cart-selection-actions">
+                <Checkbox
+                  checked={isAllCheckoutItemsSelected}
+                  indeterminate={selectedCheckoutItems.length > 0 && !isAllCheckoutItemsSelected}
+                  onChange={(event) => handleToggleAllCheckoutItems(event.target.checked)}
+                >
+                  Chọn tất cả
+                </Checkbox>
+                <Button className={storeButtonClassNames.ghost} onClick={() => void handleClearCart()}>
+                  Xóa tất cả
+                </Button>
+              </div>
             }
           />
 
           <div className="space-y-3">
-            {items.map((item) => (
-              <article key={item.itemId ?? `${item.productId}-${item.variantSku ?? "default"}`} className="cart-item-card">
-                <Link to={`/products/${item.slug}`} className="cart-item-image">
-                  {item.imageUrl ? (
-                    <img src={item.imageUrl} alt={item.name} className="h-full w-full object-cover" />
-                  ) : (
-                    <div className="product-main-fallback">RIO</div>
-                  )}
-                </Link>
+            {items.map((item) => {
+              const itemId = resolveCartItemId(item);
+              return (
+                <article
+                  key={item.itemId ?? `${item.productId}-${item.variantSku ?? "default"}`}
+                  className="cart-item-card cart-item-card--selectable"
+                >
+                  <Checkbox
+                    className="cart-item-check"
+                    checked={selectedCheckoutItemIdSet.has(itemId)}
+                    aria-label={`Chọn ${item.name} để thanh toán`}
+                    onChange={(event) => handleToggleCheckoutItem(itemId, event.target.checked)}
+                  />
+                  <Link to={`/products/${item.slug}`} className="cart-item-image">
+                    {item.imageUrl ? (
+                      <img src={item.imageUrl} alt={item.name} className="h-full w-full object-cover" />
+                    ) : (
+                      <div className="product-main-fallback">RIO</div>
+                    )}
+                  </Link>
 
                 <div className="cart-item-info">
                   <Link to={`/products/${item.slug}`} className="text-base font-semibold text-slate-900 hover:text-slate-700">
@@ -487,7 +575,7 @@ export function StoreCartPage() {
                     <span className="text-xs text-slate-500">Tồn kho: {resolveItemMaxQuantity(item)}</span>
                     <Button
                       className={storeButtonClassNames.dangerCompact}
-                      onClick={() => void handleRemoveItem(resolveItemId(item))}
+                      onClick={() => void handleRemoveItem(itemId)}
                     >
                       Xóa
                     </Button>
@@ -496,7 +584,8 @@ export function StoreCartPage() {
 
                 <div className="cart-item-price">{formatStoreCurrency(item.price * item.quantity)}</div>
               </article>
-            ))}
+              );
+            })}
           </div>
 
           {recommendations.length > 0 ? (
@@ -554,8 +643,12 @@ export function StoreCartPage() {
           <StoreSectionHeader kicker="Tóm tắt thanh toán" title="Tóm tắt đơn hàng" />
 
           <div className="cart-summary-row">
+            <span>Đã chọn</span>
+            <strong>{selectedCheckoutQuantity} sản phẩm</strong>
+          </div>
+          <div className="cart-summary-row">
             <span>Tạm tính</span>
-            <strong>{formatStoreCurrency(subtotal)}</strong>
+            <strong>{formatStoreCurrency(selectedCheckoutSubtotal)}</strong>
           </div>
           <div className="cart-summary-row">
             <span>Phí vận chuyển</span>
@@ -565,15 +658,15 @@ export function StoreCartPage() {
                 : "Tính theo GHN ở bước thanh toán"}
             </strong>
           </div>
-          {discountValue > 0 ? (
+          {selectedCheckoutDiscountValue > 0 ? (
             <div className="cart-summary-row cart-summary-row-discount">
               <span>Giảm giá{couponCode ? ` (${couponCode})` : ""}</span>
-              <strong>-{formatStoreCurrency(discountValue)}</strong>
+              <strong>-{formatStoreCurrency(selectedCheckoutDiscountValue)}</strong>
             </div>
           ) : null}
           <div className="cart-summary-row is-total">
             <span>Tổng tạm tính</span>
-            <strong>{formatStoreCurrency(total)}</strong>
+            <strong>{formatStoreCurrency(selectedCheckoutTotal)}</strong>
           </div>
           <p className="mt-2 text-xs text-slate-500">Phí vận chuyển chính xác sẽ được tính theo GHN ở bước thanh toán.</p>
 
@@ -655,10 +748,22 @@ export function StoreCartPage() {
           </div>
 
           <Link
-            to={isAuthenticated ? "/checkout" : "/login?redirect=%2Fcheckout"}
+            to={checkoutNavigationUrl}
             className="mt-5 block"
+            onClick={(event) => {
+              if (selectedCheckoutItems.length === 0) {
+                event.preventDefault();
+                messageApi.warning("Vui lòng chọn ít nhất một sản phẩm để thanh toán.");
+              }
+            }}
           >
-            <Button type="primary" block size="large" className="store-home-v3-primary-btn h-11! rounded-full! font-bold! shadow-none!">
+            <Button
+              type="primary"
+              block
+              size="large"
+              disabled={selectedCheckoutItems.length === 0}
+              className="store-home-v3-primary-btn h-11! rounded-full! font-bold! shadow-none!"
+            >
               {isAuthenticated ? "Thanh toán" : "Đăng nhập để thanh toán"}
             </Button>
           </Link>

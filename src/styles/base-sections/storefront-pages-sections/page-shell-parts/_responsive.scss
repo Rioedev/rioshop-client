@@ -58,9 +58,22 @@
     grid-template-columns: 78px minmax(0, 1fr);
   }
 
+  .cart-item-card--selectable {
+    grid-template-columns: 28px 78px minmax(0, 1fr);
+  }
+
   .cart-item-price {
     grid-column: 1 / -1;
     text-align: right;
+  }
+
+  .cart-item-card--selectable .cart-item-price {
+    grid-column: 2 / -1;
+  }
+
+  .cart-selection-actions {
+    width: 100%;
+    justify-content: space-between;
   }
 }
 

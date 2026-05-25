@@ -1,6 +1,7 @@
 import {
   AppstoreOutlined,
   CalendarOutlined,
+  DownloadOutlined,
   GiftOutlined,
   ShoppingCartOutlined,
   ThunderboltOutlined,
@@ -16,6 +17,7 @@ import { useAnalyticsEventStore } from "../../../stores/analyticsEventStore";
 import { useInventoryStore } from "../../../stores/inventoryStore";
 import { useOrderStore } from "../../../stores/orderStore";
 import { useProductStore } from "../../../stores/productStore";
+import { downloadCsv, type CsvColumn } from "../../../utils/csvExport";
 import { DashboardDonutCard, DashboardLineChartCard, DashboardOrdersColumnCard, DashboardRankBarCard } from "../components/DashboardCharts";
 import { KpiCard } from "../components/KpiCard";
 import { LowStockList } from "../components/LowStockList";
@@ -90,6 +92,14 @@ type MonthRange = {
   label: string;
   startDate: Date;
   endDate: Date;
+};
+
+type DashboardReportCsvRow = {
+  section: string;
+  metric: string;
+  value: string | number;
+  extra1?: string | number;
+  extra2?: string | number;
 };
 
 const toMonthKey = (date: Date) => {
@@ -532,6 +542,94 @@ export function AdminDashboardPage() {
   const activeRangeLabel =
     rangePreset === "7d" ? "7 ngày" : rangePreset === "90d" ? "90 ngày" : "30 ngày";
 
+  const handleExportDashboardReport = () => {
+    if (!dashboardMetrics) {
+      messageApi.info("Chưa có dữ liệu thống kê để xuất.");
+      return;
+    }
+
+    const rows: DashboardReportCsvRow[] = [
+      { section: "Tổng quan", metric: "Khoảng thời gian", value: activeRangeLabel },
+      { section: "Tổng quan", metric: "Tổng sự kiện", value: dashboardMetrics.totals.events },
+      { section: "Tổng quan", metric: "Tổng đơn hàng", value: dashboardMetrics.totals.orders },
+      { section: "Tổng quan", metric: "Doanh thu gộp", value: dashboardMetrics.totals.grossRevenue ?? dashboardMetrics.totals.revenue },
+      { section: "Tổng quan", metric: "Doanh thu thuần", value: dashboardMetrics.totals.netRevenue ?? dashboardMetrics.totals.revenue },
+      { section: "Tổng quan", metric: "AOV", value: averageOrderValue },
+      { section: "Tổng quan", metric: "Tỷ lệ hủy", value: `${cancellationRate.toFixed(2)}%` },
+      { section: "Tổng quan", metric: "Tỷ lệ hoàn", value: `${returnRate.toFixed(2)}%` },
+      { section: "Tổng quan", metric: "Đơn chờ quá 24h", value: overduePendingOrders },
+      { section: "Tổng quan", metric: "Khách mới", value: newCustomers },
+      { section: "Tổng quan", metric: "Khách quay lại", value: returningCustomers },
+      { section: "Chuyển đổi", metric: "Lượt mua", value: dashboardMetrics.conversion.purchases },
+      { section: "Chuyển đổi", metric: "Lượt xem trang", value: dashboardMetrics.conversion.pageViews },
+      { section: "Chuyển đổi", metric: "Lượt xem sản phẩm", value: dashboardMetrics.conversion.productViews ?? 0 },
+      { section: "Chuyển đổi", metric: "Lượt thêm giỏ", value: dashboardMetrics.conversion.addToCarts ?? 0 },
+      { section: "Chuyển đổi", metric: "Tỷ lệ thêm giỏ / xem sản phẩm", value: `${(dashboardMetrics.conversion.addToCartRate ?? 0).toFixed(2)}%` },
+      { section: "Chuyển đổi", metric: "Tỷ lệ mua / xem trang", value: `${dashboardMetrics.conversion.purchaseToViewRate.toFixed(2)}%` },
+      { section: "Chuyển đổi", metric: "Tỷ lệ mua / thêm giỏ", value: `${(dashboardMetrics.conversion.cartToPurchaseRate ?? 0).toFixed(2)}%` },
+      ...adminKpis.map((item) => ({
+        section: "KPI",
+        metric: item.title,
+        value: item.value,
+        extra1: item.change,
+        extra2: item.positive ? "Tích cực" : "Cần chú ý",
+      })),
+      ...(dashboardMetrics.revenueByDate || []).map((item) => ({
+        section: "Doanh thu theo ngày",
+        metric: item.label,
+        value: item.revenue,
+        extra1: item.orders,
+      })),
+      ...(dashboardMetrics.ordersByDate || []).map((item) => ({
+        section: "Đơn hàng theo ngày",
+        metric: item.label,
+        value: item.total,
+        extra1: `Hoàn thành: ${item.completed}`,
+        extra2: `Hủy/hoàn: ${item.cancelled}`,
+      })),
+      ...(dashboardMetrics.statusBreakdown || []).map((item) => ({
+        section: "Trạng thái đơn",
+        metric: STATUS_LABEL_MAP[item.status] || item.status,
+        value: item.count,
+      })),
+      ...(dashboardMetrics.paymentMethods || []).map((item) => ({
+        section: "Phương thức thanh toán",
+        metric: PAYMENT_LABEL_MAP[item.method] || item.method,
+        value: item.count,
+        extra1: item.revenue,
+      })),
+      ...(dashboardMetrics.topProductsByRevenue || []).map((item) => ({
+        section: "Top sản phẩm",
+        metric: item.name || item.productId,
+        value: item.revenue,
+        extra1: item.quantity,
+        extra2: item.orders,
+      })),
+      ...(dashboardMetrics.topCategoriesByRevenue || []).map((item) => ({
+        section: "Top danh mục",
+        metric: item.name,
+        value: item.revenue,
+        extra1: item.quantity,
+        extra2: item.orders,
+      })),
+    ];
+
+    const columns: CsvColumn<DashboardReportCsvRow>[] = [
+      { header: "Nhóm", value: (row) => row.section },
+      { header: "Chỉ mục", value: (row) => row.metric },
+      { header: "Giá trị", value: (row) => row.value },
+      { header: "Thông tin phụ 1", value: (row) => row.extra1 || "" },
+      { header: "Thông tin phụ 2", value: (row) => row.extra2 || "" },
+    ];
+
+    downloadCsv(
+      `dashboard-report-${rangePreset}-${new Date().toISOString().slice(0, 10)}.csv`,
+      columns,
+      rows,
+    );
+    messageApi.success("Đã xuất báo cáo thống kê.");
+  };
+
   return (
     <Spin spinning={loading}>
       {contextHolder}
@@ -570,6 +668,14 @@ export function AdminDashboardPage() {
                     {action.label}
                   </Button>
                 ))}
+                <Button
+                  icon={<DownloadOutlined />}
+                  className="rounded-full! border-slate-500! bg-slate-800/70! text-slate-100! shadow-sm! hover:border-slate-300! hover:text-white!"
+                  disabled={!dashboardMetrics}
+                  onClick={handleExportDashboardReport}
+                >
+                  Xuáº¥t bÃ¡o cÃ¡o
+                </Button>
               </div>
               <div className="flex gap-2 rounded-full border border-white/15 bg-slate-900/40 p-1">
                 {(Object.keys(RANGE_PRESETS) as RangePreset[]).map((preset) => (

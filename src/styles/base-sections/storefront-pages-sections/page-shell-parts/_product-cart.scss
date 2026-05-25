@@ -108,6 +108,21 @@
   padding: 14px;
 }
 
+.cart-item-card--selectable {
+  grid-template-columns: 28px 96px minmax(0, 1fr) auto;
+}
+
+.cart-selection-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.cart-item-check {
+  display: flex;
+  justify-content: center;
+}
+
 .cart-item-image {
   overflow: hidden;
   height: 96px;

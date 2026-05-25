@@ -1,4 +1,7 @@
 import {
+  DownloadOutlined,
+} from "@ant-design/icons";
+import {
   Button,
   Card,
   Col,
@@ -12,8 +15,13 @@ import {
 } from "antd";
 import type { ColumnsType, TablePaginationConfig } from "antd/es/table";
 import { useEffect, useMemo, useState } from "react";
-import type { AnalyticsEvent, AnalyticsEventType } from "../../../services/analyticsEventService";
+import {
+  analyticsEventService,
+  type AnalyticsEvent,
+  type AnalyticsEventType,
+} from "../../../services/analyticsEventService";
 import { useAnalyticsEventStore } from "../../../stores/analyticsEventStore";
+import { downloadCsv, type CsvColumn } from "../../../utils/csvExport";
 import { getErrorMessage } from "../../../utils/errorMessage";
 
 const { Paragraph, Text, Title } = Typography;
@@ -86,6 +94,7 @@ export function AdminAnalyticsEventsPage() {
     () => useAnalyticsEventStore.getState().endDate ?? "",
   );
   const [searchText, setSearchText] = useState("");
+  const [exportingEvents, setExportingEvents] = useState(false);
 
   useEffect(() => {
     void Promise.all([
@@ -134,6 +143,79 @@ export function AdminAnalyticsEventsPage() {
       ]);
     } catch (error) {
       messageApi.error(getErrorMessage(error));
+    }
+  };
+
+  const handleExportEvents = async () => {
+    setExportingEvents(true);
+    try {
+      const normalizedEvent = eventFilterUi || undefined;
+      const normalizedStartDate = startDateUi || undefined;
+      const normalizedEndDate = endDateUi || undefined;
+      const firstPage = await analyticsEventService.getAnalyticsEvents({
+        page: 1,
+        limit: 100,
+        event: normalizedEvent,
+        startDate: normalizedStartDate,
+        endDate: normalizedEndDate,
+      });
+      const allEvents = [...firstPage.docs];
+
+      for (let nextPage = 2; nextPage <= firstPage.totalPages; nextPage += 1) {
+        const result = await analyticsEventService.getAnalyticsEvents({
+          page: nextPage,
+          limit: 100,
+          event: normalizedEvent,
+          startDate: normalizedStartDate,
+          endDate: normalizedEndDate,
+        });
+        allEvents.push(...result.docs);
+      }
+
+      const keyword = searchText.trim().toLowerCase();
+      const exportRows = keyword
+        ? allEvents.filter((event) =>
+            EVENT_LABEL_MAP[event.event].toLowerCase().includes(keyword) ||
+            (event.user?.fullName ?? "").toLowerCase().includes(keyword) ||
+            (event.user?.email ?? "").toLowerCase().includes(keyword) ||
+            event.sessionId.toLowerCase().includes(keyword) ||
+            (event.product?.name ?? "").toLowerCase().includes(keyword) ||
+            (event.order?.orderNumber ?? "").toLowerCase().includes(keyword),
+          )
+        : allEvents;
+
+      if (exportRows.length === 0) {
+        messageApi.info("Không có sự kiện phù hợp để xuất.");
+        return;
+      }
+
+      const columns: CsvColumn<AnalyticsEvent>[] = [
+        { header: "Sự kiện", value: (event) => EVENT_LABEL_MAP[event.event] },
+        { header: "Mã phiên", value: (event) => event.sessionId },
+        { header: "Người dùng", value: (event) => event.user?.fullName || "Khách vãng lai" },
+        { header: "Email", value: (event) => event.user?.email || "" },
+        { header: "Sản phẩm", value: (event) => event.product?.name || "" },
+        { header: "Mã đơn", value: (event) => event.order?.orderNumber || "" },
+        { header: "Tổng đơn", value: (event) => event.order?.total ?? "" },
+        { header: "Thiết bị", value: (event) => event.device?.type || "" },
+        { header: "Hệ điều hành", value: (event) => event.device?.os || "" },
+        { header: "Trình duyệt", value: (event) => event.device?.browser || "" },
+        { header: "UTM source", value: (event) => event.utm?.source || "" },
+        { header: "UTM campaign", value: (event) => event.utm?.campaign || "" },
+        { header: "IP", value: (event) => event.ip || "" },
+        { header: "Thời gian", value: (event) => formatDateTime(event.createdAt) },
+      ];
+
+      downloadCsv(
+        `analytics-events-${new Date().toISOString().slice(0, 10)}.csv`,
+        columns,
+        exportRows,
+      );
+      messageApi.success(`Đã xuất ${exportRows.length} sự kiện analytics.`);
+    } catch (error) {
+      messageApi.error(getErrorMessage(error, "Không thể xuất sự kiện analytics."));
+    } finally {
+      setExportingEvents(false);
     }
   };
 
@@ -239,8 +321,21 @@ export function AdminAnalyticsEventsPage() {
             onChange={(event) => setEndDateUi(event.target.value)}
             className="min-w-[180px]"
           />
-          <Button type="primary" onClick={() => void handleApplyFilters()} loading={loading || dashboardLoading}>
+          <Button
+            type="primary"
+            onClick={() => void handleApplyFilters()}
+            loading={loading || dashboardLoading}
+            disabled={exportingEvents}
+          >
             Áp dụng bộ lọc
+          </Button>
+          <Button
+            icon={<DownloadOutlined />}
+            loading={exportingEvents}
+            disabled={loading || dashboardLoading}
+            onClick={() => void handleExportEvents()}
+          >
+            Xuất CSV
           </Button>
           <Input
             value={searchText}

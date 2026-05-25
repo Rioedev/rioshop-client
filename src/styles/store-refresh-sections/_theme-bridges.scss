@@ -68,6 +68,12 @@
   color: #ffffff !important;
 }
 
+.store-home-v3-danger-btn {
+  border-color: #dc2626 !important;
+  background: #dc2626 !important;
+  color: #ffffff !important;
+}
+
 .store-home-v3-secondary-btn,
 .store-home-v3-secondary-ghost {
   border-color: var(--yody-blue) !important;
@@ -79,6 +85,12 @@
 .store-home-v3-primary-ghost:hover {
   border-color: var(--yody-blue-700) !important;
   background: var(--yody-blue-700) !important;
+}
+
+.store-home-v3-danger-btn:hover {
+  border-color: #b91c1c !important;
+  background: #b91c1c !important;
+  color: #ffffff !important;
 }
 
 .store-home-v3-secondary-btn:hover,

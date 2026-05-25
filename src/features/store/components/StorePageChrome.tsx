@@ -7,11 +7,11 @@ export const storeButtonClassNames = {
   primary: "store-home-v3-primary-btn h-11! rounded-full! px-6! font-bold! shadow-none!",
   secondary: "store-home-v3-secondary-ghost h-11! rounded-full! px-6! font-bold!",
   ghost: "store-home-v3-primary-ghost h-11! rounded-full! px-6! font-bold!",
-  danger: "store-home-v3-primary-ghost h-11! rounded-full! px-6! font-bold! text-rose-600!",
+  danger: "store-home-v3-danger-btn h-11! rounded-full! px-6! font-bold! shadow-none!",
   primaryCompact: "store-home-v3-primary-btn rounded-full! px-4! font-bold! shadow-none!",
   secondaryCompact: "store-home-v3-secondary-ghost rounded-full! px-4! font-bold!",
   ghostCompact: "store-home-v3-primary-ghost rounded-full! px-5! font-bold!",
-  dangerCompact: "store-home-v3-primary-ghost rounded-full! px-4! font-bold! text-rose-600!",
+  dangerCompact: "store-home-v3-danger-btn rounded-full! px-4! font-bold! shadow-none!",
 };
 
 type StoreLayoutProps = {

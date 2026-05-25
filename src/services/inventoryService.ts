@@ -104,6 +104,17 @@ export type UpdateInventoryPayload = Partial<{
   lastCountAt: string | null;
 }>;
 
+export type UpdateInventoryRulesByProductPayload = Partial<{
+  reorderPoint: number | null;
+  reorderQty: number | null;
+}>;
+
+export type UpdateInventoryRulesByProductResult = {
+  productId: string;
+  updatedCount: number;
+  variantSkus: string[];
+};
+
 const resolveProductIdAndSnapshot = (
   rawProduct: InventoryApiItem["productId"],
 ): { productId: string; product?: InventoryProductApi } => {
@@ -197,5 +208,17 @@ export const inventoryService = {
     );
 
     return normalizeInventoryRecord(response.data.data);
+  },
+
+  async updateInventoryRulesByProduct(
+    productId: string,
+    payload: UpdateInventoryRulesByProductPayload,
+  ): Promise<UpdateInventoryRulesByProductResult> {
+    const response = await apiClient.put<ApiResponse<UpdateInventoryRulesByProductResult>>(
+      `/api/inventories/product/${encodeURIComponent(productId)}/rules`,
+      payload,
+    );
+
+    return response.data.data;
   },
 };

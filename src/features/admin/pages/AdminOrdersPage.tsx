@@ -15,7 +15,9 @@
 import type { ColumnsType, TablePaginationConfig } from "antd/es/table";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
+import { DownloadOutlined, PrinterOutlined } from "@ant-design/icons";
 import {
+  orderService,
   type OrderRecord,
   type OrderStatus,
   type PaymentStatus,
@@ -23,6 +25,7 @@ import {
 } from "../../../services/orderService";
 import { subscribeAdminRealtime } from "../../../services/socketClient";
 import { useOrderStore } from "../../../stores/orderStore";
+import { downloadCsv, type CsvColumn } from "../../../utils/csvExport";
 import { getErrorMessage } from "../../../utils/errorMessage";
 
 const { Paragraph, Title, Text } = Typography;
@@ -231,6 +234,142 @@ const getStatusUpdateOptions = (
   }));
 };
 
+const escapeInvoiceHtml = (value: unknown) =>
+  String(value ?? "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
+
+const renderInvoiceHtml = (order: OrderRecord, options: { embedded?: boolean } = {}) => {
+  const printedAt = new Intl.DateTimeFormat("vi-VN", {
+    dateStyle: "short",
+    timeStyle: "short",
+  }).format(new Date());
+  const itemRows = order.items
+    .map(
+      (item, index) => `
+        <tr>
+          <td>${index + 1}</td>
+          <td>
+            <strong>${escapeInvoiceHtml(item.productName || "Sản phẩm")}</strong>
+            <div class="muted">SKU: ${escapeInvoiceHtml(item.variantSku || "-")}</div>
+            <div class="muted">Phân loại: ${escapeInvoiceHtml(item.variantLabel || "-")}</div>
+          </td>
+          <td class="right">${formatCurrency.format(item.unitPrice)} VND</td>
+          <td class="right">${formatCurrency.format(item.quantity)}</td>
+          <td class="right">${formatCurrency.format(item.totalPrice)} VND</td>
+        </tr>
+      `,
+    )
+    .join("");
+
+  const actionBar = options.embedded
+    ? ""
+    : `
+  <div class="actions">
+    <button onclick="window.print()">In / Lưu PDF</button>
+    <button onclick="window.close()">Đóng</button>
+  </div>`;
+
+  return `<!doctype html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8" />
+  <title>Hoa don ${escapeInvoiceHtml(order.orderNumber)}</title>
+  <style>
+    * { box-sizing: border-box; }
+    body { margin: 0; background: #f8fafc; color: #0f172a; font-family: Arial, sans-serif; }
+    .invoice { width: 210mm; min-height: 297mm; margin: 0 auto; background: #fff; padding: 18mm; }
+    .top { display: flex; justify-content: space-between; gap: 24px; border-bottom: 2px solid #0f172a; padding-bottom: 18px; }
+    .brand { font-size: 28px; font-weight: 800; letter-spacing: .08em; }
+    .title { text-align: right; }
+    .title h1 { margin: 0; font-size: 24px; }
+    .muted { color: #64748b; font-size: 12px; margin-top: 4px; }
+    .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; margin: 22px 0; }
+    .box { border: 1px solid #e2e8f0; border-radius: 10px; padding: 14px; }
+    .box h2 { margin: 0 0 10px; font-size: 13px; text-transform: uppercase; letter-spacing: .08em; color: #475569; }
+    .line { margin: 6px 0; font-size: 13px; }
+    table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+    th, td { border-bottom: 1px solid #e2e8f0; padding: 10px 8px; vertical-align: top; font-size: 13px; }
+    th { background: #f1f5f9; text-align: left; color: #334155; }
+    .right { text-align: right; white-space: nowrap; }
+    .summary { width: 320px; margin-left: auto; margin-top: 20px; }
+    .summary-row { display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid #e2e8f0; font-size: 14px; }
+    .summary-row.total { border-bottom: 0; font-size: 18px; font-weight: 800; }
+    .footer { margin-top: 34px; display: flex; justify-content: space-between; gap: 24px; color: #475569; font-size: 12px; }
+    .actions { position: sticky; top: 0; display: flex; justify-content: center; gap: 10px; padding: 12px; background: #0f172a; }
+    .actions button { border: 0; border-radius: 999px; padding: 9px 16px; background: #fff; color: #0f172a; font-weight: 700; cursor: pointer; }
+    @media print {
+      body { background: #fff; }
+      .actions { display: none; }
+      .invoice { width: auto; min-height: auto; margin: 0; padding: 0; }
+      @page { size: A4; margin: 14mm; }
+    }
+  </style>
+</head>
+<body>
+  ${actionBar}
+  <main class="invoice">
+    <section class="top">
+      <div>
+        <div class="brand">RIOSHOP</div>
+        <div class="muted">Hóa đơn bán hàng</div>
+        <div class="muted">In lúc: ${escapeInvoiceHtml(printedAt)}</div>
+      </div>
+      <div class="title">
+        <h1>HÓA ĐƠN</h1>
+        <div class="line"><strong>Mã đơn:</strong> ${escapeInvoiceHtml(order.orderNumber)}</div>
+        <div class="line"><strong>Ngày tạo:</strong> ${escapeInvoiceHtml(formatDateTime(order.createdAt))}</div>
+        <div class="line"><strong>Trạng thái:</strong> ${escapeInvoiceHtml(getOrderStatusLabel(order))}</div>
+      </div>
+    </section>
+
+    <section class="grid">
+      <div class="box">
+        <h2>Khách hàng</h2>
+        <div class="line"><strong>Họ tên:</strong> ${escapeInvoiceHtml(order.customerName || "-")}</div>
+        <div class="line"><strong>Điện thoại:</strong> ${escapeInvoiceHtml(order.customerPhone || "-")}</div>
+        <div class="line"><strong>Email:</strong> ${escapeInvoiceHtml(order.customerEmail || "-")}</div>
+      </div>
+      <div class="box">
+        <h2>Giao hàng & thanh toán</h2>
+        <div class="line"><strong>Thanh toán:</strong> ${escapeInvoiceHtml(order.paymentMethod?.toUpperCase() || "-")} - ${escapeInvoiceHtml(PAYMENT_STATUS_LABEL_MAP[order.paymentStatus] || order.paymentStatus)}</div>
+        <div class="line"><strong>Vận chuyển:</strong> ${escapeInvoiceHtml(order.shippingCarrier || order.shippingMethod || "-")}</div>
+        <div class="line"><strong>Địa chỉ:</strong> ${escapeInvoiceHtml(formatShippingAddress(order.shippingAddress))}</div>
+      </div>
+    </section>
+
+    <table>
+      <thead>
+        <tr>
+          <th style="width: 42px;">#</th>
+          <th>Sản phẩm</th>
+          <th class="right">Đơn giá</th>
+          <th class="right">SL</th>
+          <th class="right">Thành tiền</th>
+        </tr>
+      </thead>
+      <tbody>${itemRows}</tbody>
+    </table>
+
+    <section class="summary">
+      <div class="summary-row"><span>Tạm tính</span><strong>${formatCurrency.format(order.pricing.subtotal)} VND</strong></div>
+      <div class="summary-row"><span>Giảm giá</span><strong>-${formatCurrency.format(order.pricing.discount)} VND</strong></div>
+      <div class="summary-row"><span>Phí vận chuyển</span><strong>${formatCurrency.format(order.pricing.shippingFee)} VND</strong></div>
+      <div class="summary-row total"><span>Tổng thanh toán</span><span>${formatCurrency.format(order.pricing.total)} VND</span></div>
+    </section>
+
+    <section class="footer">
+      <div>Ghi chú: ${escapeInvoiceHtml(order.note || "-")}</div>
+      <div>RioShop cảm ơn quý khách.</div>
+    </section>
+  </main>
+</body>
+</html>`;
+};
+
 export function AdminOrdersPage() {
   const location = useLocation();
   const navigate = useNavigate();
@@ -242,6 +381,7 @@ export function AdminOrdersPage() {
   const [manageNote, setManageNote] = useState("");
   const [syncingShipment, setSyncingShipment] = useState(false);
   const [syncingActiveGhn, setSyncingActiveGhn] = useState(false);
+  const [exportingOrders, setExportingOrders] = useState(false);
   const [updatingReturnRequest, setUpdatingReturnRequest] = useState(false);
 
   const orders = useOrderStore((state) => state.orders);
@@ -322,17 +462,24 @@ export function AdminOrdersPage() {
     };
   }, [scheduleRealtimeRefresh]);
 
-  const filteredOrders = useMemo(() => {
-    const keyword = searchText.trim().toLowerCase();
-    if (!keyword) return orders;
+  const applyOrderSearch = useCallback(
+    (sourceOrders: OrderRecord[]) => {
+      const keyword = searchText.trim().toLowerCase();
+      if (!keyword) {
+        return sourceOrders;
+      }
 
-    return orders.filter((order) =>
-      order.orderNumber.toLowerCase().includes(keyword) ||
-      order.customerName.toLowerCase().includes(keyword) ||
-      (order.customerEmail ?? "").toLowerCase().includes(keyword) ||
-      (order.customerPhone ?? "").toLowerCase().includes(keyword),
-    );
-  }, [orders, searchText]);
+      return sourceOrders.filter((order) =>
+        order.orderNumber.toLowerCase().includes(keyword) ||
+        order.customerName.toLowerCase().includes(keyword) ||
+        (order.customerEmail ?? "").toLowerCase().includes(keyword) ||
+        (order.customerPhone ?? "").toLowerCase().includes(keyword),
+      );
+    },
+    [searchText],
+  );
+
+  const filteredOrders = useMemo(() => applyOrderSearch(orders), [applyOrderSearch, orders]);
 
   const pendingCount = orders.filter((item) =>
     ["pending", "confirmed", "packing", "ready_to_ship", "shipping"].includes(item.status),
@@ -563,6 +710,128 @@ export function AdminOrdersPage() {
     }
   };
 
+  const handleExportOrders = async () => {
+    setExportingOrders(true);
+    try {
+      const firstPage = await orderService.getOrders({
+        page: 1,
+        limit: 100,
+        status: statusFilter,
+        paymentStatus: paymentStatusFilter,
+      });
+      const allOrders = [...firstPage.docs];
+
+      for (let nextPage = 2; nextPage <= firstPage.totalPages; nextPage += 1) {
+        const result = await orderService.getOrders({
+          page: nextPage,
+          limit: 100,
+          status: statusFilter,
+          paymentStatus: paymentStatusFilter,
+        });
+        allOrders.push(...result.docs);
+      }
+
+      const exportRows = applyOrderSearch(allOrders);
+      if (exportRows.length === 0) {
+        messageApi.info("Không có đơn hàng phù hợp để xuất.");
+        return;
+      }
+
+      const columns: CsvColumn<OrderRecord>[] = [
+        { header: "Mã đơn", value: (order) => order.orderNumber },
+        { header: "Khách hàng", value: (order) => order.customerName },
+        { header: "Email", value: (order) => order.customerEmail || "" },
+        { header: "Số điện thoại", value: (order) => order.customerPhone || "" },
+        { header: "Trạng thái đơn", value: (order) => getOrderStatusLabel(order) },
+        {
+          header: "Trạng thái thanh toán",
+          value: (order) => PAYMENT_STATUS_LABEL_MAP[order.paymentStatus] || order.paymentStatus,
+        },
+        { header: "Phương thức thanh toán", value: (order) => order.paymentMethod },
+        { header: "Phương thức giao", value: (order) => order.shippingMethod || "" },
+        { header: "Đơn vị giao", value: (order) => order.shippingCarrier || "" },
+        { header: "Số sản phẩm", value: (order) => order.items.reduce((sum, item) => sum + item.quantity, 0) },
+        { header: "Tạm tính", value: (order) => order.pricing.subtotal },
+        { header: "Giảm giá", value: (order) => order.pricing.discount },
+        { header: "Phí vận chuyển", value: (order) => order.pricing.shippingFee },
+        { header: "Tổng tiền", value: (order) => order.pricing.total },
+        { header: "Tiền tệ", value: (order) => order.pricing.currency },
+        {
+          header: "Sản phẩm",
+          value: (order) =>
+            order.items
+              .map((item) => `${item.productName || item.productId || "Sản phẩm"} x${item.quantity}`)
+              .join("; "),
+        },
+        { header: "Địa chỉ giao", value: (order) => formatShippingAddress(order.shippingAddress) },
+        { header: "Ghi chú", value: (order) => order.note || "" },
+        { header: "Tạo lúc", value: (order) => formatDateTime(order.createdAt) },
+        { header: "Cập nhật lúc", value: (order) => formatDateTime(order.updatedAt) },
+      ];
+
+      downloadCsv(
+        `orders-export-${new Date().toISOString().slice(0, 10)}.csv`,
+        columns,
+        exportRows,
+      );
+      messageApi.success(`Đã xuất ${exportRows.length} đơn hàng.`);
+    } catch (error) {
+      messageApi.error(getErrorMessage(error, "Không thể xuất đơn hàng."));
+    } finally {
+      setExportingOrders(false);
+    }
+  };
+
+  const handlePrintInvoice = (order: OrderRecord) => {
+    const existingFrame = document.getElementById("admin-order-invoice-print-frame");
+    existingFrame?.remove();
+
+    const frame = document.createElement("iframe");
+    frame.id = "admin-order-invoice-print-frame";
+    frame.title = `Hóa đơn ${order.orderNumber}`;
+    frame.style.position = "fixed";
+    frame.style.right = "0";
+    frame.style.bottom = "0";
+    frame.style.width = "0";
+    frame.style.height = "0";
+    frame.style.border = "0";
+    frame.style.visibility = "hidden";
+    document.body.appendChild(frame);
+
+    const frameDocument = frame.contentDocument || frame.contentWindow?.document;
+    if (!frameDocument || !frame.contentWindow) {
+      frame.remove();
+      messageApi.error("Không thể tạo khung in hóa đơn. Vui lòng thử lại.");
+      return;
+    }
+
+    let hasPrinted = false;
+    const cleanupFrame = () => {
+      window.setTimeout(() => {
+        frame.remove();
+      }, 500);
+    };
+    const printFrame = () => {
+      if (hasPrinted) {
+        return;
+      }
+
+      hasPrinted = true;
+      frame.contentWindow?.focus();
+      window.setTimeout(() => {
+        frame.contentWindow?.print();
+      }, 100);
+    };
+
+    frame.contentWindow.onafterprint = cleanupFrame;
+    frame.onload = printFrame;
+    frameDocument.open();
+    frameDocument.write(renderInvoiceHtml(order, { embedded: true }));
+    frameDocument.close();
+
+    window.setTimeout(printFrame, 250);
+  };
+
   const columns: ColumnsType<OrderRecord> = [
     {
       title: "Mã đơn",
@@ -634,11 +903,21 @@ export function AdminOrdersPage() {
     {
       title: "Thao tác",
       key: "actions",
-      width: 120,
+      width: 210,
       render: (_, record) => (
-        <Button size="small" onClick={() => openManageModal(record)} disabled={saving}>
-          Quản lý
-        </Button>
+        <div className="flex flex-wrap gap-2">
+          <Button size="small" onClick={() => openManageModal(record)} disabled={saving}>
+            Quản lý
+          </Button>
+          <Button
+            size="small"
+            icon={<PrinterOutlined />}
+            onClick={() => handlePrintInvoice(record)}
+            disabled={saving}
+          >
+            Hóa đơn
+          </Button>
+        </div>
       ),
     },
   ];
@@ -707,8 +986,17 @@ export function AdminOrdersPage() {
           <Button
             onClick={() => void handleSyncActiveGhn()}
             loading={syncingActiveGhn}
+            disabled={exportingOrders}
           >
             Đồng bộ GHN
+          </Button>
+          <Button
+            icon={<DownloadOutlined />}
+            loading={exportingOrders}
+            disabled={syncingActiveGhn}
+            onClick={() => void handleExportOrders()}
+          >
+            Xuất CSV
           </Button>
         </div>
 
@@ -748,6 +1036,14 @@ export function AdminOrdersPage() {
         footer={[
           <Button key="close" onClick={closeManageModal} disabled={modalBusy}>
             Đóng
+          </Button>,
+          <Button
+            key="invoice"
+            icon={<PrinterOutlined />}
+            onClick={() => managingOrder && handlePrintInvoice(managingOrder)}
+            disabled={!managingOrder || modalBusy}
+          >
+            In hóa đơn
           </Button>,
           <Popconfirm
             key="cancel"

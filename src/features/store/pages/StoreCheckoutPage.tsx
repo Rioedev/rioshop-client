@@ -1,6 +1,6 @@
 ﻿import { Button, Input, Select, message } from "antd";
 import { useEffect, useMemo, useState, type ReactNode } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import {
   StoreEmptyState,
   StoreInlineNote,
@@ -26,7 +26,7 @@ import {
   type GhnWard,
 } from "../../../services/shippingService";
 import { useAuthStore } from "../../../stores/authStore";
-import { useCartStore } from "../../../stores/cartStore";
+import { buildCartItemId, type CartItem, useCartStore } from "../../../stores/cartStore";
 import { getErrorMessage } from "../../../utils/errorMessage";
 
 const objectIdPattern = /^[0-9a-fA-F]{24}$/;
@@ -128,15 +128,19 @@ const applyShippingPolicyLocally = (
   };
 };
 
+const resolveCartItemId = (item: CartItem) =>
+  item.itemId || buildCartItemId({ productId: item.productId, variantSku: item.variantSku });
+
 export function StoreCheckoutPage() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const [messageApi, contextHolder] = message.useMessage();
   const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
   const user = useAuthStore((state) => state.user);
   const cartItems = useCartStore((state) => state.items);
   const couponCode = useCartStore((state) => state.couponCode);
   const couponDiscount = useCartStore((state) => state.couponDiscount);
-  const clearCart = useCartStore((state) => state.clearCart);
+  const removeCartItem = useCartStore((state) => state.removeItem);
   const setCartItems = useCartStore((state) => state.setItems);
 
   const [fullName, setFullName] = useState(user?.fullName ?? "");
@@ -163,6 +167,27 @@ export function StoreCheckoutPage() {
   const [shippingFee, setShippingFee] = useState(0);
   const [hasAddressPrefilled, setHasAddressPrefilled] = useState(false);
 
+  const requestedCheckoutItemIds = useMemo(() => {
+    const ids = searchParams
+      .getAll("item")
+      .map((itemId) => itemId.trim())
+      .filter(Boolean);
+    return Array.from(new Set(ids));
+  }, [searchParams]);
+  const checkoutItems = useMemo(() => {
+    if (requestedCheckoutItemIds.length === 0) {
+      return cartItems;
+    }
+
+    const requestedItemIdSet = new Set(requestedCheckoutItemIds);
+    return cartItems.filter((item) => requestedItemIdSet.has(resolveCartItemId(item)));
+  }, [cartItems, requestedCheckoutItemIds]);
+  const isPartialCheckout = requestedCheckoutItemIds.length > 0 && checkoutItems.length < cartItems.length;
+  const checkedOutItemIds = useMemo(
+    () => checkoutItems.map((item) => resolveCartItemId(item)),
+    [checkoutItems],
+  );
+
   const selectedProvince = useMemo(
     () => provinces.find((item) => item.ProvinceID === provinceId) ?? null,
     [provinceId, provinces],
@@ -177,19 +202,19 @@ export function StoreCheckoutPage() {
   );
 
   const subtotal = useMemo(
-    () => cartItems.reduce((sum, item) => sum + item.price * item.quantity, 0),
-    [cartItems],
+    () => checkoutItems.reduce((sum, item) => sum + item.price * item.quantity, 0),
+    [checkoutItems],
   );
 
   const packageProfile = useMemo(() => {
-    const totalQuantity = cartItems.reduce((sum, item) => sum + item.quantity, 0);
+    const totalQuantity = checkoutItems.reduce((sum, item) => sum + item.quantity, 0);
     return {
       weight: Math.max(100, totalQuantity * 300),
       length: 20,
       width: 15,
       height: Math.max(5, totalQuantity * 4),
     };
-  }, [cartItems]);
+  }, [checkoutItems]);
 
   const { discountValue, total } = useMemo(() => {
     const discount = Math.max(0, Math.min(Number(couponDiscount || 0), subtotal + shippingFee));
@@ -509,8 +534,8 @@ export function StoreCheckoutPage() {
     wardCode,
   ]);
 
-  const invalidProductIds = cartItems.filter((item) => !objectIdPattern.test(item.productId));
-  const itemsMissingVariant = cartItems.filter((item) => !item.variantSku?.trim());
+  const invalidProductIds = checkoutItems.filter((item) => !objectIdPattern.test(item.productId));
+  const itemsMissingVariant = checkoutItems.filter((item) => !item.variantSku?.trim());
 
   if (!isAuthenticated) {
     return (
@@ -539,6 +564,23 @@ export function StoreCheckoutPage() {
           <Link to="/products">
             <Button type="primary" className={storeButtonClassNames.primary}>
               Đi mua sắm
+            </Button>
+          </Link>
+        }
+      />
+    );
+  }
+
+  if (checkoutItems.length === 0) {
+    return (
+      <StoreEmptyState
+        kicker="Thanh toán"
+        title="Sản phẩm đã chọn không còn trong giỏ"
+        description="Vui lòng quay lại giỏ hàng và chọn lại sản phẩm bạn muốn thanh toán."
+        action={
+          <Link to="/cart">
+            <Button type="primary" className={storeButtonClassNames.primary}>
+              Quay lại giỏ hàng
             </Button>
           </Link>
         }
@@ -580,7 +622,7 @@ export function StoreCheckoutPage() {
           email: email.trim() || undefined,
           phone: phone.trim(),
         },
-        items: cartItems.map((item) => ({
+        items: checkoutItems.map((item) => ({
           productId: item.productId,
           variantSku: item.variantSku!,
           productName: item.name,
@@ -607,7 +649,7 @@ export function StoreCheckoutPage() {
           currency: "VND",
         },
         couponCode: couponCode || undefined,
-        couponDiscount: couponCode ? discountValue : undefined,
+        couponDiscount: couponCode && !isPartialCheckout ? discountValue : undefined,
         paymentMethod,
         paymentStatus: "pending",
         shippingMethod,
@@ -625,24 +667,30 @@ export function StoreCheckoutPage() {
           paymentMethod,
           paymentStatus: created.paymentStatus,
           shippingMethod,
-          itemCount: cartItems.reduce((sum, item) => sum + item.quantity, 0),
+          itemCount: checkoutItems.reduce((sum, item) => sum + item.quantity, 0),
           total: created.pricing.total,
           currency: created.pricing.currency,
         },
       });
 
-      clearCart();
+      checkedOutItemIds.forEach((itemId) => removeCartItem(itemId));
       try {
-        const cleared = await cartService.clearCart();
-        const couponMeta = toCartCouponMeta(cleared);
-        setCartItems(
-          toCartStoreItems(cleared),
-          user?.id ?? null,
-          couponMeta.couponCode,
-          couponMeta.couponDiscount,
-        );
+        let syncedCart: Awaited<ReturnType<typeof cartService.removeItem>> | null = null;
+        for (const itemId of checkedOutItemIds) {
+          syncedCart = await cartService.removeItem(itemId);
+        }
+
+        if (syncedCart) {
+          const couponMeta = toCartCouponMeta(syncedCart);
+          setCartItems(
+            toCartStoreItems(syncedCart),
+            user?.id ?? null,
+            couponMeta.couponCode,
+            couponMeta.couponDiscount,
+          );
+        }
       } catch {
-        // Keep local cart cleared to avoid blocking checkout flow if cart API is unavailable.
+        // Keep checked-out items removed locally to avoid blocking checkout flow if cart API is unavailable.
       }
 
       if (paymentMethod === "momo") {
@@ -849,7 +897,7 @@ export function StoreCheckoutPage() {
           </div>
 
           <div className="space-y-2">
-            {cartItems.map((item) => (
+            {checkoutItems.map((item) => (
               <article key={item.itemId ?? `${item.productId}-${item.variantSku ?? "default"}`} className="cart-item-card">
                 <div className="cart-item-image">
                   {item.imageUrl ? (

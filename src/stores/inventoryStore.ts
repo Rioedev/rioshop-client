@@ -4,6 +4,8 @@ import {
   type GetLowStockParams,
   type InventoryRecord,
   type PaginatedInventoryData,
+  type UpdateInventoryRulesByProductPayload,
+  type UpdateInventoryRulesByProductResult,
   type UpdateInventoryPayload,
 } from "../services/inventoryService";
 import { runStoreTask, runStoreTaskWithFlag } from "./storeAsync";
@@ -35,6 +37,10 @@ type InventoryState = {
   setCurrentVariantSku: (variantSku: string) => void;
   setThreshold: (threshold?: number) => void;
   updateInventory: (variantSku: string, payload: UpdateInventoryPayload) => Promise<void>;
+  updateInventoryRulesByProduct: (
+    productId: string,
+    payload: UpdateInventoryRulesByProductPayload,
+  ) => Promise<UpdateInventoryRulesByProductResult>;
   fetchLowStockItems: (params?: GetLowStockParams) => Promise<PaginatedInventoryData>;
 };
 
@@ -128,6 +134,34 @@ export const useInventoryStore = create<InventoryState>((set, get) => ({
         });
       }
     });
+  },
+
+  updateInventoryRulesByProduct: async (productId, payload) => {
+    let updateResult: UpdateInventoryRulesByProductResult | undefined;
+
+    await runStoreTaskWithFlag(set, "saving", async () => {
+      updateResult = await inventoryService.updateInventoryRulesByProduct(productId, payload);
+
+      const state = get();
+      await state.loadLowStockItems({
+        page: state.lowStockPage,
+        pageSize: state.lowStockPageSize,
+        threshold: state.threshold,
+      });
+
+      if (state.currentVariantSku) {
+        await state.loadInventoryByVariantSku(state.currentVariantSku, {
+          page: state.inventoryPage,
+          pageSize: state.inventoryPageSize,
+        });
+      }
+    });
+
+    if (!updateResult) {
+      throw new Error("Inventory rules update failed");
+    }
+
+    return updateResult;
   },
 
   fetchLowStockItems: async (params = {}) => {
