@@ -35,6 +35,8 @@ export type RealtimeInventoryPayload = {
   onHand?: number;
   reserved?: number;
   available?: number;
+  reorderPoint?: number | null;
+  lowStockAlert?: boolean;
   incoming?: number;
   orderId?: string;
   updatedAt?: string;
@@ -98,6 +100,13 @@ const normalizeInventoryPayload = (
   onHand: Number.isFinite(Number(payload.onHand)) ? Number(payload.onHand) : undefined,
   reserved: Number.isFinite(Number(payload.reserved)) ? Number(payload.reserved) : undefined,
   available: Number.isFinite(Number(payload.available)) ? Number(payload.available) : undefined,
+  reorderPoint:
+    payload.reorderPoint === null
+      ? null
+      : Number.isFinite(Number(payload.reorderPoint))
+        ? Number(payload.reorderPoint)
+        : undefined,
+  lowStockAlert: payload.lowStockAlert === undefined ? undefined : Boolean(payload.lowStockAlert),
   incoming: Number.isFinite(Number(payload.incoming)) ? Number(payload.incoming) : undefined,
   orderId: payload.orderId?.toString().trim(),
   updatedAt: payload.updatedAt?.toString(),

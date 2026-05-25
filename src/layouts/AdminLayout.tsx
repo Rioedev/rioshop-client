@@ -33,7 +33,8 @@ import {
   type AdminMenuIcon,
   type AdminRouteMeta,
 } from "../features/admin/shared/adminRoutes";
-import { subscribeUserNotifications } from "../services/socketClient";
+import { inventoryService } from "../services/inventoryService";
+import { subscribeAdminRealtime, subscribeUserNotifications } from "../services/socketClient";
 import { useAuthStore } from "../stores/authStore";
 import { useNotificationStore } from "../stores/notificationStore";
 import "../styles/admin-darkmode.scss";
@@ -81,6 +82,7 @@ export function AdminLayout() {
   const resetNotifications = useNotificationStore((state) => state.reset);
   const [isNotificationsModalOpen, setIsNotificationsModalOpen] =
     useState(false);
+  const [inventoryAlertCount, setInventoryAlertCount] = useState(0);
   const [isSiderCollapsed, setIsSiderCollapsed] = useState(false);
   const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false);
   const [isDarkMode, setIsDarkMode] = useState<boolean>(() => {
@@ -91,8 +93,26 @@ export function AdminLayout() {
   const canManageAdminAccounts =
     user?.role === "superadmin" || user?.role === "manager";
   const adminMenuItems = useMemo<ItemType[]>(
-    () => getAdminMenuRouteMeta(canManageAdminAccounts).map(toAdminMenuItem),
-    [canManageAdminAccounts],
+    () =>
+      getAdminMenuRouteMeta(canManageAdminAccounts).map((route) => {
+        const item = toAdminMenuItem(route);
+        if (route.segment !== "inventories") {
+          return item;
+        }
+
+        return {
+          ...item,
+          label: (
+            <span className="flex items-center justify-between gap-2">
+              <span>{route.menuLabel ?? route.title}</span>
+              {inventoryAlertCount > 0 ? (
+                <Badge count={inventoryAlertCount} overflowCount={99} size="small" />
+              ) : null}
+            </span>
+          ),
+        } as ItemType;
+      }),
+    [canManageAdminAccounts, inventoryAlertCount],
   );
 
   const matchedMenuKey =
@@ -157,6 +177,47 @@ export function AdminLayout() {
     resetNotifications,
     user?.id,
   ]);
+
+  useEffect(() => {
+    if (accountType !== "admin") {
+      setInventoryAlertCount(0);
+      return;
+    }
+
+    let isActive = true;
+    let refreshTimer: number | null = null;
+
+    const refreshInventoryAlertCount = () => {
+      void inventoryService
+        .getLowStockItems({ page: 1, limit: 1 })
+        .then((result) => {
+          if (isActive) {
+            setInventoryAlertCount(result.totalDocs);
+          }
+        })
+        .catch(() => undefined);
+    };
+
+    const scheduleRefresh = () => {
+      if (refreshTimer) {
+        window.clearTimeout(refreshTimer);
+      }
+      refreshTimer = window.setTimeout(refreshInventoryAlertCount, 600);
+    };
+
+    refreshInventoryAlertCount();
+    const unsubscribe = subscribeAdminRealtime({
+      onInventoryUpdated: scheduleRefresh,
+    });
+
+    return () => {
+      isActive = false;
+      if (refreshTimer) {
+        window.clearTimeout(refreshTimer);
+      }
+      unsubscribe();
+    };
+  }, [accountType]);
 
   // Scroll to top when route changes
   useEffect(() => {

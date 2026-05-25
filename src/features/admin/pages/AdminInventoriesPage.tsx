@@ -16,13 +16,16 @@
   Typography,
   message,
 } from "antd";
+import { DownloadOutlined } from "@ant-design/icons";
 import type { ColumnsType, TablePaginationConfig } from "antd/es/table";
 import { useCallback, useEffect, useRef, useState } from "react";
-import type { InventoryRecord, UpdateInventoryPayload } from "../../../services/inventoryService";
+import { inventoryService, type InventoryRecord, type UpdateInventoryPayload } from "../../../services/inventoryService";
 import { productService, type Product } from "../../../services/productService";
 import { subscribeAdminRealtime } from "../../../services/socketClient";
 import { useInventoryStore } from "../../../stores/inventoryStore";
+import { downloadCsv, type CsvColumn } from "../../../utils/csvExport";
 import { getErrorMessage } from "../../../utils/errorMessage";
+import { getInventoryAlertInfo } from "../shared/inventoryAlerts";
 
 const { Paragraph, Text, Title } = Typography;
 
@@ -70,6 +73,7 @@ export function AdminInventoriesPage() {
   const [bulkReorderQty, setBulkReorderQty] = useState<number | null>(20);
   const [bulkProductLoading, setBulkProductLoading] = useState(false);
   const [bulkApplying, setBulkApplying] = useState(false);
+  const [exportingLowStock, setExportingLowStock] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingItem, setEditingItem] = useState<InventoryRecord | null>(null);
 
@@ -235,6 +239,57 @@ export function AdminInventoriesPage() {
     }
   };
 
+  const handleExportLowStockItems = async () => {
+    setExportingLowStock(true);
+    try {
+      const pageSizeForExport = 100;
+      const firstPage = await inventoryService.getLowStockItems({
+        page: 1,
+        limit: pageSizeForExport,
+        threshold,
+      });
+      const rows = [...firstPage.docs];
+
+      if (firstPage.totalPages > 1) {
+        const pageRequests: Promise<Awaited<ReturnType<typeof inventoryService.getLowStockItems>>>[] = [];
+        for (let pageIndex = 2; pageIndex <= firstPage.totalPages; pageIndex += 1) {
+          pageRequests.push(
+            inventoryService.getLowStockItems({
+              page: pageIndex,
+              limit: pageSizeForExport,
+              threshold,
+            }),
+          );
+        }
+
+        const pageResults = await Promise.all(pageRequests);
+        pageResults.forEach((result) => rows.push(...result.docs));
+      }
+
+      const columns: CsvColumn<InventoryRecord>[] = [
+        { header: "SKU biến thể", value: (item) => item.variantSku },
+        { header: "Sản phẩm", value: (item) => item.product?.name || "" },
+        { header: "SKU sản phẩm", value: (item) => item.product?.sku || "" },
+        { header: "Kho", value: (item) => item.warehouseName },
+        { header: "Tồn kho", value: (item) => item.onHand },
+        { header: "Đã giữ", value: (item) => item.reserved },
+        { header: "Khả dụng", value: (item) => item.available },
+        { header: "Ngưỡng cảnh báo", value: (item) => item.reorderPoint ?? "" },
+        { header: "SL nhập gợi ý", value: (item) => item.reorderQty ?? "" },
+        { header: "Mức độ", value: (item) => getInventoryAlertInfo(item).label },
+        { header: "Sắp về", value: (item) => item.incoming },
+        { header: "Cập nhật", value: (item) => formatDateTime(item.updatedAt) },
+      ];
+
+      downloadCsv(`low-stock-export-${new Date().toISOString().slice(0, 10)}.csv`, columns, rows);
+      messageApi.success(`Đã xuất ${rows.length} SKU cần nhập.`);
+    } catch (error) {
+      messageApi.error(getErrorMessage(error, "Không thể xuất danh sách cần nhập."));
+    } finally {
+      setExportingLowStock(false);
+    }
+  };
+
   const handleSearchVariantSku = async () => {
     const sku = variantSkuInput.trim();
     if (!sku) {
@@ -367,11 +422,8 @@ export function AdminInventoriesPage() {
       key: "lowStockAlert",
       width: 120,
       render: (_, record) => {
-        const isLowStock =
-          record.reorderPoint !== undefined &&
-          record.reorderPoint !== null &&
-          record.available <= record.reorderPoint;
-        return <Tag color={isLowStock ? "red" : "default"}>{isLowStock ? "Đang cảnh báo" : "Bình thường"}</Tag>;
+        const alert = getInventoryAlertInfo(record);
+        return <Tag color={alert.color}>{alert.label}</Tag>;
       },
     },
     {
@@ -436,6 +488,15 @@ export function AdminInventoriesPage() {
       key: "available",
       width: 110,
       render: (value: number) => <Tag color={value <= 0 ? "red" : value <= 5 ? "orange" : "green"}>{value}</Tag>,
+    },
+    {
+      title: "Mức độ",
+      key: "alertLevel",
+      width: 130,
+      render: (_, record) => {
+        const alert = getInventoryAlertInfo(record);
+        return <Tag color={alert.color}>{alert.label}</Tag>;
+      },
     },
     {
       title: "Sắp về",
@@ -571,6 +632,13 @@ export function AdminInventoriesPage() {
           </Button>
           <Button onClick={() => void handleClearThreshold()} disabled={threshold === undefined}>
             Bỏ lọc ngưỡng
+          </Button>
+          <Button
+            icon={<DownloadOutlined />}
+            onClick={() => void handleExportLowStockItems()}
+            loading={exportingLowStock}
+          >
+            Xuất danh sách cần nhập
           </Button>
           <Text type="secondary">
             {threshold === undefined ? "Đang dùng cảnh báo tự động của hệ thống." : `Đang lọc theo ngưỡng <= ${threshold}.`}

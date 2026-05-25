@@ -25,4 +25,8 @@ export type StockItem = {
   sku: string;
   name: string;
   quantity: number;
+  reorderPoint?: number | null;
+  alertLabel?: string;
+  alertColor?: string;
+  alertPriority?: number;
 };

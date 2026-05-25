@@ -36,7 +36,7 @@ const getStockStatus = (quantity: number) => {
 };
 
 export function LowStockList({ data }: LowStockListProps) {
-  const urgentCount = data.filter((item) => item.quantity <= 3).length;
+  const urgentCount = data.filter((item) => (item.alertPriority ?? 0) >= 2).length;
 
   return (
     <Card className="border-slate-200! shadow-sm!">
@@ -59,7 +59,12 @@ export function LowStockList({ data }: LowStockListProps) {
         dataSource={data}
         split={false}
         renderItem={(item) => {
-          const status = getStockStatus(item.quantity);
+          const fallbackStatus = getStockStatus(item.quantity);
+          const status = {
+            ...fallbackStatus,
+            color: item.alertColor ?? fallbackStatus.color,
+            label: item.alertLabel ?? fallbackStatus.label,
+          };
           const quantityPercent = Math.max(6, Math.min(100, item.quantity * 10));
 
           return (
@@ -91,7 +96,7 @@ export function LowStockList({ data }: LowStockListProps) {
                 </div>
 
                 <Tag color={status.color} className="m-0! rounded-full px-3">
-                  {item.quantity <= 3 ? <AlertOutlined className="mr-1" /> : null}
+                  {(item.alertPriority ?? 0) >= 2 ? <AlertOutlined className="mr-1" /> : null}
                   {status.label}
                 </Tag>
               </div>

@@ -30,6 +30,7 @@ import {
   type StockItem,
 } from "../shared/dashboard";
 import { getErrorMessage } from "../../../utils/errorMessage";
+import { getInventoryAlertInfo } from "../shared/inventoryAlerts";
 
 const { Title, Text } = Typography;
 const DAY_MS = 24 * 60 * 60 * 1000;
@@ -95,11 +96,10 @@ type MonthRange = {
 };
 
 type DashboardReportCsvRow = {
-  section: string;
-  metric: string;
+  report: string;
+  indicator: string;
   value: string | number;
-  extra1?: string | number;
-  extra2?: string | number;
+  note?: string | number;
 };
 
 const toMonthKey = (date: Date) => {
@@ -224,6 +224,18 @@ const normalizeLowStockItem = (item: InventoryRecord): StockItem => ({
   quantity: Math.max(0, Number(item.available || 0)),
 });
 
+const normalizeLowStockDashboardItem = (item: InventoryRecord): StockItem => {
+  const alert = getInventoryAlertInfo(item);
+  const base = normalizeLowStockItem(item);
+  return {
+    ...base,
+    reorderPoint: item.reorderPoint,
+    alertLabel: alert.label,
+    alertColor: alert.color,
+    alertPriority: alert.priority,
+  };
+};
+
 const buildDashboardKpis = (payload: {
   currentMetrics: AnalyticsDashboardData;
   previousMetrics: AnalyticsDashboardData;
@@ -289,6 +301,7 @@ export function AdminDashboardPage() {
   const [monthlyRevenue, setMonthlyRevenue] = useState<RevenueItem[]>([]);
   const [recentOrders, setRecentOrders] = useState<OrderItem[]>([]);
   const [lowStockProducts, setLowStockProducts] = useState<StockItem[]>([]);
+  const [lowStockTotalCount, setLowStockTotalCount] = useState(0);
   const [todayOrderCount, setTodayOrderCount] = useState(0);
   const [pendingOrderCount, setPendingOrderCount] = useState(0);
   const [estimatedRevenueValue, setEstimatedRevenueValue] = useState(0);
@@ -304,11 +317,6 @@ export function AdminDashboardPage() {
         year: "numeric",
       }).format(new Date()),
     [],
-  );
-
-  const urgentLowStockCount = useMemo(
-    () => lowStockProducts.filter((item) => item.quantity <= 5).length,
-    [lowStockProducts],
   );
 
   const requestSequenceRef = useRef(0);
@@ -365,7 +373,6 @@ export function AdminDashboardPage() {
         fetchLowStockItems({
           page: 1,
           limit: 8,
-          threshold: 10,
         }),
         fetchProducts({
           page: 1,
@@ -384,7 +391,7 @@ export function AdminDashboardPage() {
       });
 
       const monthlySeries = buildMonthlyRevenueSeries(sixMonthMetrics, 6, now);
-      const normalizedLowStock = lowStockPage.docs.map(normalizeLowStockItem);
+      const normalizedLowStock = lowStockPage.docs.map(normalizeLowStockDashboardItem);
       const normalizedOrders = recentOrdersPage.docs.map(normalizeOrderItem);
 
       const lowStockCount = lowStockPage.totalDocs;
@@ -407,6 +414,7 @@ export function AdminDashboardPage() {
       setMonthlyRevenue(monthlySeries);
       setRecentOrders(normalizedOrders);
       setLowStockProducts(normalizedLowStock);
+      setLowStockTotalCount(lowStockCount);
       setTodayOrderCount(todayMetrics.totals.orders);
       setPendingOrderCount(getPendingOrderCount(currentMetrics));
       setEstimatedRevenueValue(todayMetrics.totals.netRevenue ?? todayMetrics.totals.revenue);
@@ -549,85 +557,79 @@ export function AdminDashboardPage() {
     }
 
     const rows: DashboardReportCsvRow[] = [
-      { section: "Tổng quan", metric: "Khoảng thời gian", value: activeRangeLabel },
-      { section: "Tổng quan", metric: "Tổng sự kiện", value: dashboardMetrics.totals.events },
-      { section: "Tổng quan", metric: "Tổng đơn hàng", value: dashboardMetrics.totals.orders },
-      { section: "Tổng quan", metric: "Doanh thu gộp", value: dashboardMetrics.totals.grossRevenue ?? dashboardMetrics.totals.revenue },
-      { section: "Tổng quan", metric: "Doanh thu thuần", value: dashboardMetrics.totals.netRevenue ?? dashboardMetrics.totals.revenue },
-      { section: "Tổng quan", metric: "AOV", value: averageOrderValue },
-      { section: "Tổng quan", metric: "Tỷ lệ hủy", value: `${cancellationRate.toFixed(2)}%` },
-      { section: "Tổng quan", metric: "Tỷ lệ hoàn", value: `${returnRate.toFixed(2)}%` },
-      { section: "Tổng quan", metric: "Đơn chờ quá 24h", value: overduePendingOrders },
-      { section: "Tổng quan", metric: "Khách mới", value: newCustomers },
-      { section: "Tổng quan", metric: "Khách quay lại", value: returningCustomers },
-      { section: "Chuyển đổi", metric: "Lượt mua", value: dashboardMetrics.conversion.purchases },
-      { section: "Chuyển đổi", metric: "Lượt xem trang", value: dashboardMetrics.conversion.pageViews },
-      { section: "Chuyển đổi", metric: "Lượt xem sản phẩm", value: dashboardMetrics.conversion.productViews ?? 0 },
-      { section: "Chuyển đổi", metric: "Lượt thêm giỏ", value: dashboardMetrics.conversion.addToCarts ?? 0 },
-      { section: "Chuyển đổi", metric: "Tỷ lệ thêm giỏ / xem sản phẩm", value: `${(dashboardMetrics.conversion.addToCartRate ?? 0).toFixed(2)}%` },
-      { section: "Chuyển đổi", metric: "Tỷ lệ mua / xem trang", value: `${dashboardMetrics.conversion.purchaseToViewRate.toFixed(2)}%` },
-      { section: "Chuyển đổi", metric: "Tỷ lệ mua / thêm giỏ", value: `${(dashboardMetrics.conversion.cartToPurchaseRate ?? 0).toFixed(2)}%` },
+      { report: "Tổng quan", indicator: "Khoảng thời gian", value: activeRangeLabel },
+      { report: "Tổng quan", indicator: "Doanh thu thuần", value: dashboardMetrics.totals.netRevenue ?? dashboardMetrics.totals.revenue, note: "Sau giảm giá/hoàn theo dữ liệu analytics" },
+      { report: "Tổng quan", indicator: "Doanh thu gộp", value: dashboardMetrics.totals.grossRevenue ?? dashboardMetrics.totals.revenue },
+      { report: "Tổng quan", indicator: "Tổng đơn hàng", value: dashboardMetrics.totals.orders },
+      { report: "Tổng quan", indicator: "Giá trị đơn trung bình", value: averageOrderValue },
+      { report: "Tổng quan", indicator: "Đơn chờ xử lý quá 24h", value: overduePendingOrders },
+      { report: "Tổng quan", indicator: "Tỷ lệ hủy", value: `${cancellationRate.toFixed(2)}%` },
+      { report: "Tổng quan", indicator: "Tỷ lệ hoàn", value: `${returnRate.toFixed(2)}%` },
+      { report: "Khách hàng", indicator: "Khách mới", value: newCustomers },
+      { report: "Khách hàng", indicator: "Khách quay lại", value: returningCustomers },
+      { report: "Chuyển đổi", indicator: "Lượt mua", value: dashboardMetrics.conversion.purchases },
+      { report: "Chuyển đổi", indicator: "Lượt xem trang", value: dashboardMetrics.conversion.pageViews },
+      { report: "Chuyển đổi", indicator: "Lượt xem sản phẩm", value: dashboardMetrics.conversion.productViews ?? 0 },
+      { report: "Chuyển đổi", indicator: "Lượt thêm giỏ", value: dashboardMetrics.conversion.addToCarts ?? 0 },
+      { report: "Chuyển đổi", indicator: "Tỷ lệ thêm giỏ / xem sản phẩm", value: `${(dashboardMetrics.conversion.addToCartRate ?? 0).toFixed(2)}%` },
+      { report: "Chuyển đổi", indicator: "Tỷ lệ mua / xem trang", value: `${dashboardMetrics.conversion.purchaseToViewRate.toFixed(2)}%` },
+      { report: "Chuyển đổi", indicator: "Tỷ lệ mua / thêm giỏ", value: `${(dashboardMetrics.conversion.cartToPurchaseRate ?? 0).toFixed(2)}%` },
       ...adminKpis.map((item) => ({
-        section: "KPI",
-        metric: item.title,
+        report: "KPI",
+        indicator: item.title,
         value: item.value,
-        extra1: item.change,
-        extra2: item.positive ? "Tích cực" : "Cần chú ý",
+        note: `${item.change} - ${item.positive ? "Tích cực" : "Cần chú ý"}`,
       })),
       ...(dashboardMetrics.revenueByDate || []).map((item) => ({
-        section: "Doanh thu theo ngày",
-        metric: item.label,
+        report: "Doanh thu theo ngày",
+        indicator: item.label,
         value: item.revenue,
-        extra1: item.orders,
+        note: `${item.orders} đơn`,
       })),
       ...(dashboardMetrics.ordersByDate || []).map((item) => ({
-        section: "Đơn hàng theo ngày",
-        metric: item.label,
+        report: "Đơn hàng theo ngày",
+        indicator: item.label,
         value: item.total,
-        extra1: `Hoàn thành: ${item.completed}`,
-        extra2: `Hủy/hoàn: ${item.cancelled}`,
+        note: `Hoàn thành: ${item.completed}; Hủy/hoàn: ${item.cancelled}`,
       })),
       ...(dashboardMetrics.statusBreakdown || []).map((item) => ({
-        section: "Trạng thái đơn",
-        metric: STATUS_LABEL_MAP[item.status] || item.status,
+        report: "Trạng thái đơn",
+        indicator: STATUS_LABEL_MAP[item.status] || item.status,
         value: item.count,
       })),
       ...(dashboardMetrics.paymentMethods || []).map((item) => ({
-        section: "Phương thức thanh toán",
-        metric: PAYMENT_LABEL_MAP[item.method] || item.method,
+        report: "Phương thức thanh toán",
+        indicator: PAYMENT_LABEL_MAP[item.method] || item.method,
         value: item.count,
-        extra1: item.revenue,
+        note: `Doanh thu: ${item.revenue}`,
       })),
-      ...(dashboardMetrics.topProductsByRevenue || []).map((item) => ({
-        section: "Top sản phẩm",
-        metric: item.name || item.productId,
+      ...(dashboardMetrics.topProductsByRevenue || []).map((item, index) => ({
+        report: "Top sản phẩm theo doanh thu",
+        indicator: `${index + 1}. ${item.name || item.productId}`,
         value: item.revenue,
-        extra1: item.quantity,
-        extra2: item.orders,
+        note: `${item.quantity} sản phẩm; ${item.orders} đơn`,
       })),
-      ...(dashboardMetrics.topCategoriesByRevenue || []).map((item) => ({
-        section: "Top danh mục",
-        metric: item.name,
+      ...(dashboardMetrics.topCategoriesByRevenue || []).map((item, index) => ({
+        report: "Top danh mục theo doanh thu",
+        indicator: `${index + 1}. ${item.name}`,
         value: item.revenue,
-        extra1: item.quantity,
-        extra2: item.orders,
+        note: `${item.quantity} sản phẩm; ${item.orders} đơn`,
       })),
     ];
 
     const columns: CsvColumn<DashboardReportCsvRow>[] = [
-      { header: "Nhóm", value: (row) => row.section },
-      { header: "Chỉ mục", value: (row) => row.metric },
+      { header: "Báo cáo", value: (row) => row.report },
+      { header: "Chỉ tiêu", value: (row) => row.indicator },
       { header: "Giá trị", value: (row) => row.value },
-      { header: "Thông tin phụ 1", value: (row) => row.extra1 || "" },
-      { header: "Thông tin phụ 2", value: (row) => row.extra2 || "" },
+      { header: "Ghi chú", value: (row) => row.note || "" },
     ];
 
     downloadCsv(
-      `dashboard-report-${rangePreset}-${new Date().toISOString().slice(0, 10)}.csv`,
+      `bao-cao-tong-quan-${rangePreset}-${new Date().toISOString().slice(0, 10)}.csv`,
       columns,
       rows,
     );
-    messageApi.success("Đã xuất báo cáo thống kê.");
+    messageApi.success("Đã xuất báo cáo tổng quan.");
   };
 
   return (
@@ -674,7 +676,7 @@ export function AdminDashboardPage() {
                   disabled={!dashboardMetrics}
                   onClick={handleExportDashboardReport}
                 >
-                  Xuáº¥t bÃ¡o cÃ¡o
+                  Xuất báo cáo
                 </Button>
               </div>
               <div className="flex gap-2 rounded-full border border-white/15 bg-slate-900/40 p-1">
@@ -719,7 +721,7 @@ export function AdminDashboardPage() {
                 <p className="mb-1 text-xs font-semibold uppercase tracking-[0.12em] text-slate-300">
                   Cảnh báo tồn kho
                 </p>
-                <p className="m-0 text-xl font-black text-rose-200">{urgentLowStockCount} SKU khẩn</p>
+                <p className="m-0 text-xl font-black text-rose-200">{lowStockTotalCount} SKU cần nhập hàng</p>
               </div>
             </Col>
           </Row>
@@ -864,7 +866,7 @@ export function AdminDashboardPage() {
                 </div>
                 <div className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2">
                   <p className="m-0 text-xs text-slate-500">SKU sắp hết hàng</p>
-                  <p className="m-0 mt-1 text-base font-bold text-rose-600">{lowStockProducts.length} sản phẩm</p>
+                  <p className="m-0 mt-1 text-base font-bold text-rose-600">{lowStockTotalCount} SKU cần nhập hàng</p>
                 </div>
                 <div className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2">
                   <p className="m-0 text-xs text-slate-500">Sự kiện analytics ({activeRangeLabel})</p>

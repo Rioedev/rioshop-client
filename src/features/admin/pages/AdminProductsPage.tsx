@@ -26,10 +26,12 @@ import {
   type ProductStatus,
   type ProductStatusFilter,
 } from "../../../services/productService";
+import { inventoryService, type InventoryRecord } from "../../../services/inventoryService";
 import {
   ensureImageFile,
   getImageValidationError,
 } from "../../../services/mediaUploadService";
+import { subscribeAdminRealtime } from "../../../services/socketClient";
 import { getErrorMessage } from "../../../utils/errorMessage";
 import { useProductStore } from "../../../stores/productStore";
 import { RichTextEditor } from "../../../components/editor/RichTextEditor";
@@ -64,7 +66,13 @@ import {
   Text,
   Title,
 } from "../shared/products";
+import { getInventoryAlertInfo, type InventoryAlertInfo } from "../shared/inventoryAlerts";
 import { AdminProductVariantGroupsField } from "./AdminProductVariantGroupsField";
+
+type ProductInventoryAlertSummary = {
+  count: number;
+  worstAlert: InventoryAlertInfo;
+};
 
 export function AdminProductsPage() {
   const [form] = Form.useForm<ProductFormValues>();
@@ -78,6 +86,8 @@ export function AdminProductsPage() {
   const [importingCsv, setImportingCsv] = useState(false);
   const [exportingCsv, setExportingCsv] = useState(false);
   const [downloadingTemplate, setDownloadingTemplate] = useState(false);
+  const [productInventoryAlerts, setProductInventoryAlerts] = useState<Record<string, ProductInventoryAlertSummary>>({});
+  const [inventoryAlertTotal, setInventoryAlertTotal] = useState(0);
   const watchedName = Form.useWatch("name", form);
   const watchedCategoryId = Form.useWatch("categoryId", form);
   const watchedSku = Form.useWatch("sku", form);
@@ -116,6 +126,40 @@ export function AdminProductsPage() {
     importProductsCsv,
   } = useProductStore();
 
+  const loadProductInventoryAlerts = useCallback(async () => {
+    const pageSizeForAlerts = 100;
+    const firstPage = await inventoryService.getLowStockItems({ page: 1, limit: pageSizeForAlerts });
+    const rows: InventoryRecord[] = [...firstPage.docs];
+
+    if (firstPage.totalPages > 1) {
+      const pageRequests: Promise<Awaited<ReturnType<typeof inventoryService.getLowStockItems>>>[] = [];
+      for (let pageIndex = 2; pageIndex <= firstPage.totalPages; pageIndex += 1) {
+        pageRequests.push(inventoryService.getLowStockItems({ page: pageIndex, limit: pageSizeForAlerts }));
+      }
+
+      const pageResults = await Promise.all(pageRequests);
+      pageResults.forEach((result) => rows.push(...result.docs));
+    }
+
+    const nextAlerts = rows.reduce<Record<string, ProductInventoryAlertSummary>>((result, item) => {
+      const productId = item.productId?.trim();
+      if (!productId) {
+        return result;
+      }
+
+      const alert = getInventoryAlertInfo(item);
+      const current = result[productId];
+      result[productId] = {
+        count: (current?.count ?? 0) + 1,
+        worstAlert: !current || alert.priority > current.worstAlert.priority ? alert : current.worstAlert,
+      };
+      return result;
+    }, {});
+
+    setProductInventoryAlerts(nextAlerts);
+    setInventoryAlertTotal(rows.length);
+  }, []);
+
   useEffect(() => {
     setSearchText(keyword);
   }, [keyword]);
@@ -134,6 +178,31 @@ export function AdminProductsPage() {
       }),
     ]).catch((error) => messageApi.error(getErrorMessage(error)));
   }, [loadCategoryOptions, loadCollectionOptions, loadProducts, messageApi]);
+
+  useEffect(() => {
+    void loadProductInventoryAlerts().catch((error) => messageApi.error(getErrorMessage(error)));
+  }, [loadProductInventoryAlerts, messageApi]);
+
+  useEffect(() => {
+    let refreshTimer: number | null = null;
+    const unsubscribe = subscribeAdminRealtime({
+      onInventoryUpdated: () => {
+        if (refreshTimer) {
+          window.clearTimeout(refreshTimer);
+        }
+        refreshTimer = window.setTimeout(() => {
+          void loadProductInventoryAlerts().catch((error) => messageApi.error(getErrorMessage(error)));
+        }, 600);
+      },
+    });
+
+    return () => {
+      if (refreshTimer) {
+        window.clearTimeout(refreshTimer);
+      }
+      unsubscribe();
+    };
+  }, [loadProductInventoryAlerts, messageApi]);
 
   useEffect(() => {
     if (skipFirstSearch.current) {
@@ -691,6 +760,23 @@ export function AdminProductsPage() {
     },
     { title: "Giá bán", key: "price", width: 140, render: (_, r) => `${formatCurrency.format(r.pricing.salePrice)} VND` },
     { title: "Tồn kho", key: "stock", width: 90, render: (_, r) => getStock(r) },
+    {
+      title: "Cảnh báo tồn kho",
+      key: "inventoryAlert",
+      width: 150,
+      render: (_, record) => {
+        const alert = productInventoryAlerts[record._id];
+        if (!alert) {
+          return <Tag color="green">Bình thường</Tag>;
+        }
+
+        return (
+          <Tag color={alert.worstAlert.color}>
+            {alert.count} SKU {alert.worstAlert.label}
+          </Tag>
+        );
+      },
+    },
     { title: "Trạng thái", dataIndex: "status", key: "status", width: 120, render: (status: ProductStatus) => <Tag color={STATUS_COLORS[status]}>{STATUS_LABELS[status]}</Tag> },
     {
       title: "Hành động",
@@ -757,7 +843,7 @@ export function AdminProductsPage() {
       <Row gutter={[12, 12]}>
         <Col xs={24} md={8}><Card><Text type="secondary">Tổng sản phẩm</Text><Title level={3}>{total}</Title></Card></Col>
         <Col xs={24} md={8}><Card><Text type="secondary">Đang bán</Text><Title level={3}>{products.filter((p) => p.status === "active").length}</Title></Card></Col>
-        <Col xs={24} md={8}><Card><Text type="secondary">Sắp hết hàng (&lt;=10)</Text><Title level={3} className="text-amber-600!">{products.filter((p) => getStock(p) <= 10).length}</Title></Card></Col>
+        <Col xs={24} md={8}><Card><Text type="secondary">SKU cần nhập hàng</Text><Title level={3} className="text-amber-600!">{inventoryAlertTotal}</Title></Card></Col>
       </Row>
 
       <Card>
