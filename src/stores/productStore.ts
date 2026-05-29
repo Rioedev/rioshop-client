@@ -3,7 +3,7 @@ import { categoryService, type Category } from "../services/categoryService";
 import { collectionService } from "../services/collectionService";
 import {
   productService,
-  type ProductImportCsvResult,
+  type ProductImportXlsxResult,
   type PaginatedProductData,
   type Product,
   type ProductPayload,
@@ -70,9 +70,9 @@ type ProductState = {
   updateProduct: (id: string, payload: Partial<ProductPayload>) => Promise<void>;
   deleteProduct: (id: string) => Promise<void>;
   uploadProductImage: (file: File) => Promise<string>;
-  exportProductsCsv: (params?: ProductQueryParams) => Promise<Blob>;
-  downloadProductsImportTemplateCsv: () => Promise<Blob>;
-  importProductsCsv: (file: File) => Promise<ProductImportCsvResult>;
+  exportProductsXlsx: (params?: ProductQueryParams) => Promise<Blob>;
+  downloadProductsImportTemplateXlsx: () => Promise<Blob>;
+  importProductsXlsx: (file: File) => Promise<ProductImportXlsxResult>;
   fetchProducts: (params?: ProductQueryParams) => Promise<PaginatedProductData>;
 };
 
@@ -238,16 +238,16 @@ export const useProductStore = create<ProductState>((set, get) => ({
     return runStoreTask(() => productService.uploadProductImage(file));
   },
 
-  exportProductsCsv: async (params = {}) => {
-    return runStoreTask(() => productService.exportProductsCsv(params));
+  exportProductsXlsx: async (params = {}) => {
+    return runStoreTask(() => productService.exportProductsXlsx(params));
   },
 
-  downloadProductsImportTemplateCsv: async () => {
-    return runStoreTask(() => productService.downloadProductsImportTemplateCsv());
+  downloadProductsImportTemplateXlsx: async () => {
+    return runStoreTask(() => productService.downloadProductsImportTemplateXlsx());
   },
 
-  importProductsCsv: async (file) => {
-    return runStoreTask(() => productService.importProductsCsv(file));
+  importProductsXlsx: async (file) => {
+    return runStoreTask(() => productService.importProductsXlsx(file));
   },
 
   fetchProducts: async (params = {}) => {

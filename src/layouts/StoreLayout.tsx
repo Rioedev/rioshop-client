@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { Link, Outlet, useLocation, useNavigate } from "react-router-dom";
 import { AppNotificationsModal } from "../components/notifications/AppNotificationsModal";
 import { STORE_BRAND_KEY } from "../app/constants/storeBrand";
+import { StoreAiChatbot } from "../features/store/components/StoreAiChatbot";
 import { analyticsTracker } from "../services/analyticsTracker";
 import { brandConfigService } from "../services/brandConfigService";
 import { categoryService, type Category } from "../services/categoryService";
@@ -40,6 +41,7 @@ import "../styles/pdp-v2.scss";
 import "../styles/store-home-v3.scss";
 import "../styles/store-refresh.scss";
 import "../styles/store-blog-footer.scss";
+import "../styles/store-ai-chatbot.scss";
 
 export function StoreLayout() {
   const navigate = useNavigate();
@@ -473,6 +475,7 @@ export function StoreLayout() {
       </main>
 
       <StoreFooter footerSocialLinks={footerSocialLinks} />
+      <StoreAiChatbot />
     </div>
   );
 }

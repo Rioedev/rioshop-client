@@ -137,17 +137,18 @@ export type PaginatedProductData = {
 };
 
 export type ProductSort = Record<string, 1 | -1>;
-export type ProductImportCsvError = {
+export type ProductImportXlsxError = {
   row?: number;
   sku?: string;
   message: string;
 };
 
-export type ProductImportCsvResult = {
+export type ProductImportXlsxResult = {
   created: number;
   updated: number;
   failed: number;
-  errors: ProductImportCsvError[];
+  totalErrors?: number;
+  errors: ProductImportXlsxError[];
 };
 
 export type ProductQueryParams = {
@@ -218,8 +219,8 @@ export const productService = {
     return uploadImageToApi("/api/products/upload-image", file);
   },
 
-  async exportProductsCsv(params: ProductQueryParams = {}): Promise<Blob> {
-    const response = await apiClient.get<Blob>("/api/products/export-csv", {
+  async exportProductsXlsx(params: ProductQueryParams = {}): Promise<Blob> {
+    const response = await apiClient.get<Blob>("/api/products/export-xlsx", {
       params: {
         ...params,
         sort: params.sort ? JSON.stringify(params.sort) : undefined,
@@ -230,20 +231,20 @@ export const productService = {
     return response.data;
   },
 
-  async downloadProductsImportTemplateCsv(): Promise<Blob> {
-    const response = await apiClient.get<Blob>("/api/products/import-template-csv", {
+  async downloadProductsImportTemplateXlsx(): Promise<Blob> {
+    const response = await apiClient.get<Blob>("/api/products/import-template-xlsx", {
       responseType: "blob",
     });
 
     return response.data;
   },
 
-  async importProductsCsv(file: File): Promise<ProductImportCsvResult> {
+  async importProductsXlsx(file: File): Promise<ProductImportXlsxResult> {
     const formData = new FormData();
     formData.append("file", file);
 
-    const response = await apiClient.post<ApiResponse<ProductImportCsvResult>>(
-      "/api/products/import-csv",
+    const response = await apiClient.post<ApiResponse<ProductImportXlsxResult>>(
+      "/api/products/import-xlsx",
       formData,
       {
         headers: {

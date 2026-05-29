@@ -1,4 +1,4 @@
-﻿import { HeartOutlined, ShoppingCartOutlined } from "@ant-design/icons";
+﻿import { BulbOutlined, HeartOutlined, SendOutlined, ShoppingCartOutlined } from "@ant-design/icons";
 import { Button, Input, Select, Slider, message } from "antd";
 import { useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "react-router-dom";
@@ -16,6 +16,10 @@ import {
   resolveStoreProductThumbnail,
 } from "../utils/storeFormatting";
 import { analyticsTracker } from "../../../services/analyticsTracker";
+import {
+  aiRecommendationService,
+  type AiProductRecommendation,
+} from "../../../services/aiRecommendationService";
 import { categoryService, type Category } from "../../../services/categoryService";
 import { collectionService, type Collection } from "../../../services/collectionService";
 import { cartService, toCartCouponMeta, toCartStoreItems } from "../../../services/cartService";
@@ -187,6 +191,11 @@ export function StoreProductsPage() {
   const [colorFilterInput, setColorFilterInput] = useState<string[]>(selectedColorValues);
   const [sizeFilterInput, setSizeFilterInput] = useState<string[]>(selectedSizeValues);
   const [filterFacetProducts, setFilterFacetProducts] = useState<Product[]>([]);
+  const [aiPrompt, setAiPrompt] = useState("");
+  const [aiSubmittedPrompt, setAiSubmittedPrompt] = useState("");
+  const [aiSummary, setAiSummary] = useState("");
+  const [aiRecommendations, setAiRecommendations] = useState<AiProductRecommendation[]>([]);
+  const [aiLoading, setAiLoading] = useState(false);
 
   useEffect(() => {
     setKeywordInput(q);
@@ -530,7 +539,53 @@ export function StoreProductsPage() {
     });
   };
 
-  const onAddToCart = async (item: Product) => {
+  const onAskAiRecommendations = async () => {
+    const prompt = aiPrompt.trim();
+    if (!prompt) {
+      message.warning("Vui lòng nhập nhu cầu sản phẩm.");
+      return;
+    }
+
+    setAiLoading(true);
+    try {
+      const result = await aiRecommendationService.recommendProducts({
+        message: prompt,
+        limit: 4,
+        context: {
+          categoryId: selectedCategory?._id,
+          collectionId: selectedCollection?._id,
+        },
+      });
+
+      setAiSubmittedPrompt(prompt);
+      setAiSummary(result.summary);
+      setAiRecommendations(result.items);
+
+      void analyticsTracker.track({
+        event: "search",
+        userId,
+        properties: {
+          query: prompt,
+          source: "products_page_ai_recommendations",
+          path: "/products",
+          recommendationCount: result.items.length,
+        },
+      });
+
+      if (result.items.length === 0) {
+        message.info("Chưa tìm thấy sản phẩm phù hợp với nhu cầu này.");
+      }
+    } catch (error) {
+      const messageText = getErrorMessage(error, "Không thể tạo gợi ý sản phẩm");
+      message.error(messageText);
+      setAiSummary("");
+      setAiRecommendations([]);
+    } finally {
+      setAiLoading(false);
+    }
+  };
+
+  const onAddToCart = async (item: Product, source = "products_page") => {
     const image = resolveStoreProductThumbnail(item);
     const variant = (item.variants ?? []).find((entry) => entry.isActive !== false && Number(entry.stock || 0) > 0) ?? null;
     if (!variant?.sku) {
@@ -566,7 +621,7 @@ export function StoreProductsPage() {
             variantSku: variant.sku,
             quantity: 1,
             unitPrice,
-            source: "products_page",
+            source,
           },
         });
         message.success("Đã thêm vào giỏ hàng");
@@ -597,7 +652,7 @@ export function StoreProductsPage() {
         variantSku: variant.sku,
         quantity: 1,
         unitPrice,
-        source: "products_page_guest",
+        source: `${source}_guest`,
       },
     });
     message.success("Đã thêm vào giỏ hàng");
@@ -641,6 +696,63 @@ export function StoreProductsPage() {
       imageUrl: image,
     });
     message.success("\u0110\u00e3 th\u00eam v\u00e0o y\u00eau th\u00edch");
+  };
+
+  const renderProductCard = (
+    item: Product,
+    options: {
+      recommendation?: AiProductRecommendation;
+      source?: string;
+    } = {},
+  ) => {
+    const hasDiscount = item.pricing.basePrice > item.pricing.salePrice;
+    const image = resolveStoreProductThumbnail(item);
+    const inWishlist = wishlistItems.some((wishlist) => wishlist.productId === item._id);
+    const colorSwatches = toProductCardColorSwatches(item);
+    const discountLabel = hasDiscount
+      ? `-${Math.round(((item.pricing.basePrice - item.pricing.salePrice) / item.pricing.basePrice) * 100)}%`
+      : undefined;
+    const source = options.source ?? "products_page";
+
+    return (
+      <StoreProductGridCard
+        key={item._id}
+        href={`/products/${item.slug}`}
+        imageUrl={image}
+        name={item.name}
+        price={formatStoreCurrency(item.pricing.salePrice)}
+        originalPrice={hasDiscount ? formatStoreCurrency(item.pricing.basePrice) : undefined}
+        categoryLabel={item.category?.name ?? "Sản phẩm"}
+        badge={discountLabel}
+        colorSwatches={colorSwatches}
+        footer={
+          <>
+            {options.recommendation ? (
+              <p className="m-0 basis-full rounded-2xl bg-sky-50 px-3 py-2 text-xs leading-5 text-slate-600">
+                {options.recommendation.reason}
+              </p>
+            ) : null}
+            <Button
+              size="small"
+              className={inWishlist ? "rounded-full! border-rose-200! text-rose-600!" : storeButtonClassNames.secondaryCompact}
+              icon={<HeartOutlined />}
+              onClick={() => void onToggleWishlist(item, inWishlist)}
+            >
+              {inWishlist ? "Đã lưu" : "Yêu thích"}
+            </Button>
+            <Button
+              size="small"
+              type="primary"
+              className={storeButtonClassNames.primaryCompact}
+              icon={<ShoppingCartOutlined />}
+              onClick={() => void onAddToCart(item, source)}
+            >
+              Thêm giỏ
+            </Button>
+          </>
+        }
+      />
+    );
   };
 
   return (
@@ -791,6 +903,56 @@ export function StoreProductsPage() {
 
       <StorePanelFrame>
         <StoreSectionHeader
+          kicker="AI gợi ý"
+          title="Gợi ý sản phẩm phù hợp"
+          description={
+            aiSubmittedPrompt
+              ? `${aiRecommendations.length} sản phẩm được đề xuất cho "${aiSubmittedPrompt}"`
+              : "Ưu tiên sản phẩm còn hàng, đúng ngân sách và gần nhu cầu mua sắm."
+          }
+          action={<BulbOutlined className="mt-1 text-xl text-sky-500" />}
+        />
+
+        <div className="grid gap-3 lg:grid-cols-[minmax(0,1fr)_auto]">
+          <Input.TextArea
+            value={aiPrompt}
+            onChange={(event) => setAiPrompt(event.target.value)}
+            autoSize={{ minRows: 2, maxRows: 4 }}
+            maxLength={500}
+            showCount
+            placeholder="Áo sơ mi nam đi làm dưới 500k, màu sáng, mặc mát"
+          />
+          <Button
+            type="primary"
+            className={`${storeButtonClassNames.primary} h-full! min-h-14!`}
+            icon={<SendOutlined />}
+            loading={aiLoading}
+            onClick={() => void onAskAiRecommendations()}
+          >
+            Gợi ý
+          </Button>
+        </div>
+
+        {aiSummary ? (
+          <div className="mt-3">
+            <StoreInlineNote title="Nhu cầu đã phân tích" description={aiSummary} />
+          </div>
+        ) : null}
+
+        {aiRecommendations.length > 0 ? (
+          <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+            {aiRecommendations.map((recommendation) =>
+              renderProductCard(recommendation.product, {
+                recommendation,
+                source: "products_page_ai_recommendations",
+              }),
+            )}
+          </div>
+        ) : null}
+      </StorePanelFrame>
+
+      <StorePanelFrame>
+        <StoreSectionHeader
           kicker="Danh sách sản phẩm"
           title="Sản phẩm"
           description={loading ? "Đang tải danh sách sản phẩm..." : `${totalDocs} sản phẩm đang hiển thị`}
@@ -809,50 +971,7 @@ export function StoreProductsPage() {
           </div>
         ) : (
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-            {products.map((item) => {
-              const hasDiscount = item.pricing.basePrice > item.pricing.salePrice;
-              const image = resolveStoreProductThumbnail(item);
-              const inWishlist = wishlistItems.some((wishlist) => wishlist.productId === item._id);
-              const colorSwatches = toProductCardColorSwatches(item);
-              const discountLabel = hasDiscount
-                ? `-${Math.round(((item.pricing.basePrice - item.pricing.salePrice) / item.pricing.basePrice) * 100)}%`
-                : undefined;
-
-              return (
-                <StoreProductGridCard
-                  key={item._id}
-                  href={`/products/${item.slug}`}
-                  imageUrl={image}
-                  name={item.name}
-                  price={formatStoreCurrency(item.pricing.salePrice)}
-                  originalPrice={hasDiscount ? formatStoreCurrency(item.pricing.basePrice) : undefined}
-                  categoryLabel={item.category?.name ?? "Sản phẩm"}
-                  badge={discountLabel}
-                  colorSwatches={colorSwatches}
-                  footer={
-                    <>
-                      <Button
-                        size="small"
-                        className={inWishlist ? "rounded-full! border-rose-200! text-rose-600!" : storeButtonClassNames.secondaryCompact}
-                        icon={<HeartOutlined />}
-                        onClick={() => void onToggleWishlist(item, inWishlist)}
-                      >
-                        {inWishlist ? "Đã lưu" : "Yêu thích"}
-                      </Button>
-                      <Button
-                        size="small"
-                        type="primary"
-                        className={storeButtonClassNames.primaryCompact}
-                        icon={<ShoppingCartOutlined />}
-                        onClick={() => void onAddToCart(item)}
-                      >
-                        Thêm giỏ
-                      </Button>
-                    </>
-                  }
-                />
-              );
-            })}
+            {products.map((item) => renderProductCard(item))}
           </div>
         )}
 

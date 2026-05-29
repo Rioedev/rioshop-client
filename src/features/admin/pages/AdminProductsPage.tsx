@@ -25,6 +25,7 @@ import {
   type ProductPayload,
   type ProductStatus,
   type ProductStatusFilter,
+  type ProductImportXlsxError,
 } from "../../../services/productService";
 import { inventoryService, type InventoryRecord } from "../../../services/inventoryService";
 import {
@@ -83,9 +84,12 @@ export function AdminProductsPage() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [searchText, setSearchText] = useState("");
-  const [importingCsv, setImportingCsv] = useState(false);
-  const [exportingCsv, setExportingCsv] = useState(false);
+  const [importingXlsx, setImportingXlsx] = useState(false);
+  const [exportingXlsx, setExportingXlsx] = useState(false);
   const [downloadingTemplate, setDownloadingTemplate] = useState(false);
+  const [importErrors, setImportErrors] = useState<ProductImportXlsxError[]>([]);
+  const [importErrorTotal, setImportErrorTotal] = useState(0);
+  const [importErrorOpen, setImportErrorOpen] = useState(false);
   const [productInventoryAlerts, setProductInventoryAlerts] = useState<Record<string, ProductInventoryAlertSummary>>({});
   const [inventoryAlertTotal, setInventoryAlertTotal] = useState(0);
   const watchedName = Form.useWatch("name", form);
@@ -121,9 +125,9 @@ export function AdminProductsPage() {
     updateProduct,
     deleteProduct,
     uploadProductImage,
-    exportProductsCsv,
-    downloadProductsImportTemplateCsv,
-    importProductsCsv,
+    exportProductsXlsx,
+    downloadProductsImportTemplateXlsx,
+    importProductsXlsx,
   } = useProductStore();
 
   const loadProductInventoryAlerts = useCallback(async () => {
@@ -440,13 +444,13 @@ export function AdminProductsPage() {
     }
   };
 
-  const handleExportCsv = async () => {
+  const handleExportXlsx = async () => {
     try {
-      setExportingCsv(true);
-      const blob = await exportProductsCsv({
+      setExportingXlsx(true);
+      const blob = await exportProductsXlsx({
         q: keyword.trim() || undefined,
-        category: keyword.trim() ? undefined : categoryId,
-        collection: keyword.trim() ? undefined : collectionId,
+        category: categoryId,
+        collection: collectionId,
         status: statusFilter,
         sort: { createdAt: -1 },
       });
@@ -454,27 +458,27 @@ export function AdminProductsPage() {
       const downloadUrl = window.URL.createObjectURL(blob);
       const link = document.createElement("a");
       link.href = downloadUrl;
-      link.download = `products-export-${new Date().toISOString().slice(0, 10)}.csv`;
+      link.download = `products-export-${new Date().toISOString().slice(0, 10)}.xlsx`;
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
       window.URL.revokeObjectURL(downloadUrl);
-      messageApi.success("Đã xuất file CSV sản phẩm.");
+      messageApi.success("Đã xuất file Excel sản phẩm.");
     } catch (error) {
       messageApi.error(getErrorMessage(error));
     } finally {
-      setExportingCsv(false);
+      setExportingXlsx(false);
     }
   };
 
   const handleDownloadImportTemplate = async () => {
     try {
       setDownloadingTemplate(true);
-      const blob = await downloadProductsImportTemplateCsv();
+      const blob = await downloadProductsImportTemplateXlsx();
       const downloadUrl = window.URL.createObjectURL(blob);
       const link = document.createElement("a");
       link.href = downloadUrl;
-      link.download = "products-import-template.csv";
+      link.download = "products-import-template.xlsx";
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
@@ -487,19 +491,21 @@ export function AdminProductsPage() {
     }
   };
 
-  const beforeImportCsv: UploadProps["beforeUpload"] = (file) => {
-    const isCsvFile = file.type.includes("csv") || file.name.toLowerCase().endsWith(".csv");
-    if (!isCsvFile) {
-      messageApi.error("Chỉ chấp nhận file .csv");
+  const beforeImportXlsx: UploadProps["beforeUpload"] = (file) => {
+    const isXlsxFile =
+      file.type === "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" ||
+      file.name.toLowerCase().endsWith(".xlsx");
+    if (!isXlsxFile) {
+      messageApi.error("Chỉ chấp nhận file Excel (.xlsx)");
       return Upload.LIST_IGNORE;
     }
     return true;
   };
 
-  const handleImportCsv: UploadProps["customRequest"] = async ({ file, onSuccess, onError }) => {
+  const handleImportXlsx: UploadProps["customRequest"] = async ({ file, onSuccess, onError }) => {
     try {
-      setImportingCsv(true);
-      const result = await importProductsCsv(file as File);
+      setImportingXlsx(true);
+      const result = await importProductsXlsx(file as File);
       onSuccess?.("ok");
 
       if (result.failed > 0) {
@@ -513,10 +519,9 @@ export function AdminProductsPage() {
       }
 
       if (result.errors.length > 0) {
-        const firstError = result.errors[0];
-        messageApi.warning(
-          `Lỗi đầu tiên: ${firstError.message}${firstError.sku ? ` (SKU: ${firstError.sku})` : ""}`,
-        );
+        setImportErrors(result.errors);
+        setImportErrorTotal(result.totalErrors ?? result.errors.length);
+        setImportErrorOpen(true);
       }
 
       await loadProducts({
@@ -531,7 +536,28 @@ export function AdminProductsPage() {
       onError?.(error as Error);
       messageApi.error(getErrorMessage(error));
     } finally {
-      setImportingCsv(false);
+      setImportingXlsx(false);
+    }
+  };
+
+  const importErrorColumns: ColumnsType<ProductImportXlsxError> = [
+    { title: "Dòng", dataIndex: "row", key: "row", width: 80, render: (v?: number) => v ?? "—" },
+    { title: "SKU", dataIndex: "sku", key: "sku", width: 200, render: (v?: string) => v || "—" },
+    { title: "Lỗi", dataIndex: "message", key: "message" },
+  ];
+
+  const handleCopyImportErrors = async () => {
+    if (importErrors.length === 0) return;
+    const header = "row\tsku\tmessage";
+    const lines = importErrors.map((e) =>
+      [e.row ?? "", e.sku ?? "", (e.message ?? "").replace(/[\t\r\n]+/g, " ")].join("\t"),
+    );
+    const text = [header, ...lines].join("\n");
+    try {
+      await navigator.clipboard.writeText(text);
+      messageApi.success(`Đã sao chép ${importErrors.length} dòng lỗi.`);
+    } catch {
+      messageApi.error("Không sao chép được. Hãy chọn và copy thủ công.");
     }
   };
 
@@ -810,31 +836,31 @@ export function AdminProductsPage() {
         </div>
         <Space wrap>
           <Upload
-            accept=".csv,text/csv"
+            accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
             showUploadList={false}
-            beforeUpload={beforeImportCsv}
-            customRequest={handleImportCsv}
-            disabled={importingCsv || exportingCsv || downloadingTemplate || saving}
+            beforeUpload={beforeImportXlsx}
+            customRequest={handleImportXlsx}
+            disabled={importingXlsx || exportingXlsx || downloadingTemplate || saving}
           >
-            <Button icon={<UploadOutlined />} loading={importingCsv}>
-              Nhập CSV
+            <Button icon={<UploadOutlined />} loading={importingXlsx}>
+              Nhập Excel
             </Button>
           </Upload>
           <Button
             icon={<DownloadOutlined />}
             onClick={() => void handleDownloadImportTemplate()}
             loading={downloadingTemplate}
-            disabled={importingCsv || exportingCsv || saving}
+            disabled={importingXlsx || exportingXlsx || saving}
           >
             Tải file mẫu
           </Button>
           <Button
             icon={<DownloadOutlined />}
-            onClick={() => void handleExportCsv()}
-            loading={exportingCsv}
-            disabled={importingCsv || downloadingTemplate || saving}
+            onClick={() => void handleExportXlsx()}
+            loading={exportingXlsx}
+            disabled={importingXlsx || downloadingTemplate || saving}
           >
-            Xuất CSV
+            Xuất Excel
           </Button>
           <Button type="primary" icon={<PlusOutlined />} onClick={openCreateModal}>Thêm sản phẩm</Button>
         </Space>
@@ -1021,6 +1047,38 @@ export function AdminProductsPage() {
             </div>
           </div>
         </Form>
+      </Modal>
+
+      <Modal
+        title={`Chi tiết lỗi import (${importErrors.length}${
+          importErrorTotal > importErrors.length ? ` / ${importErrorTotal}` : ""
+        })`}
+        open={importErrorOpen}
+        onCancel={() => setImportErrorOpen(false)}
+        width={760}
+        footer={[
+          <Button key="copy" onClick={() => void handleCopyImportErrors()}>
+            Sao chép danh sách
+          </Button>,
+          <Button key="close" type="primary" onClick={() => setImportErrorOpen(false)}>
+            Đóng
+          </Button>,
+        ]}
+      >
+        {importErrorTotal > importErrors.length ? (
+          <Paragraph type="warning" className="mb-3!">
+            Hiển thị {importErrors.length} lỗi đầu trên tổng số {importErrorTotal}. Sửa các lỗi
+            trên rồi import lại để xem phần còn lại.
+          </Paragraph>
+        ) : null}
+        <Table<ProductImportXlsxError>
+          rowKey={(record, index) => `${record.row ?? index}-${record.sku ?? ""}`}
+          columns={importErrorColumns}
+          dataSource={importErrors}
+          size="small"
+          pagination={{ pageSize: 20, showSizeChanger: false }}
+          scroll={{ y: 360 }}
+        />
       </Modal>
     </div>
   );
