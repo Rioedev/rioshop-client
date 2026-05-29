@@ -14,13 +14,6 @@ export const defaultMenuItems: StoreMenuItem[] = [
   { label: "Đồ thể thao", category: "do-the-thao" },
 ];
 
-export const policyItems = [
-  "Miễn phí đổi trả 60 ngày",
-  "Miễn phí ship từ 499K",
-  "Kiểm tra hàng trước khi nhận",
-  "Hotline 1900 8888",
-];
-
 export const utilityLinks = [
   { label: "Hệ thống cửa hàng", href: "/products" },
   { label: "Flash Sale", href: "/flash-sales" },

@@ -7,12 +7,20 @@ import {
   toTrimmedOrNull,
 } from "./storeItemNormalization";
 
+export type WishlistItemColorSwatch = {
+  key: string;
+  label: string;
+  hex?: string;
+  imageUrl?: string;
+};
+
 export type WishlistItem = {
   productId: string;
   slug: string;
   name: string;
   price: number;
   imageUrl?: string;
+  colorSwatches?: WishlistItemColorSwatch[];
 };
 
 type WishlistState = {
@@ -37,6 +45,27 @@ const toGuestWishlistState = (items: WishlistItem[]) => ({
   ...GUEST_WISHLIST_STATE,
 });
 
+const normalizeColorSwatches = (
+  swatches?: WishlistItemColorSwatch[],
+): WishlistItemColorSwatch[] | undefined => {
+  if (!Array.isArray(swatches) || swatches.length === 0) {
+    return undefined;
+  }
+  const cleaned = swatches
+    .map((swatch) => {
+      const key = (swatch?.key ?? "").toString().trim();
+      if (!key) return null;
+      return {
+        key,
+        label: (swatch?.label ?? "").toString().trim(),
+        hex: swatch?.hex?.toString().trim() || undefined,
+        imageUrl: swatch?.imageUrl?.toString().trim() || undefined,
+      };
+    })
+    .filter(Boolean) as WishlistItemColorSwatch[];
+  return cleaned.length > 0 ? cleaned : undefined;
+};
+
 const normalizeWishlistItem = (item: WishlistItem): WishlistItem | null => {
   const productId = toTrimmedOrNull(item.productId);
   if (!productId) {
@@ -49,6 +78,7 @@ const normalizeWishlistItem = (item: WishlistItem): WishlistItem | null => {
     name: toNormalizedProductName(item.name),
     price: toNormalizedPrice(item.price),
     imageUrl: item.imageUrl,
+    colorSwatches: normalizeColorSwatches(item.colorSwatches),
   };
 };
 

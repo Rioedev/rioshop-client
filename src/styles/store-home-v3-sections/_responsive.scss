@@ -1,15 +1,18 @@
 ﻿@media (max-width: 1280px) {
   .store-home-v3-hero-inner,
   .store-home-v3-final-cta {
-    width: min(100vw - 32px, 1280px);
+    width: min(100vw - 32px, 1760px);
   }
 
   .store-home-v3-metric-grid,
   .store-home-v3-service-grid,
-  .store-home-v3-product-grid,
   .store-home-v3-editorial-grid,
   .store-home-v3-coupon-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .store-home-v3-product-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
   }
 
   .store-home-v3-showcase-layout,
@@ -57,10 +60,13 @@
   .store-home-v3-hero-rail,
   .store-home-v3-metric-grid,
   .store-home-v3-service-grid,
-  .store-home-v3-product-grid,
   .store-home-v3-editorial-grid,
   .store-home-v3-coupon-grid {
     grid-template-columns: 1fr;
+  }
+
+  .store-home-v3-product-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
   .store-home-v3-hero-mini {

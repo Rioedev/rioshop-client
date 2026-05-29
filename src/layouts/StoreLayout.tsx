@@ -72,10 +72,35 @@ export function StoreLayout() {
   const [isNotificationModalOpen, setIsNotificationModalOpen] = useState(false);
   const [categoryTree, setCategoryTree] = useState<Category[]>([]);
   const [collections, setCollections] = useState<Collection[]>([]);
-  const [footerSocialLinks, setFooterSocialLinks] = useState<{
-    facebook?: string;
-    instagram?: string;
-  }>({});
+  const [brandLayout, setBrandLayout] = useState<{
+    promoBarText?: string;
+    promoBarActive: boolean;
+    supportPhone?: string;
+    supportEmail?: string;
+    supportHotlineNote?: string;
+    supportHotlineNoteSecondary?: string;
+    storeAddress?: string;
+    socialLinks: {
+      facebook?: string;
+      instagram?: string;
+      tiktok?: string;
+      youtube?: string;
+      zalo?: string;
+      messenger?: string;
+    };
+    footer: {
+      introHeading?: string;
+      intro?: string;
+      companyName?: string;
+      companyLegalText?: string;
+      complianceBadges: string[];
+      newsletterPlaceholder?: string;
+    };
+  }>({
+    promoBarActive: true,
+    socialLinks: {},
+    footer: { complianceBadges: [] },
+  });
   const [activeMegaItemKeys, setActiveMegaItemKeys] = useState<
     Partial<Record<MegaColumn["key"], string>>
   >({});
@@ -165,14 +190,34 @@ export function StoreLayout() {
         if (!active) {
           return;
         }
-        setFooterSocialLinks({
-          facebook: config.socialLinks?.facebook?.trim() || undefined,
-          instagram: config.socialLinks?.instagram?.trim() || undefined,
+        const trim = (v?: string | null) => (v?.trim() ? v.trim() : undefined);
+        setBrandLayout({
+          promoBarText: trim(config.storefront?.promoBar?.text),
+          promoBarActive: config.storefront?.promoBar?.isActive !== false,
+          supportPhone: trim(config.supportPhone),
+          supportEmail: trim(config.supportEmail),
+          supportHotlineNote: trim(config.supportHotlineNote),
+          supportHotlineNoteSecondary: trim(config.supportHotlineNoteSecondary),
+          storeAddress: trim(config.storeAddress),
+          socialLinks: {
+            facebook: trim(config.socialLinks?.facebook),
+            instagram: trim(config.socialLinks?.instagram),
+            tiktok: trim(config.socialLinks?.tiktok),
+            youtube: trim(config.socialLinks?.youtube),
+            zalo: trim(config.socialLinks?.zalo),
+            messenger: trim(config.socialLinks?.messenger),
+          },
+          footer: {
+            introHeading: trim(config.storefront?.footer?.introHeading),
+            intro: trim(config.storefront?.footer?.intro),
+            companyName: trim(config.storefront?.footer?.companyName),
+            companyLegalText: trim(config.storefront?.footer?.companyLegalText),
+            complianceBadges: (config.storefront?.footer?.complianceBadges ?? []).filter(Boolean),
+            newsletterPlaceholder: trim(config.storefront?.footer?.newsletterPlaceholder),
+          },
         });
       } catch {
-        if (active) {
-          setFooterSocialLinks({});
-        }
+        // giữ default
       }
     };
 
@@ -365,12 +410,12 @@ export function StoreLayout() {
 
   return (
     <div className="storefront-shell min-h-screen">
-      <div className="store-promo-bar">
-        FLASH SALE 10H - 14H | Giảm đến 50% + Freeship toàn quốc
-      </div>
+      {brandLayout.promoBarActive && brandLayout.promoBarText ? (
+        <div className="store-promo-bar">{brandLayout.promoBarText}</div>
+      ) : null}
 
       <div className="store-utility-strip">
-        <div className="mx-auto flex w-full max-w-405 items-center justify-between gap-3 px-3 py-2 sm:px-4 xl:px-6">
+        <div className="mx-auto flex w-full max-w-440 items-center justify-between gap-3 px-3 py-2 sm:px-4 xl:px-6">
           <div className="store-utility-links">
             {utilityLinks.map((item) => (
               <Link key={item.label} to={item.href}>
@@ -378,15 +423,17 @@ export function StoreLayout() {
               </Link>
             ))}
           </div>
-          <div className="store-utility-hotline">
-            <PhoneOutlined />
-            <span>CSKH 1900 8888</span>
-          </div>
+          {brandLayout.supportPhone ? (
+            <div className="store-utility-hotline">
+              <PhoneOutlined />
+              <span>CSKH {brandLayout.supportPhone}</span>
+            </div>
+          ) : null}
         </div>
       </div>
 
       <header className="store-header">
-        <div className="mx-auto w-full max-w-405 px-3 py-4 sm:px-4 xl:px-6">
+        <div className="mx-auto w-full max-w-440 px-3 py-4 sm:px-4 xl:px-6">
           <div className="flex flex-wrap items-center gap-3 lg:flex-nowrap">
             <Link to="/" className="store-logo">
               RIO<span>SHOP</span>
@@ -469,12 +516,12 @@ export function StoreLayout() {
       />
 
       <main
-        className={`store-main-content mx-auto w-full max-w-405 px-3 sm:px-4 xl:px-6 ${isHomePage ? "pt-0 pb-6 md:pb-8" : "py-6 md:py-8"}`}
+        className={`store-main-content mx-auto w-full max-w-440 px-3 sm:px-4 xl:px-6 ${isHomePage ? "pt-0 pb-6 md:pb-8" : "py-6 md:py-8"}`}
       >
         <Outlet />
       </main>
 
-      <StoreFooter footerSocialLinks={footerSocialLinks} />
+      <StoreFooter brandLayout={brandLayout} />
       <StoreAiChatbot />
     </div>
   );

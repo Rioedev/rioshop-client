@@ -12,7 +12,7 @@ import {
   storeButtonClassNames,
 } from "../components/StorePageChrome";
 import { cartService, toCartCouponMeta, toCartStoreItems } from "../../../services/cartService";
-import { formatStoreCurrency } from "../utils/storeFormatting";
+import { STORE_PRODUCT_PLACEHOLDER, formatStoreCurrency } from "../utils/storeFormatting";
 import { orderService } from "../../../services/orderService";
 import { paymentService } from "../../../services/paymentService";
 import { userProfileService, type UserAddress } from "../../../services/userProfileService";
@@ -627,7 +627,7 @@ export function StoreCheckoutPage() {
           variantSku: item.variantSku!,
           productName: item.name,
           variantLabel: item.variantLabel || "Mặc định",
-          image: item.imageUrl ?? "https://dummyimage.com/400x400/e2e8f0/0f172a&text=RIO",
+          image: item.imageUrl ?? STORE_PRODUCT_PLACEHOLDER,
           unitPrice: item.price,
           quantity: item.quantity,
           totalPrice: item.price * item.quantity,

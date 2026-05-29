@@ -1,6 +1,7 @@
 ﻿import type { Coupon } from "../../../services/couponService";
 import type { Product } from "../../../services/productService";
 import {
+  STORE_PRODUCT_PLACEHOLDER,
   formatStoreCurrency as formatCurrency,
   resolveStoreProductThumbnail,
 } from "../utils/storeFormatting";
@@ -16,19 +17,8 @@ export type ProductRuntime = Product & {
   totalSold?: number;
 };
 
-export const demoColors = [
-  { name: "Coral", hex: "#ff7f7f" },
-  { name: "Pearl", hex: "#f1f5f9" },
-  { name: "Navy", hex: "#1e3a8a" },
-  { name: "Onyx", hex: "#0f172a" },
-  { name: "Slate", hex: "#64748b" },
-];
-
-export const demoSizes = ["XS", "S", "M", "L", "XL", "2XL"];
-
 export const DEFAULT_COLOR_HEX = "#cbd5e1";
-export const WISHLIST_FALLBACK_IMAGE =
-  "https://dummyimage.com/400x400/e2e8f0/0f172a&text=RIO";
+export const WISHLIST_FALLBACK_IMAGE = STORE_PRODUCT_PLACEHOLDER;
 
 export const normalizeColorValue = (value?: string) =>
   (value ?? "").trim().toLowerCase();
@@ -40,9 +30,8 @@ export const getVariantColorName = (variant: ProductVariant) =>
 export const getVariantSizeLabel = (variant: ProductVariant) =>
   variant.sizeLabel?.trim() || variant.size?.trim() || "";
 
-export const toProductCardImage = (item: ProductRuntime, fallback = "RIO") =>
-  resolveStoreProductThumbnail(item) ??
-  `https://dummyimage.com/800x1000/e2e8f0/0f172a&text=${encodeURIComponent(fallback)}`;
+export const toProductCardImage = (item: ProductRuntime, _fallback = "RIO") =>
+  resolveStoreProductThumbnail(item) ?? STORE_PRODUCT_PLACEHOLDER;
 
 const normalizeColorHex = (value?: string) => {
   const hex = (value || "").trim();

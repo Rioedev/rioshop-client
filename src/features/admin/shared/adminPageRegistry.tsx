@@ -72,6 +72,11 @@ const AdminBlogsPage = lazy(() =>
     default: module.AdminBlogsPage,
   })),
 );
+const AdminPoliciesPage = lazy(() =>
+  import("../pages/AdminPoliciesPage").then((module) => ({
+    default: module.AdminPoliciesPage,
+  })),
+);
 const AdminProfilePage = lazy(() =>
   import("../pages/AdminProfilePage").then((module) => ({
     default: module.AdminProfilePage,
@@ -94,6 +99,7 @@ export const ADMIN_PAGE_COMPONENT_MAP: Record<AdminRouteSegment, AdminPageCompon
   "analytics-events": AdminAnalyticsEventsPage,
   blogs: AdminBlogsPage,
   "brand-config": AdminBrandConfigPage,
+  policies: AdminPoliciesPage,
   "admin-accounts": AdminAccountsPage,
   profile: AdminProfilePage,
 };

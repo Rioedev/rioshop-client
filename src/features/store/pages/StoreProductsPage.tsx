@@ -3,6 +3,7 @@ import { Button, Input, Select, Slider, message } from "antd";
 import { useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { StoreProductGridCard } from "../components/StoreProductGridCard";
+import { ProductCardSkeleton } from "../components/StoreSkeletons";
 import {
   StoreInlineNote,
   StorePageShell,
@@ -11,10 +12,12 @@ import {
   storeButtonClassNames,
 } from "../components/StorePageChrome";
 import {
+  STORE_PRODUCT_PLACEHOLDER,
   formatStoreCurrency,
   resolveStoreImageUrl,
   resolveStoreProductThumbnail,
 } from "../utils/storeFormatting";
+import { toStoreColorSwatches } from "../utils/productSwatches";
 import { analyticsTracker } from "../../../services/analyticsTracker";
 import {
   aiRecommendationService,
@@ -46,8 +49,7 @@ const sortMap: Record<string, Record<string, 1 | -1>> = {
   best_selling: { totalSold: -1, createdAt: -1 },
 };
 
-const WISHLIST_FALLBACK_IMAGE =
-  "https://dummyimage.com/400x400/e2e8f0/0f172a&text=RIO";
+const WISHLIST_FALLBACK_IMAGE = STORE_PRODUCT_PLACEHOLDER;
 
 type ProductColorOption = {
   label: string;
@@ -660,6 +662,7 @@ export function StoreProductsPage() {
 
   const onToggleWishlist = async (item: Product, inWishlist: boolean) => {
     const image = resolveStoreProductThumbnail(item) || WISHLIST_FALLBACK_IMAGE;
+    const colorSwatches = toStoreColorSwatches(item);
 
     if (isAuthenticated) {
       try {
@@ -671,6 +674,7 @@ export function StoreProductsPage() {
               name: item.name,
               image,
               price: item.pricing.salePrice,
+              colorSwatches,
             });
 
         setWishlistItems(toWishlistStoreItems(wishlist), userId);
@@ -694,6 +698,7 @@ export function StoreProductsPage() {
       name: item.name,
       price: item.pricing.salePrice,
       imageUrl: image,
+      colorSwatches,
     });
     message.success("\u0110\u00e3 th\u00eam v\u00e0o y\u00eau th\u00edch");
   };
@@ -755,6 +760,12 @@ export function StoreProductsPage() {
     );
   };
 
+  const aiPromptSuggestions = [
+    "Áo sơ mi đi làm dưới 500k",
+    "Váy dự tiệc tối",
+    "Đồ thể thao thoáng mát",
+  ];
+
   return (
     <StorePageShell>
       {selectedCollectionBannerImage ? (
@@ -775,218 +786,253 @@ export function StoreProductsPage() {
         </div>
       ) : null}
 
-      <StorePanelFrame>
-        <StoreSectionHeader
-          kicker="Bộ lọc nhanh"
-          title="Tìm nhanh sản phẩm"
-          description="Lọc theo bộ sưu tập, danh mục, từ khóa, giá, màu sắc, size và kiểu sắp xếp để tìm món đồ phù hợp nhanh hơn."
-        />
+      <div className="grid gap-4 lg:grid-cols-[300px_minmax(0,1fr)] xl:grid-cols-[320px_minmax(0,1fr)]">
+        <aside className="lg:sticky lg:top-4 lg:self-start">
+          <StorePanelFrame>
+            <h2 className="m-0 mb-4 text-lg font-black uppercase tracking-[0.14em] text-[#082a5c]">Bộ lọc</h2>
 
-        <div className="grid gap-3 lg:grid-cols-12">
-          <div className="lg:col-span-4">
-            <p className="m-0 mb-1 text-xs font-bold uppercase tracking-[0.14em] text-slate-500">Tìm kiếm</p>
-            <Input
-              value={keywordInput}
-              onChange={(event) => setKeywordInput(event.target.value)}
-              onPressEnter={onApplyFilters}
-              allowClear
-              placeholder="Nhập tên sản phẩm, thương hiệu..."
-            />
-          </div>
+            <div className="flex flex-col gap-4">
+              <div>
+                <p className="m-0 mb-1 text-xs font-bold uppercase tracking-[0.14em] text-slate-500">Tìm kiếm</p>
+                <Input
+                  value={keywordInput}
+                  onChange={(event) => setKeywordInput(event.target.value)}
+                  onPressEnter={onApplyFilters}
+                  allowClear
+                  placeholder="Tên sản phẩm, thương hiệu..."
+                />
+              </div>
 
-          <div className="lg:col-span-3">
-            <p className="m-0 mb-1 text-xs font-bold uppercase tracking-[0.14em] text-slate-500">Bộ sưu tập</p>
-            <Select
-              value={collectionSlug}
-              options={collectionOptions}
-              onChange={(value) => onParamChange({ collection: value || null, page: "1" })}
-              className="w-full"
-            />
-          </div>
+              <div>
+                <p className="m-0 mb-1 text-xs font-bold uppercase tracking-[0.14em] text-slate-500">Bộ sưu tập</p>
+                <Select
+                  value={collectionSlug}
+                  options={collectionOptions}
+                  onChange={(value) => onParamChange({ collection: value || null, page: "1" })}
+                  className="w-full"
+                />
+              </div>
 
-          <div className="lg:col-span-3">
-            <p className="m-0 mb-1 text-xs font-bold uppercase tracking-[0.14em] text-slate-500">Danh mục</p>
-            <Select
-              value={categorySlug}
-              options={categoryOptions}
-              onChange={(value) => onParamChange({ category: value || null, page: "1" })}
-              className="w-full"
-            />
-          </div>
+              <div>
+                <p className="m-0 mb-1 text-xs font-bold uppercase tracking-[0.14em] text-slate-500">Danh mục</p>
+                <Select
+                  value={categorySlug}
+                  options={categoryOptions}
+                  onChange={(value) => onParamChange({ category: value || null, page: "1" })}
+                  className="w-full"
+                />
+              </div>
 
-          <div className="lg:col-span-2">
-            <p className="m-0 mb-1 text-xs font-bold uppercase tracking-[0.14em] text-slate-500">Sắp xếp</p>
-            <Select
-              value={sort}
-              options={sortOptions}
-              onChange={(value) => onParamChange({ sort: value, page: "1" })}
-              className="w-full"
-            />
-          </div>
+              <div>
+                <p className="m-0 mb-1 text-xs font-bold uppercase tracking-[0.14em] text-slate-500">Sắp xếp</p>
+                <Select
+                  value={sort}
+                  options={sortOptions}
+                  onChange={(value) => onParamChange({ sort: value, page: "1" })}
+                  className="w-full"
+                />
+              </div>
 
-          <div className="lg:col-span-6">
-            <div className="mb-1 flex items-center justify-between gap-2">
-              <p className="m-0 text-xs font-bold uppercase tracking-[0.14em] text-slate-500">Khoảng giá</p>
-              <p className="m-0 text-xs font-semibold text-slate-700">
-                {formatStoreCurrency(priceRangeInput[0])} - {formatStoreCurrency(priceRangeInput[1])}
-              </p>
+              <div>
+                <div className="mb-1 flex items-center justify-between gap-2">
+                  <p className="m-0 text-xs font-bold uppercase tracking-[0.14em] text-slate-500">Khoảng giá</p>
+                </div>
+                <p className="m-0 mb-2 text-xs font-semibold text-slate-700">
+                  {formatStoreCurrency(priceRangeInput[0])} – {formatStoreCurrency(priceRangeInput[1])}
+                </p>
+                <Slider
+                  range
+                  min={priceBounds.min}
+                  max={priceBounds.max}
+                  step={priceBounds.step}
+                  value={priceRangeInput}
+                  onChange={(value) => {
+                    if (!Array.isArray(value) || value.length !== 2) {
+                      return;
+                    }
+                    const nextMin = Math.max(priceBounds.min, Math.min(Number(value[0]), priceBounds.max));
+                    const nextMax = Math.max(priceBounds.min, Math.min(Number(value[1]), priceBounds.max));
+                    setPriceRangeInput([Math.min(nextMin, nextMax), Math.max(nextMin, nextMax)]);
+                  }}
+                  tooltip={{
+                    formatter: (value) => formatStoreCurrency(Number(value ?? 0)),
+                  }}
+                />
+              </div>
+
+              <div>
+                <p className="m-0 mb-1 text-xs font-bold uppercase tracking-[0.14em] text-slate-500">Màu sắc</p>
+                <Select
+                  mode="multiple"
+                  allowClear
+                  value={colorFilterInput}
+                  options={colorOptions}
+                  onChange={(value) => setColorFilterInput(value)}
+                  optionFilterProp="label"
+                  maxTagCount="responsive"
+                  className="w-full"
+                  placeholder="Chọn màu"
+                />
+              </div>
+
+              <div>
+                <p className="m-0 mb-1 text-xs font-bold uppercase tracking-[0.14em] text-slate-500">Size</p>
+                <Select
+                  mode="multiple"
+                  allowClear
+                  value={sizeFilterInput}
+                  options={sizeOptions}
+                  onChange={(value) => setSizeFilterInput(value)}
+                  optionFilterProp="label"
+                  maxTagCount="responsive"
+                  className="w-full"
+                  placeholder="Chọn size"
+                />
+              </div>
+
+              <div className="flex flex-col gap-2 pt-2">
+                <Button
+                  type="primary"
+                  block
+                  className={storeButtonClassNames.primary}
+                  onClick={onApplyFilters}
+                >
+                  Áp dụng bộ lọc
+                </Button>
+                <Button
+                  block
+                  className={storeButtonClassNames.secondary}
+                  onClick={() => {
+                    setKeywordInput("");
+                    setPriceRangeInput([priceBounds.min, priceBounds.max]);
+                    setColorFilterInput([]);
+                    setSizeFilterInput([]);
+                    setSearchParams(new URLSearchParams());
+                  }}
+                >
+                  Đặt lại
+                </Button>
+              </div>
             </div>
-            <Slider
-              range
-              min={priceBounds.min}
-              max={priceBounds.max}
-              step={priceBounds.step}
-              value={priceRangeInput}
-              onChange={(value) => {
-                if (!Array.isArray(value) || value.length !== 2) {
-                  return;
-                }
-                const nextMin = Math.max(priceBounds.min, Math.min(Number(value[0]), priceBounds.max));
-                const nextMax = Math.max(priceBounds.min, Math.min(Number(value[1]), priceBounds.max));
-                setPriceRangeInput([Math.min(nextMin, nextMax), Math.max(nextMin, nextMax)]);
-              }}
-              tooltip={{
-                formatter: (value) => formatStoreCurrency(Number(value ?? 0)),
-              }}
-            />
-          </div>
+          </StorePanelFrame>
+        </aside>
 
-          <div className="lg:col-span-3">
-            <p className="m-0 mb-1 text-xs font-bold uppercase tracking-[0.14em] text-slate-500">Màu sắc</p>
-            <Select
-              mode="multiple"
-              allowClear
-              value={colorFilterInput}
-              options={colorOptions}
-              onChange={(value) => setColorFilterInput(value)}
-              optionFilterProp="label"
-              maxTagCount="responsive"
-              className="w-full"
-              placeholder="Chọn màu"
-            />
-          </div>
+        <div className="flex min-w-0 flex-col gap-4">
+          <section className="rounded-[14px] border border-[#e4eaf2] bg-white p-4">
+            <div className="mb-2.5 flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-[0.14em] text-slate-500">
+              <BulbOutlined className="text-[#0f4fa8]" />
+              <span>AI Stylist</span>
+              {aiSubmittedPrompt ? (
+                <span className="ml-auto font-medium normal-case tracking-normal text-slate-400">
+                  {aiRecommendations.length} kết quả phù hợp
+                </span>
+              ) : null}
+            </div>
 
-          <div className="lg:col-span-3">
-            <p className="m-0 mb-1 text-xs font-bold uppercase tracking-[0.14em] text-slate-500">Size</p>
-            <Select
-              mode="multiple"
-              allowClear
-              value={sizeFilterInput}
-              options={sizeOptions}
-              onChange={(value) => setSizeFilterInput(value)}
-              optionFilterProp="label"
-              maxTagCount="responsive"
-              className="w-full"
-              placeholder="Chọn size"
-            />
-          </div>
+            <div className="rio-ai-input">
+              <Input.TextArea
+                value={aiPrompt}
+                onChange={(event) => setAiPrompt(event.target.value)}
+                onPressEnter={(event) => {
+                  if (event.shiftKey) return;
+                  event.preventDefault();
+                  void onAskAiRecommendations();
+                }}
+                autoSize={{ minRows: 1, maxRows: 4 }}
+                maxLength={500}
+                placeholder="Mô tả nhu cầu của bạn..."
+                variant="borderless"
+                className="rio-ai-input__field"
+              />
+              <Button
+                type="primary"
+                shape="round"
+                icon={<SendOutlined />}
+                loading={aiLoading}
+                onClick={() => void onAskAiRecommendations()}
+                className="rio-ai-input__send"
+              >
+                Gợi ý
+              </Button>
+            </div>
 
-          <div className="lg:col-span-12 flex flex-wrap justify-end gap-3">
-            <Button type="primary" className={storeButtonClassNames.primary} onClick={onApplyFilters}>
-              Áp dụng
-            </Button>
-            <Button
-              className={storeButtonClassNames.secondary}
-              onClick={() => {
-                setKeywordInput("");
-                setPriceRangeInput([priceBounds.min, priceBounds.max]);
-                setColorFilterInput([]);
-                setSizeFilterInput([]);
-                setSearchParams(new URLSearchParams());
-              }}
-            >
-              Đặt lại
-            </Button>
-          </div>
-        </div>
-      </StorePanelFrame>
+            <div className="mt-2.5 flex flex-wrap items-center gap-x-1 gap-y-1 text-xs">
+              <span className="mr-1 text-slate-400">Thử:</span>
+              {aiPromptSuggestions.map((suggestion, index) => (
+                <span key={suggestion} className="inline-flex items-center gap-1">
+                  {index > 0 ? <span className="text-slate-300">·</span> : null}
+                  <button
+                    type="button"
+                    onClick={() => setAiPrompt(suggestion)}
+                    className="text-slate-600 transition hover:text-[#0f4fa8] hover:underline underline-offset-2"
+                  >
+                    {suggestion}
+                  </button>
+                </span>
+              ))}
+            </div>
+          </section>
 
-      <StorePanelFrame>
-        <StoreSectionHeader
-          kicker="AI gợi ý"
-          title="Gợi ý sản phẩm phù hợp"
-          description={
-            aiSubmittedPrompt
-              ? `${aiRecommendations.length} sản phẩm được đề xuất cho "${aiSubmittedPrompt}"`
-              : "Ưu tiên sản phẩm còn hàng, đúng ngân sách và gần nhu cầu mua sắm."
-          }
-          action={<BulbOutlined className="mt-1 text-xl text-sky-500" />}
-        />
-
-        <div className="grid gap-3 lg:grid-cols-[minmax(0,1fr)_auto]">
-          <Input.TextArea
-            value={aiPrompt}
-            onChange={(event) => setAiPrompt(event.target.value)}
-            autoSize={{ minRows: 2, maxRows: 4 }}
-            maxLength={500}
-            showCount
-            placeholder="Áo sơ mi nam đi làm dưới 500k, màu sáng, mặc mát"
-          />
-          <Button
-            type="primary"
-            className={`${storeButtonClassNames.primary} h-full! min-h-14!`}
-            icon={<SendOutlined />}
-            loading={aiLoading}
-            onClick={() => void onAskAiRecommendations()}
-          >
-            Gợi ý
-          </Button>
-        </div>
-
-        {aiSummary ? (
-          <div className="mt-3">
+          {aiSummary ? (
             <StoreInlineNote title="Nhu cầu đã phân tích" description={aiSummary} />
-          </div>
-        ) : null}
+          ) : null}
 
-        {aiRecommendations.length > 0 ? (
-          <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-            {aiRecommendations.map((recommendation) =>
-              renderProductCard(recommendation.product, {
-                recommendation,
-                source: "products_page_ai_recommendations",
-              }),
+          {aiRecommendations.length > 0 ? (
+            <StorePanelFrame>
+              <StoreSectionHeader
+                kicker="AI gợi ý"
+                title="Sản phẩm phù hợp nhất"
+                description={`${aiRecommendations.length} lựa chọn nổi bật theo nhu cầu của bạn.`}
+              />
+              <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
+                {aiRecommendations.map((recommendation) =>
+                  renderProductCard(recommendation.product, {
+                    recommendation,
+                    source: "products_page_ai_recommendations",
+                  }),
+                )}
+              </div>
+            </StorePanelFrame>
+          ) : null}
+
+          <StorePanelFrame>
+            <StoreSectionHeader
+              kicker="Danh sách sản phẩm"
+              title="Sản phẩm"
+              description={loading ? "Đang tải danh sách sản phẩm..." : `${totalDocs} sản phẩm đang hiển thị`}
+            />
+
+            {products.length === 0 && !loading ? (
+              <StoreInlineNote
+                title="Không tìm thấy sản phẩm phù hợp."
+                description="Thử thay đổi bộ lọc, từ khóa hoặc quay lại các danh mục khác để xem thêm sản phẩm."
+              />
+            ) : loading ? (
+              <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
+                {Array.from({ length: 8 }).map((_, index) => (
+                  <ProductCardSkeleton key={`skeleton-${index}`} />
+                ))}
+              </div>
+            ) : (
+              <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
+                {products.map((item) => renderProductCard(item))}
+              </div>
             )}
-          </div>
-        ) : null}
-      </StorePanelFrame>
 
-      <StorePanelFrame>
-        <StoreSectionHeader
-          kicker="Danh sách sản phẩm"
-          title="Sản phẩm"
-          description={loading ? "Đang tải danh sách sản phẩm..." : `${totalDocs} sản phẩm đang hiển thị`}
-        />
-
-        {products.length === 0 && !loading ? (
-          <StoreInlineNote
-            title="Không tìm thấy sản phẩm phù hợp."
-            description="Thử thay đổi bộ lọc, từ khóa hoặc quay lại các danh mục khác để xem thêm sản phẩm."
-          />
-        ) : loading ? (
-          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-            {Array.from({ length: 8 }).map((_, index) => (
-              <div key={`skeleton-${index}`} className="cool-skeleton-card" />
-            ))}
-          </div>
-        ) : (
-          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-            {products.map((item) => renderProductCard(item))}
-          </div>
-        )}
-
-        <div className="mt-4 flex items-center justify-end gap-2">
-          <Button disabled={page <= 1 || loading} className={storeButtonClassNames.ghostCompact} onClick={() => onParamChange({ page: String(page - 1) })}>
-            Trước
-          </Button>
-          <span className="text-sm text-slate-500">
-            Trang {page} / {Math.max(1, totalPages)}
-          </span>
-          <Button disabled={page >= totalPages || loading} className={storeButtonClassNames.ghostCompact} onClick={() => onParamChange({ page: String(page + 1) })}>
-            Sau
-          </Button>
+            <div className="mt-4 flex items-center justify-end gap-2">
+              <Button disabled={page <= 1 || loading} className={storeButtonClassNames.ghostCompact} onClick={() => onParamChange({ page: String(page - 1) })}>
+                Trước
+              </Button>
+              <span className="text-sm text-slate-500">
+                Trang {page} / {Math.max(1, totalPages)}
+              </span>
+              <Button disabled={page >= totalPages || loading} className={storeButtonClassNames.ghostCompact} onClick={() => onParamChange({ page: String(page + 1) })}>
+                Sau
+              </Button>
+            </div>
+          </StorePanelFrame>
         </div>
-      </StorePanelFrame>
+      </div>
     </StorePageShell>
   );
 }

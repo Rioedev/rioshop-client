@@ -1,5 +1,6 @@
 ﻿.store-home-v3-product-grid {
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 14px;
 }
 
 .store-home-v3-product-card {
@@ -25,7 +26,7 @@
 
 .store-home-v3-product-media {
   position: relative;
-  height: 420px;
+  height: 340px;
   background: #f8fafc;
 }
 
@@ -57,7 +58,7 @@
 
 .store-home-v3-product-sale {
   right: 14px;
-  background: #0f172a;
+  background: #dc2626;
   color: #ffffff;
 }
 
@@ -130,6 +131,10 @@
   font-size: 20px;
   font-weight: 900;
   color: #0f172a;
+}
+
+.store-home-v3-price-row.is-discount strong {
+  color: #dc2626;
 }
 
 .store-home-v3-price-row span {

@@ -253,10 +253,11 @@ export function StoreAiChatbot() {
           <header className="store-ai-chatbot__header">
             <div className="store-ai-chatbot__avatar">
               <RobotOutlined />
+              <span className="store-ai-chatbot__avatar-dot" aria-hidden />
             </div>
             <div className="min-w-0">
               <p>Tư vấn mua hàng</p>
-              <span>RioShop AI</span>
+              <span>RioShop AI · Đang hoạt động</span>
             </div>
             <Tooltip title="Đóng chatbot">
               <Button
@@ -320,16 +321,19 @@ export function StoreAiChatbot() {
           </div>
 
           <div className="store-ai-chatbot__suggestions">
-            {suggestedQuestions.slice(0, 3).map((question) => (
-              <button
-                key={question}
-                type="button"
-                disabled={loading}
-                onClick={() => void submitMessage(question)}
-              >
-                {question}
-              </button>
-            ))}
+            <p className="store-ai-chatbot__suggestions-label">Gợi ý nhanh</p>
+            <div className="store-ai-chatbot__suggestions-list">
+              {suggestedQuestions.slice(0, 3).map((question) => (
+                <button
+                  key={question}
+                  type="button"
+                  disabled={loading}
+                  onClick={() => void submitMessage(question)}
+                >
+                  {question}
+                </button>
+              ))}
+            </div>
           </div>
 
           <form

@@ -203,24 +203,6 @@
   box-shadow: 0 16px 28px rgba(148, 163, 184, 0.2);
 }
 
-.cool-skeleton-card {
-  height: 332px;
-  border: 1px solid var(--store-border);
-  border-radius: 20px;
-  background: linear-gradient(90deg, #edf2f8 25%, #f8fafc 50%, #edf2f8 75%);
-  background-size: 220% 100%;
-  animation: skeleton-shift 1.35s linear infinite;
-}
-
-@keyframes skeleton-shift {
-  from {
-    background-position: 180% 0;
-  }
-  to {
-    background-position: -20% 0;
-  }
-}
-
 .cool-product-card {
   overflow: hidden;
   border-radius: 20px;

@@ -70,7 +70,7 @@ export function StoreHomeProductCard({
             ))}
           </div>
         ) : null}
-        <div className="store-home-v3-price-row">
+        <div className={`store-home-v3-price-row ${hasDiscount ? "is-discount" : ""}`}>
           <strong>{formatCurrency(product.price)}</strong>
           {hasDiscount ? <span>{formatCurrency(product.originalPrice ?? product.price)}</span> : null}
         </div>
@@ -106,7 +106,7 @@ export function StoreHomeShowcaseItem({ product }: StoreHomeShowcaseItemProps) {
       <div className="store-home-v3-showcase-item-copy">
         <p>{product.categoryName ?? product.category}</p>
         <h3>{product.name}</h3>
-        <div className="store-home-v3-showcase-item-price">
+        <div className={`store-home-v3-showcase-item-price ${hasDiscount ? "is-discount" : ""}`}>
           <strong>{formatCurrency(product.price)}</strong>
           {hasDiscount ? <span>{formatCurrency(product.originalPrice ?? product.price)}</span> : null}
         </div>

@@ -81,13 +81,19 @@
 }
 
 .store-home-v3-collection-banner {
-  min-height: 260px;
-  border: 1px solid #dbe3ef;
-  border-radius: 28px;
+  min-height: 300px;
+  max-height: 360px;
+  border: 1px solid #e4eaf2;
+  border-radius: 16px;
   display: block;
   overflow: hidden;
-  background: #f1f5f9;
+  background: #f2f6fb;
   text-decoration: none;
+}
+
+.store-home-v3-collection-banner img {
+  object-fit: cover;
+  object-position: center;
 }
 
 .store-home-v3-collection-banner img {

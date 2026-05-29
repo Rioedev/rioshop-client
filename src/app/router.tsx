@@ -67,6 +67,11 @@ const StoreMomoReturnPage = lazy(() =>
     default: module.StoreMomoReturnPage,
   })),
 );
+const StorePolicyPage = lazy(() =>
+  import("../features/store/pages/StorePolicyPage").then((module) => ({
+    default: module.StorePolicyPage,
+  })),
+);
 const StoreMomoSandboxPage = lazy(() =>
   import("../features/store/pages/StoreMomoSandboxPage").then((module) => ({
     default: module.StoreMomoSandboxPage,
@@ -144,6 +149,7 @@ export const appRouter = createBrowserRouter([
       { path: "products/:slug", element: <StoreProductDetailPage /> },
       { path: "blog", element: <StoreBlogsPage /> },
       { path: "blog/:slug", element: <StoreBlogDetailPage /> },
+      { path: "chinh-sach/:slug", element: <StorePolicyPage /> },
       { path: "flash-sales", element: <StoreFlashSalesPage /> },
       { path: "cart", element: <StoreCartPage /> },
       { path: "wishlist", element: <StoreWishlistPage /> },

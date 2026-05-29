@@ -1,4 +1,3 @@
-import { Spin } from "antd";
 import { Navigate, Outlet, useLocation, useSearchParams } from "react-router-dom";
 import type { AccountType } from "../../services/authService";
 import { useAuthStore } from "../../stores/authStore";
@@ -28,8 +27,14 @@ export const createRouteGuard = ({ strategy }: CreateRouteGuardOptions) => {
 
     if (!isHydrated) {
       return (
-        <div className="flex min-h-screen items-center justify-center">
-          <Spin size="large" />
+        <div className="store-boot-loader">
+          <div className="store-boot-loader__brand">R</div>
+          <div className="store-boot-loader__dots" aria-hidden>
+            <span />
+            <span />
+            <span />
+          </div>
+          <p className="store-boot-loader__label">Đang chuẩn bị Rioshop</p>
         </div>
       );
     }

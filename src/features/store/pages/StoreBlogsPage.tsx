@@ -1,9 +1,10 @@
-﻿import { Empty, Pagination, Skeleton, Typography } from "antd";
+﻿import { Empty, Pagination, Typography } from "antd";
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { blogService, type BlogPost } from "../../../services/blogService";
 import { getErrorMessage } from "../../../utils/errorMessage";
 import { resolveStoreImageUrl as resolveImageUrl } from "../utils/storeFormatting";
+import { BlogCardSkeleton } from "../components/StoreSkeletons";
 
 const { Paragraph, Title } = Typography;
 
@@ -91,11 +92,7 @@ export function StoreBlogsPage() {
       {loading ? (
         <div className="store-blog-list-grid">
           {Array.from({ length: 6 }).map((_, index) => (
-            <Skeleton
-              key={`blog-skeleton-${index}`}
-              active
-              className="rounded-xl border border-slate-200 p-4"
-            />
+            <BlogCardSkeleton key={`blog-skeleton-${index}`} />
           ))}
         </div>
       ) : null}

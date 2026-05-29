@@ -1,10 +1,11 @@
 ﻿import { LeftOutlined } from "@ant-design/icons";
-import { Button, Empty, Skeleton, Tag, Typography } from "antd";
+import { Button, Empty, Tag, Typography } from "antd";
 import { useEffect, useMemo, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { blogService, type BlogPost } from "../../../services/blogService";
 import { getErrorMessage } from "../../../utils/errorMessage";
 import { resolveStoreImageUrl as resolveImageUrl } from "../utils/storeFormatting";
+import { BlogDetailSkeleton } from "../components/StoreSkeletons";
 
 const { Paragraph, Title } = Typography;
 
@@ -107,7 +108,7 @@ export function StoreBlogDetailPage() {
   if (loading) {
     return (
       <section className="mx-auto w-full max-w-245 px-4 py-8 md:px-6 md:py-10">
-        <Skeleton active paragraph={{ rows: 8 }} />
+        <BlogDetailSkeleton />
       </section>
     );
   }

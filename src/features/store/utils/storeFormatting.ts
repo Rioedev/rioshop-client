@@ -4,6 +4,10 @@ const storeCurrencyFormatter = new Intl.NumberFormat("vi-VN", {
   maximumFractionDigits: 0,
 });
 
+// Branded SVG placeholder — used everywhere a product image is missing.
+// Lives in /public so it works without bundling and can be swapped without rebuild.
+export const STORE_PRODUCT_PLACEHOLDER = "/placeholder-product.svg";
+
 const storeApiBaseUrl = (import.meta.env.VITE_API_BASE_URL ?? "http://localhost:5000").replace(/\/$/, "");
 // Empty value → relative URL, resolves against current origin (ngrok / same-host build).
 

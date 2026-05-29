@@ -26,11 +26,25 @@ const FORM_VALIDATE_MESSAGES = {
   },
 };
 
+function AppBootFallback() {
+  return (
+    <div className="store-boot-loader">
+      <div className="store-boot-loader__brand">R</div>
+      <div className="store-boot-loader__dots" aria-hidden>
+        <span />
+        <span />
+        <span />
+      </div>
+      <p className="store-boot-loader__label">Đang chuẩn bị Rioshop</p>
+    </div>
+  );
+}
+
 function App() {
   return (
     <ConfigProvider locale={viVN} form={{ validateMessages: FORM_VALIDATE_MESSAGES }}>
       <AuthBootstrap />
-      <Suspense fallback={<div className="p-4 text-sm text-slate-500">Đang tải trang...</div>}>
+      <Suspense fallback={<AppBootFallback />}>
         <RouterProvider router={appRouter} />
       </Suspense>
     </ConfigProvider>

@@ -66,6 +66,75 @@
   box-shadow: inset 0 0 0 1px rgba(15, 79, 168, 0.75);
 }
 
+/* ============================================================
+   PDP — Color swatch (big circle, Yody-style)
+   ============================================================ */
+.pdpv2-color-swatch {
+  position: relative;
+  width: 34px;
+  height: 34px;
+  border-radius: 999px;
+  border: 0;
+  padding: 0;
+  background: transparent;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: transform 160ms ease;
+}
+
+.pdpv2-color-swatch__fill {
+  width: 30px;
+  height: 30px;
+  border-radius: 999px;
+  border: 1px solid rgba(15, 23, 42, 0.08);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.6);
+  transition: transform 160ms ease;
+}
+
+.pdpv2-color-swatch:hover .pdpv2-color-swatch__fill {
+  transform: scale(1.06);
+}
+
+.pdpv2-color-swatch.is-active {
+  box-shadow: 0 0 0 1.5px rgba(15, 79, 168, 0.7);
+}
+
+.pdpv2-color-swatch:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 1.5px rgba(15, 79, 168, 0.7);
+}
+
+/* ============================================================
+   PDP — Size pill (rectangular, Yody-style)
+   ============================================================ */
+.pdpv2-size-pill {
+  min-width: 56px;
+  height: 42px;
+  padding: 0 16px;
+  border: 1px solid #cbd5e1;
+  border-radius: 999px;
+  background: #ffffff;
+  color: #334155;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 160ms ease;
+}
+
+.pdpv2-size-pill:hover {
+  border-color: var(--yody-blue);
+  color: var(--yody-blue);
+}
+
+.pdpv2-size-pill.is-active {
+  border-color: var(--yody-blue);
+  background: #ffffff;
+  color: var(--yody-blue);
+  box-shadow: inset 0 0 0 1px var(--yody-blue);
+}
+
 .pdpv2-buy-panel .option-pill {
   border-color: transparent;
   background: #f2f5f9;
@@ -77,6 +146,69 @@
   background: #eef4ff;
   color: var(--yody-blue);
   box-shadow: inset 0 0 0 1px rgba(15, 79, 168, 0.75);
+}
+
+/* ============================================================
+   PDP — Quantity stepper (button group)
+   ============================================================ */
+.pdpv2-quantity-group {
+  display: inline-flex;
+  align-items: stretch;
+  height: 38px;
+  border: 1px solid #cbd5e1;
+  border-radius: 999px;
+  overflow: hidden;
+  background: #ffffff;
+}
+
+.pdpv2-quantity-btn {
+  width: 36px;
+  height: 100%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 0;
+  background: transparent;
+  color: #475569;
+  font-size: 16px;
+  font-weight: 700;
+  line-height: 1;
+  cursor: pointer;
+  padding: 0;
+  transition: background-color 140ms ease, color 140ms ease;
+}
+
+.pdpv2-quantity-btn:hover:not(:disabled) {
+  background: #f1f5f9;
+  color: var(--yody-blue);
+}
+
+.pdpv2-quantity-btn:disabled {
+  cursor: not-allowed;
+  color: #cbd5e1;
+}
+
+.pdpv2-quantity-input.ant-input-number {
+  width: 44px;
+  height: 100%;
+  background: transparent !important;
+  border: 0 !important;
+  box-shadow: none !important;
+  display: flex;
+  align-items: center;
+}
+
+.pdpv2-quantity-input.ant-input-number .ant-input-number-input-wrap,
+.pdpv2-quantity-input.ant-input-number .ant-input-number-input-wrap input,
+.pdpv2-quantity-input.ant-input-number input.ant-input-number-input {
+  height: 100%;
+  text-align: center;
+  font-size: 14px;
+  font-weight: 700;
+  color: #0f172a;
+  padding: 0 !important;
+  line-height: 1 !important;
+  background: transparent !important;
 }
 
 .pdpv2-buy-panel .product-note-list {

@@ -16,6 +16,7 @@ import {
   resolveStoreImageUrl as resolveImageUrl,
   resolveStoreProductThumbnail,
 } from "../utils/storeFormatting";
+import { toStoreColorSwatches } from "../utils/productSwatches";
 import {
   blockNonNumericAndOverflowKey,
   blockOverflowPaste,
@@ -23,12 +24,11 @@ import {
   getSafeMaxQuantity,
 } from "../utils/quantityInputGuards";
 import { StoreProductMainSection } from "./StoreProductMainSection";
+import { ProductDetailSkeleton } from "../components/StoreSkeletons";
 import { StoreProductReviewSection } from "./StoreProductReviewSection";
 import {
   DEFAULT_COLOR_HEX,
   WISHLIST_FALLBACK_IMAGE,
-  demoColors,
-  demoSizes,
   formatDetailCouponExpiry,
   formatDetailCouponValue,
   generateReviewPercents,
@@ -77,8 +77,8 @@ export function StoreProductDetailPage() {
   const [activeCoupons, setActiveCoupons] = useState<Coupon[]>([]);
   const [couponLoading, setCouponLoading] = useState(false);
   const [selectedImage, setSelectedImage] = useState<string | undefined>(undefined);
-  const [selectedColor, setSelectedColor] = useState(demoColors[0].name);
-  const [selectedSize, setSelectedSize] = useState(demoSizes[2]);
+  const [selectedColor, setSelectedColor] = useState("");
+  const [selectedSize, setSelectedSize] = useState("");
 
   const loadReviewData = async (productId: string, fallbackProduct?: ProductRuntime) => {
     try {
@@ -239,7 +239,7 @@ export function StoreProductDetailPage() {
 
   const colorOptions = useMemo(() => {
     if (productVariants.length === 0) {
-      return demoColors;
+      return [] as Array<{ name: string; hex: string }>;
     }
 
     const colorMap = new Map<string, { name: string; hex: string }>();
@@ -264,7 +264,7 @@ export function StoreProductDetailPage() {
 
   const sizeOptions = useMemo(() => {
     if (productVariants.length === 0) {
-      return demoSizes;
+      return [] as string[];
     }
 
     const selectedColorKey = normalizeColorValue(selectedColor);
@@ -432,7 +432,7 @@ export function StoreProductDetailPage() {
       .filter(
       (item) => (item.category?._id || "") === (product?.category?._id || ""),
       )
-      .slice(0, 4);
+      .slice(0, 5);
   }, [product?.category?._id, productPool]);
 
   const viewedProducts = useMemo(() => {
@@ -445,11 +445,11 @@ export function StoreProductDetailPage() {
       }
     });
 
-    return Array.from(map.values()).slice(0, 4);
+    return Array.from(map.values()).slice(0, 5);
   }, [product, productPool]);
 
   if (loading) {
-    return <div className="product-detail-skeleton" />;
+    return <ProductDetailSkeleton />;
   }
 
   if (!product) {
@@ -533,7 +533,12 @@ export function StoreProductDetailPage() {
   };
 
   const onAddToCart = async () => {
-    if (productVariants.length > 0 && !selectedVariant?.sku) {
+    if (productVariants.length === 0) {
+      message.error("Sản phẩm chưa có biến thể bán. Vui lòng chọn sản phẩm khác.");
+      return;
+    }
+
+    if (!selectedVariant?.sku) {
       message.error("Vui lòng chọn đúng màu và size trước khi thêm vào giỏ.");
       return;
     }
@@ -614,6 +619,7 @@ export function StoreProductDetailPage() {
 
   const onToggleWishlist = async () => {
     const image = displayImage || resolveStoreProductThumbnail(product) || WISHLIST_FALLBACK_IMAGE;
+    const colorSwatches = toStoreColorSwatches(product);
 
     if (isAuthenticated) {
       try {
@@ -625,6 +631,7 @@ export function StoreProductDetailPage() {
               name: product.name,
               image,
               price: selectedVariantPrice,
+              colorSwatches,
             });
 
         setWishlistItems(toWishlistStoreItems(wishlist), userId);
@@ -648,6 +655,7 @@ export function StoreProductDetailPage() {
       name: product.name,
       price: selectedVariantPrice,
       imageUrl: image,
+      colorSwatches,
     });
     message.success("Đã thêm vào yêu thích");
   };
@@ -782,7 +790,7 @@ export function StoreProductDetailPage() {
         <section className="pdpv2-block">
           <h3 className="pdpv2-section-title">Bạn có thể sẽ thích</h3>
           <div className="related-grid">
-            {relatedProducts.slice(0, 4).map((item) => {
+            {relatedProducts.slice(0, 5).map((item) => {
               const image = resolveStoreProductThumbnail(item);
               return (
                 <Link key={item._id} to={`/products/${item.slug}`} className="related-card">

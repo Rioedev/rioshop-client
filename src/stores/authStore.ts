@@ -37,8 +37,7 @@ type AuthState = {
 };
 
 const AUTH_STORAGE_KEY = "rioshop_auth";
-const WISHLIST_FALLBACK_IMAGE =
-  "https://dummyimage.com/400x400/e2e8f0/0f172a&text=RIO";
+const WISHLIST_FALLBACK_IMAGE = "/placeholder-product.svg";
 
 const readAuthStorage = (): AuthStorage | null => {
   const raw = localStorage.getItem(AUTH_STORAGE_KEY);

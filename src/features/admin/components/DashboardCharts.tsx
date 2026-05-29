@@ -294,7 +294,7 @@ export function DashboardDonutCard(props: {
           </div>
         </div>
 
-        <div className="min-w-[200px] flex-1 space-y-2">
+        <div className="min-w-50 flex-1 space-y-2">
           {safeData.map((item) => {
             const pct = total > 0 ? (item.value / total) * 100 : 0;
             return (

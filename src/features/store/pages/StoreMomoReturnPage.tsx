@@ -1,7 +1,8 @@
-import { Button, Result, Spin } from "antd";
+import { Button, Result } from "antd";
 import { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { StorePageShell, StorePanelFrame, storeButtonClassNames } from "../components/StorePageChrome";
+import { BrandSpinner } from "../components/StoreSkeletons";
 import { paymentService } from "../../../services/paymentService";
 import { getErrorMessage } from "../../../utils/errorMessage";
 
@@ -117,10 +118,7 @@ export function StoreMomoReturnPage() {
     <StorePageShell>
       <StorePanelFrame>
         {state.status === "loading" ? (
-          <div className="flex flex-col items-center justify-center gap-3 py-12">
-            <Spin size="large" />
-            <p className="m-0 text-sm text-slate-500">Đang đồng bộ kết quả thanh toán...</p>
-          </div>
+          <BrandSpinner size="lg" label="Đang đồng bộ kết quả thanh toán..." />
         ) : (
           <Result
             status={state.status === "success" ? "success" : "warning"}

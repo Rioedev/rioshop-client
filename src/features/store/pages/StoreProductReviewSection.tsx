@@ -84,9 +84,8 @@ export function StoreProductReviewSection({
             value={reviewBody}
             onChange={(event) => onReviewBodyChange(event.target.value)}
             placeholder="Chia sẻ trải nghiệm của bạn về sản phẩm..."
-            rows={5}
+            autoSize={{ minRows: 4, maxRows: 8 }}
             maxLength={1000}
-            showCount
             disabled={!isAuthenticated || reviewSubmitting}
             className="pdpv2-review-input"
           />

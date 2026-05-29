@@ -9,105 +9,161 @@ import {
   TikTokOutlined,
   YoutubeOutlined,
 } from "@ant-design/icons";
+import { useEffect, useState, type ReactNode } from "react";
+import { Link } from "react-router-dom";
+import { policyService, type Policy } from "../services/policyService";
 
-type StoreFooterProps = {
-  footerSocialLinks: {
+export type StoreFooterBrandLayout = {
+  supportPhone?: string;
+  supportEmail?: string;
+  supportHotlineNote?: string;
+  supportHotlineNoteSecondary?: string;
+  storeAddress?: string;
+  socialLinks: {
     facebook?: string;
     instagram?: string;
+    tiktok?: string;
+    youtube?: string;
+    zalo?: string;
+    messenger?: string;
+  };
+  footer: {
+    introHeading?: string;
+    intro?: string;
+    companyName?: string;
+    companyLegalText?: string;
+    complianceBadges: string[];
+    newsletterPlaceholder?: string;
   };
 };
 
-export function StoreFooter({ footerSocialLinks }: StoreFooterProps) {
+type StoreFooterProps = {
+  brandLayout: StoreFooterBrandLayout;
+};
+
+type SocialIconProps = {
+  href?: string;
+  ariaLabel: string;
+  children: ReactNode;
+};
+
+function SocialIcon({ href, ariaLabel, children }: SocialIconProps) {
+  if (!href) return null;
+  return (
+    <a
+      href={href}
+      aria-label={ariaLabel}
+      target="_blank"
+      rel="noreferrer noopener"
+    >
+      {children}
+    </a>
+  );
+}
+
+export function StoreFooter({ brandLayout }: StoreFooterProps) {
+  const [policyPages, setPolicyPages] = useState<Policy[]>([]);
+
+  useEffect(() => {
+    let active = true;
+    void policyService
+      .listActiveByKind("page")
+      .then((docs) => {
+        if (active) setPolicyPages(docs);
+      })
+      .catch(() => {
+        if (active) setPolicyPages([]);
+      });
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  const { socialLinks, footer } = brandLayout;
+  const hasAnySocial =
+    Boolean(socialLinks.zalo) ||
+    Boolean(socialLinks.messenger) ||
+    Boolean(socialLinks.tiktok) ||
+    Boolean(socialLinks.youtube) ||
+    Boolean(socialLinks.instagram) ||
+    Boolean(socialLinks.facebook);
+
   return (
     <footer className="store-footer">
-      <div className="mx-auto w-full max-w-405 px-3 py-10 sm:px-4 xl:px-6">
+      <div className="mx-auto w-full max-w-440 px-3 py-10 sm:px-4 xl:px-6">
         <div className="store-footer-top">
           <div className="store-footer-intro">
-            <h4>RIOSHOP XIN CHÀO 💖</h4>
-            <p>
-              Chúng tôi luôn quý trọng và tiếp thu mọi ý kiến đóng góp từ
-              khách hàng, nhằm không ngừng cải thiện và nâng tầm trải nghiệm
-              dịch vụ cùng chất lượng sản phẩm.
-            </p>
+            {footer.introHeading ? <h4>{footer.introHeading}</h4> : null}
+            {footer.intro ? <p>{footer.intro}</p> : null}
             <form
               className="store-footer-subscribe"
               onSubmit={(event) => event.preventDefault()}
             >
-              <input placeholder="Nhập địa chỉ email của bạn" />
+              <input
+                placeholder={
+                  footer.newsletterPlaceholder || "Nhập địa chỉ email của bạn"
+                }
+              />
               <button type="submit">Gửi</button>
             </form>
           </div>
 
           <div className="store-footer-contact">
-            <div className="store-footer-contact-item">
-              <PhoneOutlined />
-              <div>
-                <p>Hotline</p>
-                <strong>1800 2086</strong>
-                <span>Bấm phím 1 để được tư vấn mua hàng</span>
-                <span>Bấm phím 2 để góp ý, khiếu nại</span>
+            {brandLayout.supportPhone ? (
+              <div className="store-footer-contact-item">
+                <PhoneOutlined />
+                <div>
+                  <p>Hotline</p>
+                  <strong>{brandLayout.supportPhone}</strong>
+                  {brandLayout.supportHotlineNote ? (
+                    <span>{brandLayout.supportHotlineNote}</span>
+                  ) : null}
+                  {brandLayout.supportHotlineNoteSecondary ? (
+                    <span>{brandLayout.supportHotlineNoteSecondary}</span>
+                  ) : null}
+                </div>
               </div>
-            </div>
-            <div className="store-footer-contact-item">
-              <MailOutlined />
-              <div>
-                <p>Email</p>
-                <strong>chamsockhachhang@rioshop.vn</strong>
+            ) : null}
+            {brandLayout.supportEmail ? (
+              <div className="store-footer-contact-item">
+                <MailOutlined />
+                <div>
+                  <p>Email</p>
+                  <strong>{brandLayout.supportEmail}</strong>
+                </div>
               </div>
-            </div>
-            <div className="store-footer-contact-item">
-              <EnvironmentOutlined />
-              <div>
-                <p>Địa chỉ</p>
-                <strong>
-                  Đường An Định - Phường Việt Hòa - TP Hải Phòng
-                </strong>
+            ) : null}
+            {brandLayout.storeAddress ? (
+              <div className="store-footer-contact-item">
+                <EnvironmentOutlined />
+                <div>
+                  <p>Địa chỉ</p>
+                  <strong>{brandLayout.storeAddress}</strong>
+                </div>
               </div>
-            </div>
+            ) : null}
           </div>
 
-          <div className="store-footer-social">
-            <a href="#" aria-label="Zalo">
-              Z
-            </a>
-            <a href="#" aria-label="Messenger">
-              <MessageOutlined />
-            </a>
-            <a href="#" aria-label="TikTok">
-              <TikTokOutlined />
-            </a>
-            <a href="#" aria-label="YouTube">
-              <YoutubeOutlined />
-            </a>
-            <a
-              href={footerSocialLinks.instagram || "#"}
-              aria-label="Instagram"
-              target={footerSocialLinks.instagram ? "_blank" : undefined}
-              rel={
-                footerSocialLinks.instagram ? "noreferrer noopener" : undefined
-              }
-              onClick={(event) => {
-                if (!footerSocialLinks.instagram) {
-                  event.preventDefault();
-                }
-              }}
-            >
-              <InstagramOutlined />
-            </a>
-            <a
-              href={footerSocialLinks.facebook || "#"}
-              aria-label="Facebook"
-              target={footerSocialLinks.facebook ? "_blank" : undefined}
-              rel={footerSocialLinks.facebook ? "noreferrer noopener" : undefined}
-              onClick={(event) => {
-                if (!footerSocialLinks.facebook) {
-                  event.preventDefault();
-                }
-              }}
-            >
-              <FacebookOutlined />
-            </a>
-          </div>
+          {hasAnySocial ? (
+            <div className="store-footer-social">
+              <SocialIcon href={socialLinks.zalo} ariaLabel="Zalo">Z</SocialIcon>
+              <SocialIcon href={socialLinks.messenger} ariaLabel="Messenger">
+                <MessageOutlined />
+              </SocialIcon>
+              <SocialIcon href={socialLinks.tiktok} ariaLabel="TikTok">
+                <TikTokOutlined />
+              </SocialIcon>
+              <SocialIcon href={socialLinks.youtube} ariaLabel="YouTube">
+                <YoutubeOutlined />
+              </SocialIcon>
+              <SocialIcon href={socialLinks.instagram} ariaLabel="Instagram">
+                <InstagramOutlined />
+              </SocialIcon>
+              <SocialIcon href={socialLinks.facebook} ariaLabel="Facebook">
+                <FacebookOutlined />
+              </SocialIcon>
+            </div>
+          ) : null}
         </div>
 
         <div className="store-footer-links">
@@ -129,22 +185,35 @@ export function StoreFooter({ footerSocialLinks }: StoreFooterProps) {
           ))}
         </div>
 
-        <div className="store-footer-bottom">
-          <div>
-            <h5>@ CÔNG TY CỔ PHẦN THỜI TRANG RIOSHOP</h5>
-            <p>
-              Mã số doanh nghiệp: 0801206940. Giấy chứng nhận đăng ký doanh
-              nghiệp do Sở Kế hoạch và Đầu tư TP Hải Dương cấp lần đầu ngày
-              04/03/2017
-            </p>
+        {policyPages.length > 0 ? (
+          <div className="store-footer-policies">
+            <p className="store-footer-policies-label">Chính sách & quy định</p>
+            <ul className="store-footer-policies-list">
+              {policyPages.map((item) => (
+                <li key={item._id}>
+                  <Link to={`/chinh-sach/${item.slug}`}>{item.title}</Link>
+                </li>
+              ))}
+            </ul>
           </div>
-          <div className="store-footer-certs">
-            <span>DMCA PROTECTED</span>
-            <span>ĐÃ THÔNG BÁO BỘ CÔNG THƯƠNG</span>
+        ) : null}
+
+        {footer.companyName || footer.companyLegalText || footer.complianceBadges.length > 0 ? (
+          <div className="store-footer-bottom">
+            <div>
+              {footer.companyName ? <h5>{footer.companyName}</h5> : null}
+              {footer.companyLegalText ? <p>{footer.companyLegalText}</p> : null}
+            </div>
+            {footer.complianceBadges.length > 0 ? (
+              <div className="store-footer-certs">
+                {footer.complianceBadges.map((badge) => (
+                  <span key={badge}>{badge}</span>
+                ))}
+              </div>
+            ) : null}
           </div>
-        </div>
+        ) : null}
       </div>
     </footer>
   );
 }
-

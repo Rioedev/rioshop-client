@@ -31,6 +31,22 @@ export type BrandConfigSocialLinks = {
   instagram?: string | null;
   tiktok?: string | null;
   youtube?: string | null;
+  zalo?: string | null;
+  messenger?: string | null;
+};
+
+export type BrandConfigPromoBar = {
+  text?: string | null;
+  isActive?: boolean | null;
+};
+
+export type BrandConfigFooterContent = {
+  introHeading?: string | null;
+  intro?: string | null;
+  companyName?: string | null;
+  companyLegalText?: string | null;
+  complianceBadges?: string[];
+  newsletterPlaceholder?: string | null;
 };
 
 export type BrandConfigFeatureFlags = {
@@ -148,6 +164,8 @@ export type StorefrontHomeContent = {
 };
 
 export type BrandConfigStorefront = {
+  promoBar?: BrandConfigPromoBar;
+  footer?: BrandConfigFooterContent;
   home?: StorefrontHomeContent;
 };
 
@@ -163,6 +181,9 @@ type BrandConfigApiItem = {
   taxRate?: number;
   supportEmail?: string;
   supportPhone?: string;
+  supportHotlineNote?: string;
+  supportHotlineNoteSecondary?: string;
+  storeAddress?: string;
   socialLinks?: BrandConfigSocialLinks;
   featureFlags?: BrandConfigFeatureFlags;
   storefront?: BrandConfigStorefront;
@@ -181,6 +202,9 @@ export type BrandConfig = {
   taxRate?: number;
   supportEmail?: string | null;
   supportPhone?: string | null;
+  supportHotlineNote?: string | null;
+  supportHotlineNoteSecondary?: string | null;
+  storeAddress?: string | null;
   socialLinks?: BrandConfigSocialLinks;
   featureFlags: Required<BrandConfigFeatureFlags>;
   storefront?: BrandConfigStorefront;
@@ -197,6 +221,9 @@ export type UpdateBrandConfigPayload = Partial<{
   taxRate: number;
   supportEmail: string | null;
   supportPhone: string | null;
+  supportHotlineNote: string | null;
+  supportHotlineNoteSecondary: string | null;
+  storeAddress: string | null;
   socialLinks: BrandConfigSocialLinks;
   featureFlags: BrandConfigFeatureFlags;
   storefront: BrandConfigStorefront;
@@ -214,6 +241,9 @@ const normalizeBrandConfig = (item: BrandConfigApiItem): BrandConfig => ({
   taxRate: item.taxRate,
   supportEmail: item.supportEmail,
   supportPhone: item.supportPhone,
+  supportHotlineNote: item.supportHotlineNote,
+  supportHotlineNoteSecondary: item.supportHotlineNoteSecondary,
+  storeAddress: item.storeAddress,
   socialLinks: item.socialLinks,
   featureFlags: {
     loyalty: item.featureFlags?.loyalty ?? true,

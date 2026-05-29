@@ -39,10 +39,23 @@ type BrandConfigFormValues = {
   taxRate?: number;
   supportEmail?: string;
   supportPhone?: string;
+  supportHotlineNote?: string;
+  supportHotlineNoteSecondary?: string;
+  storeAddress?: string;
   facebook?: string;
   instagram?: string;
   tiktok?: string;
   youtube?: string;
+  zalo?: string;
+  messenger?: string;
+  promoBarText?: string;
+  promoBarActive: boolean;
+  footerIntroHeading?: string;
+  footerIntro?: string;
+  footerCompanyName?: string;
+  footerCompanyLegalText?: string;
+  footerComplianceBadgesText?: string;
+  footerNewsletterPlaceholder?: string;
   loyalty: boolean;
   flashSale: boolean;
   review: boolean;
@@ -122,10 +135,23 @@ const getDefaultFormValues = (brandKey = DEFAULT_BRAND_KEY): BrandConfigFormValu
   taxRate: undefined,
   supportEmail: "",
   supportPhone: "",
+  supportHotlineNote: "",
+  supportHotlineNoteSecondary: "",
+  storeAddress: "",
   facebook: "",
   instagram: "",
   tiktok: "",
   youtube: "",
+  zalo: "",
+  messenger: "",
+  promoBarText: "",
+  promoBarActive: true,
+  footerIntroHeading: "",
+  footerIntro: "",
+  footerCompanyName: "",
+  footerCompanyLegalText: "",
+  footerComplianceBadgesText: "",
+  footerNewsletterPlaceholder: "",
   loyalty: true,
   flashSale: true,
   review: true,
@@ -146,10 +172,23 @@ const mapConfigToFormValues = (config: BrandConfig): BrandConfigFormValues => ({
   taxRate: config.taxRate,
   supportEmail: config.supportEmail ?? "",
   supportPhone: config.supportPhone ?? "",
+  supportHotlineNote: config.supportHotlineNote ?? "",
+  supportHotlineNoteSecondary: config.supportHotlineNoteSecondary ?? "",
+  storeAddress: config.storeAddress ?? "",
   facebook: config.socialLinks?.facebook ?? "",
   instagram: config.socialLinks?.instagram ?? "",
   tiktok: config.socialLinks?.tiktok ?? "",
   youtube: config.socialLinks?.youtube ?? "",
+  zalo: config.socialLinks?.zalo ?? "",
+  messenger: config.socialLinks?.messenger ?? "",
+  promoBarText: config.storefront?.promoBar?.text ?? "",
+  promoBarActive: config.storefront?.promoBar?.isActive ?? true,
+  footerIntroHeading: config.storefront?.footer?.introHeading ?? "",
+  footerIntro: config.storefront?.footer?.intro ?? "",
+  footerCompanyName: config.storefront?.footer?.companyName ?? "",
+  footerCompanyLegalText: config.storefront?.footer?.companyLegalText ?? "",
+  footerComplianceBadgesText: (config.storefront?.footer?.complianceBadges ?? []).join("\n"),
+  footerNewsletterPlaceholder: config.storefront?.footer?.newsletterPlaceholder ?? "",
   loyalty: config.featureFlags.loyalty,
   flashSale: config.featureFlags.flashSale,
   review: config.featureFlags.review,
@@ -202,6 +241,12 @@ const mapJsonToShippingRules = (raw: string): BrandConfigShippingRule[] => {
   });
 };
 
+const splitLines = (value?: string): string[] =>
+  (value ?? "")
+    .split("\n")
+    .map((line) => line.trim())
+    .filter(Boolean);
+
 const mapFormToPayload = (values: BrandConfigFormValues): UpdateBrandConfigPayload => ({
   displayName: values.displayName.trim(),
   logo: {
@@ -216,11 +261,16 @@ const mapFormToPayload = (values: BrandConfigFormValues): UpdateBrandConfigPaylo
   taxRate: values.taxRate,
   supportEmail: toNullableString(values.supportEmail),
   supportPhone: toNullableString(values.supportPhone),
+  supportHotlineNote: toNullableString(values.supportHotlineNote),
+  supportHotlineNoteSecondary: toNullableString(values.supportHotlineNoteSecondary),
+  storeAddress: toNullableString(values.storeAddress),
   socialLinks: {
     facebook: toOptionalString(values.facebook),
     instagram: toOptionalString(values.instagram),
     tiktok: toOptionalString(values.tiktok),
     youtube: toOptionalString(values.youtube),
+    zalo: toOptionalString(values.zalo),
+    messenger: toOptionalString(values.messenger),
   },
   featureFlags: {
     loyalty: values.loyalty,
@@ -231,6 +281,18 @@ const mapFormToPayload = (values: BrandConfigFormValues): UpdateBrandConfigPaylo
   paymentGateways: mapJsonToPaymentGateways(values.paymentGatewaysJson),
   shippingRules: mapJsonToShippingRules(values.shippingRulesJson),
   storefront: {
+    promoBar: {
+      text: toOptionalString(values.promoBarText),
+      isActive: values.promoBarActive,
+    },
+    footer: {
+      introHeading: toOptionalString(values.footerIntroHeading),
+      intro: toOptionalString(values.footerIntro),
+      companyName: toOptionalString(values.footerCompanyName),
+      companyLegalText: toOptionalString(values.footerCompanyLegalText),
+      complianceBadges: splitLines(values.footerComplianceBadgesText),
+      newsletterPlaceholder: toOptionalString(values.footerNewsletterPlaceholder),
+    },
     home: parseJsonObject(values.storefrontHomeJson, "Nội dung Home Storefront"),
   },
 });
@@ -435,10 +497,26 @@ export function AdminBrandConfigPage() {
             <Col xs={24} lg={12}>
               <Card size="small" title="Liên hệ hỗ trợ">
                 <Form.Item label="Email hỗ trợ" name="supportEmail">
-                  <Input placeholder="support@tenmien.com" />
+                  <Input placeholder="support@rioshop.vn" />
                 </Form.Item>
-                <Form.Item label="Số điện thoại hỗ trợ" name="supportPhone" className="mb-0!">
-                  <Input placeholder="1900xxxx" />
+                <Form.Item label="Hotline" name="supportPhone">
+                  <Input placeholder="1900 8888" />
+                </Form.Item>
+                <Form.Item
+                  label="Mô tả phím 1 (tùy chọn)"
+                  name="supportHotlineNote"
+                  tooltip="Hiện ở footer dưới hotline. Ví dụ: Bấm phím 1 để được tư vấn mua hàng"
+                >
+                  <Input placeholder="Bấm phím 1 để được tư vấn mua hàng" />
+                </Form.Item>
+                <Form.Item label="Mô tả phím 2 (tùy chọn)" name="supportHotlineNoteSecondary">
+                  <Input placeholder="Bấm phím 2 để góp ý, khiếu nại" />
+                </Form.Item>
+                <Form.Item label="Địa chỉ cửa hàng" name="storeAddress" className="mb-0!">
+                  <Input.TextArea
+                    rows={2}
+                    placeholder="VD: Đường An Định - Phường Việt Hòa - TP Hải Phòng"
+                  />
                 </Form.Item>
               </Card>
             </Col>
@@ -454,8 +532,69 @@ export function AdminBrandConfigPage() {
                 <Form.Item label="TikTok" name="tiktok">
                   <Input placeholder="https://tiktok.com/@..." />
                 </Form.Item>
-                <Form.Item label="YouTube" name="youtube" className="mb-0!">
+                <Form.Item label="YouTube" name="youtube">
                   <Input placeholder="https://youtube.com/@..." />
+                </Form.Item>
+                <Form.Item label="Zalo" name="zalo">
+                  <Input placeholder="https://zalo.me/..." />
+                </Form.Item>
+                <Form.Item label="Messenger" name="messenger" className="mb-0!">
+                  <Input placeholder="https://m.me/..." />
+                </Form.Item>
+              </Card>
+            </Col>
+          </Row>
+
+          <Row gutter={16} className="mt-4">
+            <Col xs={24} lg={12}>
+              <Card size="small" title="Dải băng khuyến mại (trên cùng trang)">
+                <Form.Item
+                  label="Nội dung"
+                  name="promoBarText"
+                  tooltip="Hiện ở dải băng trên cùng đầu trang. Để trống nếu không muốn hiện."
+                >
+                  <Input placeholder="VD: FLASH SALE 10H - 14H | Giảm đến 50%" />
+                </Form.Item>
+                <Form.Item
+                  label="Bật hiển thị"
+                  name="promoBarActive"
+                  valuePropName="checked"
+                  className="mb-0!"
+                >
+                  <Switch checkedChildren="Bật" unCheckedChildren="Tắt" />
+                </Form.Item>
+              </Card>
+            </Col>
+
+            <Col xs={24} lg={12}>
+              <Card size="small" title="Footer — Giới thiệu & quy định">
+                <Form.Item label="Heading lời chào" name="footerIntroHeading">
+                  <Input placeholder="VD: RIOSHOP XIN CHÀO 💖" />
+                </Form.Item>
+                <Form.Item label="Lời chào" name="footerIntro">
+                  <Input.TextArea rows={2} placeholder="VD: Chúng tôi luôn quý trọng..." />
+                </Form.Item>
+                <Form.Item label="Placeholder ô đăng ký email" name="footerNewsletterPlaceholder">
+                  <Input placeholder="Nhập địa chỉ email của bạn" />
+                </Form.Item>
+                <Form.Item label="Tên công ty (dòng dưới cùng)" name="footerCompanyName">
+                  <Input placeholder="@ CÔNG TY CỔ PHẦN THỜI TRANG RIOSHOP" />
+                </Form.Item>
+                <Form.Item label="Thông tin pháp lý" name="footerCompanyLegalText">
+                  <Input.TextArea
+                    rows={3}
+                    placeholder="Mã số doanh nghiệp: 0801206940..."
+                  />
+                </Form.Item>
+                <Form.Item
+                  label="Huy hiệu pháp lý (mỗi dòng 1 huy hiệu)"
+                  name="footerComplianceBadgesText"
+                  className="mb-0!"
+                >
+                  <Input.TextArea
+                    rows={3}
+                    placeholder={"DMCA PROTECTED\nĐÃ THÔNG BÁO BỘ CÔNG THƯƠNG"}
+                  />
                 </Form.Item>
               </Card>
             </Col>

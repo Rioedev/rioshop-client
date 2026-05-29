@@ -80,7 +80,7 @@ export type FlashDeal = {
   salePrice: number;
   basePrice: number;
   soldPercent: number;
-  timeLeft: string;
+  endsAt: string;
 };
 
 export type ResolvedHomeContent = {
@@ -447,8 +447,8 @@ export const getProductCollections = (product: ProductRuntime) => {
   return results;
 };
 
-export const formatTimeLeft = (endsAt: string) => {
-  const diff = new Date(endsAt).getTime() - Date.now();
+export const formatTimeLeft = (endsAt: string, now = Date.now()) => {
+  const diff = new Date(endsAt).getTime() - now;
 
   if (!Number.isFinite(diff) || diff <= 0) {
     return "00:00:00";

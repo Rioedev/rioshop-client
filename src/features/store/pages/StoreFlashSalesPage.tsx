@@ -11,7 +11,7 @@ import {
   storeButtonClassNames,
 } from "../components/StorePageChrome";
 import { flashSaleService, type FlashSale } from "../../../services/flashSaleService";
-import { formatStoreCurrency } from "../utils/storeFormatting";
+import { STORE_PRODUCT_PLACEHOLDER, formatStoreCurrency } from "../utils/storeFormatting";
 
 const formatDateTime = (value?: string) => {
   if (!value) {
@@ -49,7 +49,7 @@ const getSalePhase = (sale: FlashSale) => {
   return { label: "Đang diễn ra", color: "green" as const };
 };
 
-const fallbackBanner = "https://dummyimage.com/1280x520/e2e8f0/0f172a&text=Flash+Sale";
+const fallbackBanner = STORE_PRODUCT_PLACEHOLDER;
 
 export function StoreFlashSalesPage() {
   const [sales, setSales] = useState<FlashSale[]>([]);

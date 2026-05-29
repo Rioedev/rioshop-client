@@ -77,6 +77,16 @@ export function StoreProductMainSection({
       ? Math.round(((selectedVariantBasePrice - selectedVariantPrice) / selectedVariantBasePrice) * 100)
       : 0;
 
+  const hasColorOptions = colorOptions.length > 0;
+  const hasSizeOptions = sizeOptions.length > 0;
+  const hasNoVariants = !hasColorOptions && !hasSizeOptions;
+  const isPurchaseBlocked = hasNoVariants || isSelectedVariantOutOfStock;
+  const primaryButtonLabel = hasNoVariants
+    ? "Chưa có biến thể"
+    : isSelectedVariantOutOfStock
+      ? "Hết hàng"
+      : "Thêm vào giỏ";
+
   return (
     <section className="pdpv2-main-wrap">
       <div className="pdpv2-gallery-panel">
@@ -160,61 +170,106 @@ export function StoreProductMainSection({
           </div>
         </div>
 
-        <div className="mt-5">
-          <p className="mb-2 text-sm font-semibold uppercase tracking-[0.12em] text-slate-500">Màu sắc</p>
-          <div className="flex flex-wrap gap-2">
-            {colorOptions.map((color) => (
-              <button
-                key={color.name}
-                type="button"
-                onClick={() => onSelectColor(color.name)}
-                className={`pdpv2-color-pill ${selectedColor === color.name ? "is-active" : ""}`}
-              >
-                <span className="pdpv2-color-dot" style={{ background: color.hex || DEFAULT_COLOR_HEX }} />
-                {color.name}
-              </button>
-            ))}
+        {hasNoVariants ? (
+          <div className="mt-5 rounded-2xl border border-[#e4eaf2] bg-[#f6f9fd] px-4 py-3 text-sm text-slate-600">
+            Sản phẩm này hiện chưa có biến thể đang bán.
           </div>
-        </div>
+        ) : null}
 
-        <div className="mt-5">
-          <p className="mb-2 text-sm font-semibold uppercase tracking-[0.12em] text-slate-500">Kích thước</p>
-          <div className="flex flex-wrap gap-2">
-            {sizeOptions.map((size) => (
-              <button
-                key={size}
-                type="button"
-                onClick={() => onSelectSize(size)}
-                className={`option-pill ${selectedSize === size ? "is-active" : ""}`}
-              >
-                {size}
-              </button>
-            ))}
+        {hasColorOptions ? (
+          <div className="mt-5">
+            <p className="mb-3 text-sm font-semibold text-slate-700">
+              Màu sắc: <span className="font-bold text-slate-900">{selectedColor || colorOptions[0]?.name}</span>
+            </p>
+            <div className="flex flex-wrap gap-3">
+              {colorOptions.map((color) => (
+                <button
+                  key={color.name}
+                  type="button"
+                  onClick={() => onSelectColor(color.name)}
+                  className={`pdpv2-color-swatch ${selectedColor === color.name ? "is-active" : ""}`}
+                  aria-label={color.name}
+                  title={color.name}
+                >
+                  <span
+                    className="pdpv2-color-swatch__fill"
+                    style={{ background: color.hex || DEFAULT_COLOR_HEX }}
+                  />
+                </button>
+              ))}
+            </div>
           </div>
-        </div>
+        ) : null}
 
-        <div className="mt-5 flex flex-wrap items-center gap-3">
-          <p className="m-0 text-sm font-semibold uppercase tracking-[0.12em] text-slate-500">Số lượng</p>
-          <InputNumber
-            min={1}
-            max={selectedVariantStock}
-            value={quantity}
-            onChange={onQuantityChange}
-            onKeyDown={onQuantityKeyDown}
-            onPaste={onQuantityPaste}
-            className="w-28! rounded-xl!"
-          />
-        </div>
+        {hasSizeOptions ? (
+          <div className="mt-5">
+            <p className="mb-3 text-sm font-semibold text-slate-700">
+              Kích thước: <span className="font-bold text-slate-900">{selectedSize || sizeOptions[0]}</span>
+            </p>
+            <div className="flex flex-wrap gap-2">
+              {sizeOptions.map((size) => (
+                <button
+                  key={size}
+                  type="button"
+                  onClick={() => onSelectSize(size)}
+                  className={`pdpv2-size-pill ${selectedSize === size ? "is-active" : ""}`}
+                >
+                  {size}
+                </button>
+              ))}
+            </div>
+          </div>
+        ) : null}
+
+        {hasNoVariants ? null : (
+          <div className="mt-6 flex flex-wrap items-center gap-4">
+            <p className="m-0 text-sm font-semibold text-slate-700">Số lượng</p>
+            <div className="pdpv2-quantity-group" role="group" aria-label="Chọn số lượng">
+              <button
+                type="button"
+                className="pdpv2-quantity-btn"
+                onClick={() => onQuantityChange(Math.max(1, quantity - 1))}
+                disabled={quantity <= 1}
+                aria-label="Giảm số lượng"
+              >
+                −
+              </button>
+              <InputNumber
+                min={1}
+                max={selectedVariantStock}
+                value={quantity}
+                onChange={onQuantityChange}
+                onKeyDown={onQuantityKeyDown}
+                onPaste={onQuantityPaste}
+                controls={false}
+                bordered={false}
+                className="pdpv2-quantity-input"
+              />
+              <button
+                type="button"
+                className="pdpv2-quantity-btn"
+                onClick={() => onQuantityChange(Math.min(selectedVariantStock, quantity + 1))}
+                disabled={quantity >= selectedVariantStock}
+                aria-label="Tăng số lượng"
+              >
+                +
+              </button>
+            </div>
+            <p className="m-0 text-xs text-slate-500">
+              Còn <strong className="text-slate-700">{selectedVariantStock}</strong> sản phẩm
+            </p>
+          </div>
+        )}
 
         <div className="mt-6 flex flex-wrap gap-3">
           <Button
             type="primary"
             size="large"
             className="h-11! rounded-full! bg-slate-900! px-8! font-bold! shadow-none!"
-            disabled={isSelectedVariantOutOfStock}
+            disabled={isPurchaseBlocked}
             onClick={onAddToCart}
           >
-            {isSelectedVariantOutOfStock ? "Hết hàng" : "Thêm vào giỏ"}
+            {primaryButtonLabel}
           </Button>
           <Button
             size="large"
@@ -224,11 +279,13 @@ export function StoreProductMainSection({
           >
             {isInWishlist ? "Đã lưu" : "Yêu thích"}
           </Button>
-          <Link to="/cart">
-            <Button size="large" className="h-11! rounded-full! border-slate-300! px-7! font-semibold!">
-              Mua ngay
-            </Button>
-          </Link>
+          {hasNoVariants ? null : (
+            <Link to="/cart">
+              <Button size="large" className="h-11! rounded-full! border-slate-300! px-7! font-semibold!">
+                Mua ngay
+              </Button>
+            </Link>
+          )}
         </div>
 
         <div className="product-note-list">

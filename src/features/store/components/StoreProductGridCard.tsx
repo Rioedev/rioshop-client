@@ -94,7 +94,7 @@ export function StoreProductGridCard({
           </div>
         ) : null}
 
-        <div className="store-home-v3-price-row">
+        <div className={`store-home-v3-price-row ${originalPrice ? "is-discount" : ""}`}>
           <strong>{price}</strong>
           {originalPrice ? <span>{originalPrice}</span> : null}
         </div>

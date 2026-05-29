@@ -11,7 +11,8 @@ export type AdminMenuIcon =
   | "line-chart"
   | "read"
   | "bg-colors"
-  | "user-switch";
+  | "user-switch"
+  | "safety";
 
 export type AdminRouteSegment =
   | "dashboard"
@@ -27,6 +28,7 @@ export type AdminRouteSegment =
   | "analytics-events"
   | "blogs"
   | "brand-config"
+  | "policies"
   | "admin-accounts"
   | "profile";
 
@@ -134,6 +136,13 @@ export const ADMIN_ROUTE_META: AdminRouteMeta[] = [
     title: "Cấu hình thương hiệu",
     menuLabel: "Cấu hình thương hiệu",
     menuIcon: "bg-colors",
+    showInMenu: true,
+  },
+  {
+    segment: "policies",
+    title: "Chính sách cửa hàng",
+    menuLabel: "Chính sách",
+    menuIcon: "safety",
     showInMenu: true,
   },
   {

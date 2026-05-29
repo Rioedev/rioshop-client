@@ -41,7 +41,7 @@ import {
 import { StoreHomeHeroSection, type HomeHeroSlide } from "./StoreHomeHeroSection";
 import { StoreHomeProductCard } from "./StoreHomeProductCard";
 
-const HOME_NOW_TICK_MS = 60_000;
+const HOME_NOW_TICK_MS = 1000;
 const HOME_INITIAL_NOW = Date.now();
 
 export function StoreHomePage() {
@@ -220,8 +220,6 @@ export function StoreHomePage() {
         const currentSale = flashSaleResult.value.docs[0];
 
         if (currentSale) {
-          const timeLeft = formatTimeLeft(currentSale.endsAt);
-
           currentSale.slots.slice(0, 3).forEach((slot, index) => {
             const product = productById.get(slot.productId);
             const dealName = slot.product?.name ?? product?.name ?? `Ưu đãi #${index + 1}`;
@@ -249,28 +247,13 @@ export function StoreHomePage() {
               salePrice: slot.salePrice,
               basePrice,
               soldPercent,
-              timeLeft,
+              endsAt: currentSale.endsAt,
             });
           });
         }
       }
 
-      if (mappedFlashDeals.length === 0) {
-        highlightedProducts
-          .filter((item) => typeof item.originalPrice === "number" && item.originalPrice > item.price)
-          .slice(0, 3)
-          .forEach((item, index) => {
-            mappedFlashDeals.push({
-              id: `fallback-${item.id}`,
-              title: item.name,
-              slug: item.slug,
-              salePrice: item.price,
-              basePrice: item.originalPrice ?? item.price,
-              soldPercent: Math.min(95, 58 + index * 12),
-              timeLeft: "23:59:59",
-            });
-          });
-      }
+      // Bỏ fallback fake flash sale: chỉ hiển thị khi admin có chương trình thật đang chạy.
 
       setFeaturedProducts(highlightedProducts);
       setCatalogPool(mappedCatalogPool.length > 0 ? mappedCatalogPool : highlightedProducts);
@@ -290,11 +273,7 @@ export function StoreHomePage() {
     };
   }, [isAuthenticated]);
 
-  const secondarySlug = useMemo(() => featuredProducts[1]?.slug ?? featuredProducts[0]?.slug ?? "", [featuredProducts]);
   const productPool = useMemo(() => (catalogPool.length > 0 ? catalogPool : featuredProducts), [catalogPool, featuredProducts]);
-  const secondaryCtaLink = secondarySlug ? `/products/${secondarySlug}` : "/products";
-  const bestsellingProducts = productPool.slice(4, 8).length > 0 ? productPool.slice(4, 8) : productPool.slice(0, 4);
-  const curatedProducts = productPool.slice(8, 12).length > 0 ? productPool.slice(8, 12) : productPool.slice(0, 4);
   const sortedCollections = useMemo(() => {
     return [...homeCollections].sort((a, b) => {
       const aTime = new Date(a.createdAt ?? a.updatedAt ?? 0).getTime();
@@ -717,9 +696,6 @@ export function StoreHomePage() {
   return (
     <div className="store-home-v3 space-y-8 md:space-y-12">
       {contextHolder}
-      {isLoading ? (
-        <div className="store-home-v3-notice">{homeContent.labels.loadingHome}</div>
-      ) : null}
 
       <StoreHomeHeroSection
         heroSlides={heroSlides}
@@ -792,7 +768,7 @@ export function StoreHomePage() {
                 {flashDeals[0]?.basePrice ? <span>{formatCurrency(flashDeals[0].basePrice)}</span> : null}
               </div>
               <div className="store-home-v3-flash-time">
-                <ClockCircleOutlined /> {flashDeals[0]?.timeLeft ?? "00:00:00"}
+                <ClockCircleOutlined /> {flashDeals[0]?.endsAt ? formatTimeLeft(flashDeals[0].endsAt, nowTimestamp) : "00:00:00"}
               </div>
               <Progress
                 percent={flashDeals[0]?.soldPercent ?? 0}
@@ -809,7 +785,7 @@ export function StoreHomePage() {
                     <span>
                       <FireOutlined /> {homeContent.labels.flashDeal}
                     </span>
-                    <small>{deal.timeLeft}</small>
+                    <small>{formatTimeLeft(deal.endsAt, nowTimestamp)}</small>
                   </div>
                   <h3>{deal.title}</h3>
                   <div className="store-home-v3-flash-card-price">
@@ -820,51 +796,6 @@ export function StoreHomePage() {
                 </Link>
               ))}
             </div>
-          </div>
-        </section>
-      ) : null}
-
-      {bestsellingProducts.length > 0 ? (
-        <section className="store-home-v3-section">
-          <div className="store-home-v3-section-head">
-            <div>
-              <p>{homeContent.sections.productsMiniTitle}</p>
-              <h2>{homeContent.sections.productsTitle}</h2>
-            </div>
-            <Link to="/products" className="store-home-v3-text-link">
-              {homeContent.sections.productsLinkLabel}
-            </Link>
-          </div>
-
-          <div className="store-home-v3-product-grid">
-            {bestsellingProducts.map((product) => (
-              <div key={`best-${product.id}`}>
-                <StoreHomeProductCard product={product} />
-              </div>
-            ))}
-          </div>
-        </section>
-      ) : null}
-
-      {curatedProducts.length > 0 ? (
-        <section className="store-home-v3-curated">
-          <div className="store-home-v3-curated-copy">
-            <p className="store-home-v3-kicker">{homeContent.sections.curatedKicker}</p>
-            <h2>{homeContent.sections.curatedTitle}</h2>
-            <p>{homeContent.sections.curatedDescription}</p>
-            <Link to={secondaryCtaLink}>
-              <Button className="store-home-v3-secondary-ghost h-11! rounded-full! px-7! font-bold!">
-                {homeContent.sections.curatedLinkLabel}
-              </Button>
-            </Link>
-          </div>
-
-          <div className="store-home-v3-product-grid">
-            {curatedProducts.map((product) => (
-              <div key={`curated-${product.id}`}>
-                <StoreHomeProductCard product={product} />
-              </div>
-            ))}
           </div>
         </section>
       ) : null}

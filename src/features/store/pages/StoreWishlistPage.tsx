@@ -1,5 +1,5 @@
 import { Button, message } from "antd";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { StoreProductGridCard } from "../components/StoreProductGridCard";
 import {
@@ -13,103 +13,24 @@ import {
 import {
   formatStoreCurrency,
   resolveStoreImageUrl,
-  resolveStoreProductThumbnail,
 } from "../utils/storeFormatting";
+import { toStoreColorSwatches, type StoreColorSwatch } from "../utils/productSwatches";
 import { cartService, toCartCouponMeta, toCartStoreItems } from "../../../services/cartService";
-import { productService, type Product } from "../../../services/productService";
+import { productService } from "../../../services/productService";
 import { toWishlistStoreItems, wishlistService } from "../../../services/wishlistService";
 import { useAuthStore } from "../../../stores/authStore";
 import { useCartStore } from "../../../stores/cartStore";
 import { useWishlistStore } from "../../../stores/wishlistStore";
 import { getErrorMessage } from "../../../utils/errorMessage";
 
-type WishlistCardColorSwatch = {
-  key: string;
-  label: string;
-  hex?: string;
-  imageUrl?: string;
-};
-
-const normalizeColorHex = (value?: string) => {
-  const hex = (value ?? "").trim();
-  return /^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/.test(hex) ? hex : "";
-};
-
-const normalizeColorRef = (value?: string) => (value ?? "").trim().toLowerCase();
-
-const findMediaColorImage = (product: Product, colorName: string, colorHex: string) => {
-  const expectedRefs = new Set<string>();
-  const normalizedName = normalizeColorRef(colorName);
-  const normalizedHex = normalizeColorRef(colorHex);
-
-  if (normalizedName) {
-    expectedRefs.add(normalizedName);
-  }
-
-  if (normalizedHex) {
-    expectedRefs.add(normalizedHex);
-    expectedRefs.add(normalizedHex.replace("#", ""));
-  }
-
-  const match = (product.media ?? []).find((mediaItem) => {
-    if (!mediaItem?.url || mediaItem.type !== "image") {
-      return false;
-    }
-
-    const mediaRef = normalizeColorRef(mediaItem.colorRef);
-    if (!mediaRef) {
-      return false;
-    }
-
-    return expectedRefs.has(mediaRef);
-  });
-
-  return resolveStoreImageUrl(match?.url);
-};
-
-const toWishlistCardColorSwatches = (
-  product: Product,
-  fallbackImage?: string,
-): WishlistCardColorSwatch[] => {
-  const swatchMap = new Map<string, WishlistCardColorSwatch>();
-  const resolvedFallbackImage = resolveStoreProductThumbnail(product) ?? fallbackImage;
-
-  (product.variants ?? []).forEach((variant) => {
-    if (variant.isActive === false) {
-      return;
-    }
-
-    const label = (variant.color?.name ?? "").trim();
-    const hex = normalizeColorHex(variant.color?.hex);
-    const normalizedKey = (label || hex).toLowerCase();
-
-    if (!normalizedKey) {
-      return;
-    }
-
-    const imageUrl =
-      resolveStoreImageUrl(variant.color?.imageUrl) ??
-      resolveStoreImageUrl(variant.images?.[0]) ??
-      findMediaColorImage(product, label, hex) ??
-      resolvedFallbackImage;
-
-    const existing = swatchMap.get(normalizedKey);
-    if (existing) {
-      if (!existing.imageUrl && imageUrl) {
-        swatchMap.set(normalizedKey, { ...existing, imageUrl });
-      }
-      return;
-    }
-
-    swatchMap.set(normalizedKey, {
-      key: normalizedKey,
-      label: label || hex || "Mặc định",
-      hex: hex || undefined,
-      imageUrl,
-    });
-  });
-
-  return Array.from(swatchMap.values()).slice(0, 5);
+const resolveSwatchImageUrls = (
+  swatches?: StoreColorSwatch[],
+): StoreColorSwatch[] | undefined => {
+  if (!swatches?.length) return undefined;
+  return swatches.map((swatch) => ({
+    ...swatch,
+    imageUrl: swatch.imageUrl ? resolveStoreImageUrl(swatch.imageUrl) : undefined,
+  }));
 };
 
 export function StoreWishlistPage() {
@@ -124,8 +45,10 @@ export function StoreWishlistPage() {
   const setCartItems = useCartStore((state) => state.setItems);
   const [processingProductId, setProcessingProductId] = useState<string | null>(null);
   const [clearing, setClearing] = useState(false);
-  const [wishlistColorSwatches, setWishlistColorSwatches] = useState<
-    Record<string, WishlistCardColorSwatch[]>
+  // Fallback cache cho item legacy (đã thêm vào wishlist từ trước khi tính năng
+  // lưu colorSwatches có mặt). Các item mới đã có sẵn swatches trong store.
+  const [legacySwatchCache, setLegacySwatchCache] = useState<
+    Record<string, StoreColorSwatch[]>
   >({});
 
   useEffect(() => {
@@ -156,50 +79,50 @@ export function StoreWishlistPage() {
   useEffect(() => {
     let active = true;
 
-    const syncWishlistSwatches = async () => {
-      if (items.length === 0) {
-        setWishlistColorSwatches({});
-        return;
-      }
+    // Chỉ fetch product cho các item CHƯA có colorSwatches (data cũ).
+    const legacyItems = items.filter(
+      (item) => !item.colorSwatches?.length && item.slug?.trim(),
+    );
+    const validIds = new Set(items.map((item) => item.productId));
 
-      const fetchableItems = items.filter((item) => item.slug?.trim());
-      if (fetchableItems.length === 0) {
-        setWishlistColorSwatches({});
-        return;
-      }
-
-      const results = await Promise.allSettled(
-        fetchableItems.map(async (item) => {
-          const product = await productService.getProductBySlug(item.slug);
-          return {
-            productId: item.productId,
-            swatches: toWishlistCardColorSwatches(product, item.imageUrl),
-          };
-        }),
-      );
-
-      if (!active) {
-        return;
-      }
-
-      const nextMap: Record<string, WishlistCardColorSwatch[]> = {};
-      results.forEach((result) => {
-        if (result.status !== "fulfilled") {
-          return;
-        }
-
-        nextMap[result.value.productId] = result.value.swatches;
+    setLegacySwatchCache((prev) => {
+      const pruned: Record<string, StoreColorSwatch[]> = {};
+      Object.entries(prev).forEach(([productId, swatches]) => {
+        if (validIds.has(productId)) pruned[productId] = swatches;
       });
+      return pruned;
+    });
 
-      setWishlistColorSwatches(nextMap);
-    };
-
-    void syncWishlistSwatches();
+    legacyItems.forEach((item) => {
+      void productService
+        .getProductBySlug(item.slug)
+        .then((product) => {
+          if (!active) return;
+          const swatches = toStoreColorSwatches(product, item.imageUrl);
+          setLegacySwatchCache((prev) => ({ ...prev, [item.productId]: swatches }));
+        })
+        .catch(() => {
+          // bỏ qua lỗi của từng sản phẩm
+        });
+    });
 
     return () => {
       active = false;
     };
   }, [items]);
+
+  // Resolve URL ngay tại điểm hiển thị (swatches lưu trong DB là raw path)
+  const swatchesByProductId = useMemo(() => {
+    const map: Record<string, StoreColorSwatch[]> = {};
+    items.forEach((item) => {
+      const source = item.colorSwatches?.length
+        ? item.colorSwatches
+        : legacySwatchCache[item.productId];
+      const resolved = resolveSwatchImageUrls(source);
+      if (resolved) map[item.productId] = resolved;
+    });
+    return map;
+  }, [items, legacySwatchCache]);
 
   const removeWishlistItem = async (productId: string) => {
     if (!isAuthenticated) {
@@ -356,7 +279,7 @@ export function StoreWishlistPage() {
               imageUrl={item.imageUrl}
               name={item.name}
               price={formatStoreCurrency(item.price)}
-              colorSwatches={wishlistColorSwatches[item.productId]}
+              colorSwatches={swatchesByProductId[item.productId]}
               footer={
                 <>
                   <Button

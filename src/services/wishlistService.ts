@@ -1,6 +1,13 @@
 import { apiClient } from "./apiClient";
 import { type ApiResponse } from "./apiTypes";
-import type { WishlistItem } from "../stores/wishlistStore";
+import type { WishlistItem, WishlistItemColorSwatch } from "../stores/wishlistStore";
+
+type WishlistApiColorSwatch = {
+  key?: string;
+  label?: string;
+  hex?: string;
+  imageUrl?: string;
+};
 
 type WishlistApiItem = {
   productId?: string | { _id?: string };
@@ -9,6 +16,7 @@ type WishlistApiItem = {
   name?: string;
   image?: string;
   price?: number;
+  colorSwatches?: WishlistApiColorSwatch[];
   addedAt?: string;
 };
 
@@ -24,10 +32,32 @@ export type WishlistAddPayload = {
   name: string;
   image: string;
   price: number;
+  colorSwatches?: WishlistItemColorSwatch[];
 };
 
 const toProductId = (value: WishlistApiItem["productId"]) =>
   typeof value === "string" ? value : value?._id || "";
+
+const normalizeColorSwatches = (
+  swatches?: WishlistApiColorSwatch[],
+): WishlistItemColorSwatch[] | undefined => {
+  if (!Array.isArray(swatches) || swatches.length === 0) {
+    return undefined;
+  }
+  const cleaned = swatches
+    .map((swatch) => {
+      const key = swatch?.key?.toString().trim() || "";
+      if (!key) return null;
+      return {
+        key,
+        label: swatch?.label?.toString().trim() || "",
+        hex: swatch?.hex?.toString().trim() || undefined,
+        imageUrl: swatch?.imageUrl?.toString().trim() || undefined,
+      };
+    })
+    .filter(Boolean) as WishlistItemColorSwatch[];
+  return cleaned.length > 0 ? cleaned : undefined;
+};
 
 const normalizeItem = (item: WishlistApiItem): WishlistItem | null => {
   const productId = toProductId(item.productId);
@@ -41,6 +71,7 @@ const normalizeItem = (item: WishlistApiItem): WishlistItem | null => {
     name: item.name?.trim() || "San pham",
     price: Math.max(0, Number(item.price || 0)),
     imageUrl: item.image?.trim() || undefined,
+    colorSwatches: normalizeColorSwatches(item.colorSwatches),
   };
 };
 

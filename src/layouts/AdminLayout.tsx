@@ -10,6 +10,7 @@
   LogoutOutlined,
   MoonOutlined,
   ReadOutlined,
+  SafetyCertificateOutlined,
   SettingOutlined,
   SunOutlined,
   ShoppingCartOutlined,
@@ -57,6 +58,7 @@ const ADMIN_MENU_ICON_MAP: Record<AdminMenuIcon, ReactNode> = {
   read: <ReadOutlined />,
   "bg-colors": <BgColorsOutlined />,
   "user-switch": <UserSwitchOutlined />,
+  safety: <SafetyCertificateOutlined />,
 };
 
 const toAdminMenuItem = (route: AdminRouteMeta): ItemType => ({
