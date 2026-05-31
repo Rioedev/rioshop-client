@@ -99,28 +99,38 @@ export function AdminPoliciesPage() {
 
   const openCreate = () => {
     setEditingId(null);
-    form.resetFields();
-    form.setFieldsValue({
-      isActive: true,
-      position: items.length,
-      iconKey: activeKind === "strip" ? "RetweetOutlined" : undefined,
-    });
     setModalOpen(true);
   };
 
   const openEdit = (policy: Policy) => {
     setEditingId(policy._id);
-    form.setFieldsValue({
-      title: policy.title,
-      slug: policy.slug,
-      iconKey: policy.iconKey || undefined,
-      summary: policy.summary,
-      content: policy.content,
-      position: policy.position,
-      isActive: policy.isActive,
-    });
     setModalOpen(true);
   };
+
+  useEffect(() => {
+    if (!modalOpen) return;
+    if (editingId) {
+      const editing = items.find((item) => item._id === editingId);
+      if (editing) {
+        form.setFieldsValue({
+          title: editing.title,
+          slug: editing.slug,
+          iconKey: editing.iconKey || undefined,
+          summary: editing.summary,
+          content: editing.content,
+          position: editing.position,
+          isActive: editing.isActive,
+        });
+      }
+    } else {
+      form.resetFields();
+      form.setFieldsValue({
+        isActive: true,
+        position: items.length,
+        iconKey: activeKind === "strip" ? "RetweetOutlined" : undefined,
+      });
+    }
+  }, [modalOpen, editingId, items, activeKind, form]);
 
   const onSubmit = async () => {
     let values: PolicyFormValues;
@@ -297,9 +307,9 @@ export function AdminPoliciesPage() {
         cancelText="Hủy"
         confirmLoading={submitting}
         width={activeKind === "page" ? 880 : 560}
-        destroyOnClose
+        forceRender
       >
-        <Form form={form} layout="vertical" preserve={false}>
+        <Form form={form} layout="vertical">
           <Form.Item
             name="title"
             label={activeKind === "strip" ? "Nội dung dải băng" : "Tiêu đề trang"}
@@ -316,23 +326,32 @@ export function AdminPoliciesPage() {
           </Form.Item>
 
           {activeKind === "strip" ? (
-            <Form.Item
-              name="iconKey"
-              label="Icon"
-              rules={[{ required: true, message: "Chọn icon" }]}
-            >
-              <Select
-                options={ICON_OPTIONS.map((item) => ({
-                  value: item.key,
-                  label: (
-                    <Space>
-                      <span style={{ color: "#0f4fa8" }}>{item.node}</span>
-                      <span>{item.label}</span>
-                    </Space>
-                  ),
-                }))}
-              />
-            </Form.Item>
+            <>
+              <Form.Item
+                name="iconKey"
+                label="Icon"
+                rules={[{ required: true, message: "Chọn icon" }]}
+              >
+                <Select
+                  options={ICON_OPTIONS.map((item) => ({
+                    value: item.key,
+                    label: (
+                      <Space>
+                        <span style={{ color: "#0f4fa8" }}>{item.node}</span>
+                        <span>{item.label}</span>
+                      </Space>
+                    ),
+                  }))}
+                />
+              </Form.Item>
+              <Form.Item
+                name="summary"
+                label="Mô tả ngắn (tooltip / dòng phụ)"
+                extra="Tùy chọn — hiển thị khi hover hoặc dòng phụ phía dưới."
+              >
+                <Input.TextArea rows={2} maxLength={160} showCount />
+              </Form.Item>
+            </>
           ) : (
             <>
               <Form.Item

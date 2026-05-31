@@ -76,7 +76,7 @@ export type ProductFormValues = {
 export const STATUS_LABELS: Record<ProductStatus, string> = {
   draft: "Nháp",
   active: "Đang bán",
-  archived: "Lưu trữ",
+  archived: "Ngừng bán",
   out_of_stock: "Hết hàng",
 };
 
@@ -91,15 +91,17 @@ export const STATUS_FILTER_OPTIONS: { value: ProductStatusFilter; label: string 
   { value: "all", label: "Tất cả trạng thái" },
   { value: "active", label: "Đang bán" },
   { value: "draft", label: "Nháp" },
-  { value: "archived", label: "Lưu trữ" },
+  { value: "archived", label: "Ngừng bán" },
   { value: "out_of_stock", label: "Hết hàng" },
 ];
 
+// Admin chỉ chọn 3 trạng thái này — phản ánh ý đồ bán/không bán.
+// "Hết hàng" KHÔNG xuất hiện ở đây vì là tình trạng kho do hệ thống tự tính
+// (auto chuyển active ↔ out_of_stock theo inventorySummary.available, xem Product.pre("save")).
 export const PRODUCT_STATUS_OPTIONS: { value: ProductStatus; label: string }[] = [
   { value: "active", label: "Đang bán" },
   { value: "draft", label: "Nháp" },
-  { value: "out_of_stock", label: "Hết hàng" },
-  { value: "archived", label: "Lưu trữ" },
+  { value: "archived", label: "Ngừng bán" },
 ];
 
 export const VARIANT_SIZE_OPTIONS: { value: ProductVariantSize; label: ProductVariantSize }[] = [

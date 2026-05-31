@@ -589,7 +589,9 @@ export function AdminProductsPage() {
       collectionIds: (product.collections ?? []).map((item) => item._id),
       basePrice: product.pricing.basePrice,
       salePrice: product.pricing.salePrice,
-      status: product.status,
+      // out_of_stock là tình trạng kho tự động — map về "active" để admin
+      // chỉnh đúng ý đồ bán. Khi save, hook pre("save") sẽ lại tự flip nếu thực sự hết hàng.
+      status: product.status === "out_of_stock" ? "active" : product.status,
       description: product.description,
       shortDescription: product.shortDescription,
       gender: product.gender,
@@ -692,7 +694,11 @@ export function AdminProductsPage() {
           slug: item.slug,
           image: item.image,
         })),
-        pricing: { basePrice: values.basePrice, salePrice: values.salePrice, currency: "VND" },
+        pricing: {
+          basePrice: values.basePrice ?? 0,
+          salePrice: values.salePrice,
+          currency: "VND",
+        },
         status: values.status,
         gender: values.gender,
         ageGroup: values.ageGroup,
@@ -925,15 +931,77 @@ export function AdminProductsPage() {
                 <Form.Item label="Hiển thị" name="status" rules={REQUIRED_RULE} className="mb-3! mt-3!">
                   <Select options={PRODUCT_STATUS_OPTIONS} />
                 </Form.Item>
+                {editingProduct ? (
+                  <div className="mt-2 flex items-center gap-2">
+                    <Text type="secondary" className="text-xs">Tình trạng kho:</Text>
+                    {(editingProduct.inventorySummary?.available ?? 0) > 0 ? (
+                      <Tag color="green">Còn hàng ({editingProduct.inventorySummary?.available ?? 0} sp)</Tag>
+                    ) : (
+                      <Tag color="red">Hết hàng</Tag>
+                    )}
+                  </div>
+                ) : null}
               </div>
 
               <div className="rounded-2xl border border-slate-200 bg-white p-4">
                 <Text strong className="text-base">Giá bán</Text>
-                <Form.Item label="Giá gốc" name="basePrice" rules={REQUIRED_RULE} className="mb-3! mt-3!">
-                  <InputNumber min={0} className="w-full!" placeholder="0" />
+                <Form.Item
+                  label="Giá bán (khách trả)"
+                  name="salePrice"
+                  rules={REQUIRED_RULE}
+                  className="mb-3! mt-3!"
+                >
+                  <InputNumber
+                    min={0}
+                    precision={0}
+                    className="w-full!"
+                    placeholder="0"
+                    addonAfter="VND"
+                    formatter={(value) =>
+                      value === undefined || value === null || value === ""
+                        ? ""
+                        : `${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ",")
+                    }
+                    parser={(value) => {
+                      const digits = (value || "").toString().replace(/\D/g, "");
+                      return digits ? Number(digits) : 0;
+                    }}
+                  />
                 </Form.Item>
-                <Form.Item label="Giá bán" name="salePrice" rules={REQUIRED_RULE} className="mb-0!">
-                  <InputNumber min={0} className="w-full!" placeholder="0" />
+                <Form.Item
+                  label="Giá niêm yết (tùy chọn)"
+                  name="basePrice"
+                  className="mb-0!"
+                  rules={[
+                    ({ getFieldValue }) => ({
+                      validator(_, value) {
+                        if (value === undefined || value === null || value === "") return Promise.resolve();
+                        const base = Number(value);
+                        const sale = Number(getFieldValue("salePrice"));
+                        if (Number.isFinite(base) && base > 0 && Number.isFinite(sale) && base < sale) {
+                          return Promise.reject(new Error("Giá niêm yết phải lớn hơn hoặc bằng giá bán"));
+                        }
+                        return Promise.resolve();
+                      },
+                    }),
+                  ]}
+                >
+                  <InputNumber
+                    min={0}
+                    precision={0}
+                    className="w-full!"
+                    placeholder="0"
+                    addonAfter="VND"
+                    formatter={(value) =>
+                      value === undefined || value === null || value === ""
+                        ? ""
+                        : `${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ",")
+                    }
+                    parser={(value) => {
+                      const digits = (value || "").toString().replace(/\D/g, "");
+                      return digits ? Number(digits) : 0;
+                    }}
+                  />
                 </Form.Item>
               </div>
 

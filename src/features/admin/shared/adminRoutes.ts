@@ -29,6 +29,7 @@ export type AdminRouteSegment =
   | "blogs"
   | "brand-config"
   | "policies"
+  | "sales-report"
   | "admin-accounts"
   | "profile";
 
@@ -115,6 +116,13 @@ export const ADMIN_ROUTE_META: AdminRouteMeta[] = [
     title: "Khách hàng",
     menuLabel: "Khách hàng",
     menuIcon: "team",
+    showInMenu: true,
+  },
+  {
+    segment: "sales-report",
+    title: "Báo cáo bán hàng",
+    menuLabel: "Báo cáo bán hàng",
+    menuIcon: "line-chart",
     showInMenu: true,
   },
   {
