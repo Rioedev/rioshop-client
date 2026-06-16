@@ -5,6 +5,42 @@ type FlashSaleProductApi = {
   _id: string;
   name?: string;
   slug?: string;
+  brand?: string;
+  media?: Array<{
+    type?: string;
+    url?: string;
+    isPrimary?: boolean;
+    position?: number;
+  }>;
+  pricing?: {
+    regularPrice?: number;
+    compareAtPrice?: number;
+    salePrice?: number;
+    basePrice?: number;
+  };
+  category?: {
+    _id?: string;
+    name?: string;
+    slug?: string;
+  };
+  collections?: Array<{
+    _id?: string;
+    name?: string;
+    slug?: string;
+  }>;
+  variants?: Array<{
+    sku?: string;
+    size?: string;
+    sizeLabel?: string;
+    isActive?: boolean;
+    images?: string[];
+    color?: {
+      name?: string;
+      hex?: string;
+      imageUrl?: string;
+    };
+  }>;
+  status?: string;
 };
 
 type FlashSaleSlotApi = {
@@ -34,6 +70,13 @@ export type FlashSaleSlot = {
     id: string;
     name?: string;
     slug?: string;
+    brand?: string;
+    media?: FlashSaleProductApi["media"];
+    pricing?: FlashSaleProductApi["pricing"];
+    category?: FlashSaleProductApi["category"];
+    collections?: FlashSaleProductApi["collections"];
+    variants?: FlashSaleProductApi["variants"];
+    status?: string;
   };
   variantSku?: string;
   salePrice: number;
@@ -119,7 +162,18 @@ const normalizeFlashSale = (item: FlashSaleApiItem): FlashSale => ({
       productId: normalizedProductId,
       product:
         product && product._id
-          ? { id: product._id, name: product.name, slug: product.slug }
+          ? {
+              id: product._id,
+              name: product.name,
+              slug: product.slug,
+              brand: product.brand,
+              media: product.media,
+              pricing: product.pricing,
+              category: product.category,
+              collections: product.collections,
+              variants: product.variants,
+              status: product.status,
+            }
           : undefined,
       variantSku: slot.variantSku,
       salePrice: slot.salePrice,

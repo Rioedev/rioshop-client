@@ -82,6 +82,16 @@ const AdminSalesReportPage = lazy(() =>
     default: module.AdminSalesReportPage,
   })),
 );
+const AdminSuppliersPage = lazy(() =>
+  import("../pages/AdminSuppliersPage").then((module) => ({
+    default: module.AdminSuppliersPage,
+  })),
+);
+const AdminPurchaseOrdersPage = lazy(() =>
+  import("../pages/AdminPurchaseOrdersPage").then((module) => ({
+    default: module.AdminPurchaseOrdersPage,
+  })),
+);
 const AdminProfilePage = lazy(() =>
   import("../pages/AdminProfilePage").then((module) => ({
     default: module.AdminProfilePage,
@@ -106,6 +116,8 @@ export const ADMIN_PAGE_COMPONENT_MAP: Record<AdminRouteSegment, AdminPageCompon
   "brand-config": AdminBrandConfigPage,
   policies: AdminPoliciesPage,
   "sales-report": AdminSalesReportPage,
+  suppliers: AdminSuppliersPage,
+  "purchase-orders": AdminPurchaseOrdersPage,
   "admin-accounts": AdminAccountsPage,
   profile: AdminProfilePage,
 };

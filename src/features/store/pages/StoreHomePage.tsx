@@ -57,7 +57,7 @@ export function StoreHomePage() {
   const [activeCoupons, setActiveCoupons] = useState<Coupon[]>([]);
   const [blogPosts, setBlogPosts] = useState<BlogPost[]>([]);
   const [savedCouponCodes, setSavedCouponCodes] = useState<string[]>(() => readSavedCouponCodes());
-  const [isLoading, setIsLoading] = useState(true);
+  const [, setIsLoading] = useState(true);
   const [activeHeroIndex, setActiveHeroIndex] = useState(0);
   const [nowTimestamp, setNowTimestamp] = useState(HOME_INITIAL_NOW);
 
@@ -220,7 +220,7 @@ export function StoreHomePage() {
         const currentSale = flashSaleResult.value.docs[0];
 
         if (currentSale) {
-          currentSale.slots.slice(0, 3).forEach((slot, index) => {
+          currentSale.slots.slice(0, 4).forEach((slot, index) => {
             const product = productById.get(slot.productId);
             const dealName = slot.product?.name ?? product?.name ?? `Ưu đãi #${index + 1}`;
             const dealSlug = slot.product?.slug ?? product?.slug ?? highlightedProducts[0]?.slug;
@@ -229,11 +229,25 @@ export function StoreHomePage() {
               return;
             }
 
-            const fallbackBasePrice = Math.round(slot.salePrice * 1.2);
-            const basePrice =
-              product?.pricing.basePrice && product.pricing.basePrice > slot.salePrice
-                ? product.pricing.basePrice
-                : fallbackBasePrice;
+            const fallbackCompareAtPrice = Math.round(slot.salePrice * 1.2);
+            const dealPricing = slot.product?.pricing ?? product?.pricing;
+            const productRegularPrice = dealPricing?.regularPrice ?? dealPricing?.salePrice ?? 0;
+            const productCompareAtPrice = dealPricing?.compareAtPrice ?? dealPricing?.basePrice ?? 0;
+            const compareAtPrice =
+              productCompareAtPrice > slot.salePrice
+                ? productCompareAtPrice
+                : productRegularPrice > slot.salePrice
+                  ? productRegularPrice
+                  : fallbackCompareAtPrice;
+            const slotPrimaryImage =
+              slot.product?.media?.find((item) => item.type === "image" && item.isPrimary)?.url ??
+              slot.product?.media?.find((item) => item.type === "image")?.url ??
+              slot.product?.variants?.find((variant) => (variant.images?.length ?? 0) > 0)?.images?.[0];
+            const dealImage =
+              resolveImageUrl(slotPrimaryImage) ??
+              (product ? getProductImage(product, index) : highlightedProducts[index]?.image) ??
+              highlightedProducts[0]?.image ??
+              "";
 
             const soldPercent =
               slot.stockLimit > 0
@@ -244,8 +258,9 @@ export function StoreHomePage() {
               id: `${currentSale.id}-${slot.productId}-${index}`,
               title: dealName,
               slug: dealSlug,
+              image: dealImage,
               salePrice: slot.salePrice,
-              basePrice,
+              compareAtPrice,
               soldPercent,
               endsAt: currentSale.endsAt,
             });
@@ -759,40 +774,49 @@ export function StoreHomePage() {
           </div>
 
           <div className="store-home-v3-flash-layout">
-            <article className="store-home-v3-flash-feature">
-              <span className="store-home-v3-kicker is-light">{homeContent.labels.flashDeal}</span>
-              <h3>{flashDeals[0]?.title ?? homeContent.labels.dealFallbackTitle}</h3>
-              <p>{homeContent.hero.dealDescription}</p>
-              <div className="store-home-v3-flash-price">
-                <strong>{formatCurrency(flashDeals[0]?.salePrice ?? 0)}</strong>
-                {flashDeals[0]?.basePrice ? <span>{formatCurrency(flashDeals[0].basePrice)}</span> : null}
+            <Link to={`/products/${flashDeals[0].slug}`} className="store-home-v3-flash-feature">
+              <div className="store-home-v3-flash-feature-media">
+                <img src={flashDeals[0].image} alt={flashDeals[0].title} />
               </div>
-              <div className="store-home-v3-flash-time">
-                <ClockCircleOutlined /> {flashDeals[0]?.endsAt ? formatTimeLeft(flashDeals[0].endsAt, nowTimestamp) : "00:00:00"}
+              <div className="store-home-v3-flash-feature-body">
+                <span className="store-home-v3-kicker is-light">{homeContent.labels.flashDeal}</span>
+                <h3>{flashDeals[0].title}</h3>
+                <div className="store-home-v3-flash-price">
+                  <strong>{formatCurrency(flashDeals[0].salePrice)}</strong>
+                  {flashDeals[0].compareAtPrice ? <span>{formatCurrency(flashDeals[0].compareAtPrice)}</span> : null}
+                </div>
+                <div className="store-home-v3-flash-time">
+                  <ClockCircleOutlined /> {formatTimeLeft(flashDeals[0].endsAt, nowTimestamp)}
+                </div>
+                <Progress
+                  percent={flashDeals[0].soldPercent}
+                  showInfo={false}
+                  strokeColor="#f97316"
+                  railColor="#e2e8f0"
+                />
               </div>
-              <Progress
-                percent={flashDeals[0]?.soldPercent ?? 0}
-                showInfo={false}
-                strokeColor="#f97316"
-                railColor="rgba(255,255,255,0.16)"
-              />
-            </article>
+            </Link>
 
             <div className="store-home-v3-flash-list">
-              {flashDeals.slice(0, 3).map((deal) => (
+              {flashDeals.slice(1, 4).map((deal) => (
                 <Link key={`deal-${deal.id}`} to={`/products/${deal.slug}`} className="store-home-v3-flash-card">
-                  <div className="store-home-v3-flash-card-head">
-                    <span>
-                      <FireOutlined /> {homeContent.labels.flashDeal}
-                    </span>
-                    <small>{formatTimeLeft(deal.endsAt, nowTimestamp)}</small>
+                  <div className="store-home-v3-flash-card-media">
+                    <img src={deal.image} alt={deal.title} loading="lazy" />
                   </div>
-                  <h3>{deal.title}</h3>
-                  <div className="store-home-v3-flash-card-price">
-                    <strong>{formatCurrency(deal.salePrice)}</strong>
-                    <span>{formatCurrency(deal.basePrice)}</span>
+                  <div className="store-home-v3-flash-card-body">
+                    <div className="store-home-v3-flash-card-head">
+                      <span>
+                        <FireOutlined /> {homeContent.labels.flashDeal}
+                      </span>
+                      <small>{formatTimeLeft(deal.endsAt, nowTimestamp)}</small>
+                    </div>
+                    <h3>{deal.title}</h3>
+                    <div className="store-home-v3-flash-card-price">
+                      <strong>{formatCurrency(deal.salePrice)}</strong>
+                      <span>{formatCurrency(deal.compareAtPrice)}</span>
+                    </div>
+                    <Progress percent={deal.soldPercent} showInfo={false} strokeColor="#fb923c" railColor="#e2e8f0" />
                   </div>
-                  <Progress percent={deal.soldPercent} showInfo={false} strokeColor="#fb923c" railColor="#1f2937" />
                 </Link>
               ))}
             </div>

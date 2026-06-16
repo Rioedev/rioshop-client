@@ -39,7 +39,9 @@ export type VariantSizeFormValue = {
   sku?: string;
   size: ProductVariantSize;
   sizeLabel?: string;
+  // Stock + incoming chỉ hiển thị ở form. Cập nhật qua PO / Điều chỉnh kho.
   stock?: number;
+  incoming?: number;
   additionalPrice?: number;
   isActive?: boolean;
 };
@@ -52,6 +54,15 @@ export type VariantGroupFormValue = {
   bulkSizesText?: string;
 };
 
+export type SizeChartRowFormValue = {
+  size?: string;
+  shoulder?: number | null;
+  chest?: number | null;
+  waist?: number | null;
+  hip?: number | null;
+  length?: number | null;
+};
+
 export type ProductFormValues = {
   sku: string;
   name: string;
@@ -60,13 +71,15 @@ export type ProductFormValues = {
   collectionIds?: string[];
   gender?: ProductGender;
   ageGroup?: "adult" | "teen" | "kids" | "baby";
-  basePrice: number;
-  salePrice: number;
+  regularPrice: number;
+  compareAtPrice?: number;
+  costPrice?: number;
   status: ProductStatus;
   description?: string;
   shortDescription?: string;
   materialText?: string;
   careText?: string;
+  sizeChartRows?: SizeChartRowFormValue[];
   seoTitle?: string;
   seoDescription?: string;
   seoKeywordsText?: string;
@@ -157,6 +170,7 @@ export const defaultVariantSize = (size: ProductVariantSize = "M"): VariantSizeF
   size,
   sizeLabel: size,
   stock: 0,
+  incoming: 0,
   additionalPrice: 0,
   isActive: true,
 });
@@ -297,6 +311,7 @@ export const mapVariantsToGroups = (variants: ProductVariant[] = []): VariantGro
       size: variant.size,
       sizeLabel: variant.sizeLabel || variant.size,
       stock: variant.stock ?? 0,
+      incoming: variant.incoming ?? 0,
       additionalPrice: variant.additionalPrice ?? 0,
       isActive: variant.isActive ?? true,
     });

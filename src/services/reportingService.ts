@@ -12,6 +12,9 @@ export type ReportingOverview = {
   itemCount: number;
   uniqueCustomerCount: number;
   avgOrderValue: number;
+  cost: number;
+  grossProfit: number;
+  marginRate: number;
 };
 
 export type TopProductRow = {
@@ -22,8 +25,20 @@ export type TopProductRow = {
   categoryName?: string;
   quantitySold: number;
   revenue: number;
+  cost: number;
+  grossProfit: number;
+  marginRate: number;
   orderCount: number;
   currentStock?: number;
+};
+
+export type PurchaseOrderOverview = {
+  draft: { count: number; total: number };
+  ordered: { count: number; total: number };
+  partially_received: { count: number; total: number };
+  received: { count: number; total: number };
+  cancelled: { count: number; total: number };
+  closed: { count: number; total: number };
 };
 
 export type RevenueByCategoryRow = {
@@ -44,6 +59,36 @@ export type RevenueTimeSeriesRow = {
   period: string;
   revenue: number;
   orderCount: number;
+};
+
+export type RevenueByFlashSaleRow = {
+  flashSaleId: string;
+  name: string;
+  banner?: string;
+  startsAt: string;
+  endsAt: string;
+  isActive: boolean;
+  slotCount: number;
+  stockLimit: number;
+  recordedSold: number;
+  productCount: number;
+  quantitySold: number;
+  orderCount: number;
+  revenue: number;
+  discountAmount: number;
+  cost: number;
+  grossProfit: number;
+  marginRate: number;
+};
+
+export type PaginatedReport<T> = {
+  rows: T[];
+  totalDocs: number;
+  page: number;
+  limit: number;
+  totalPages: number;
+  hasPrevPage: boolean;
+  hasNextPage: boolean;
 };
 
 type Resp<T> = ApiResponse<T>;
@@ -71,12 +116,38 @@ export const reportingService = {
 
   async getTopProducts(
     period: ReportPeriod = {},
-    options: { limit?: number; sortBy?: "revenue" | "quantity" } = {},
-  ): Promise<TopProductRow[]> {
-    const { data } = await apiClient.get<Resp<{ rows: TopProductRow[] }>>(
-      `/api/reports/top-products${buildParams(period, { limit: options.limit ?? 20, sortBy: options.sortBy ?? "revenue" })}`,
+    options: { page?: number; limit?: number; sortBy?: "revenue" | "quantity" | "grossProfit"; search?: string } = {},
+  ): Promise<PaginatedReport<TopProductRow>> {
+    const { data } = await apiClient.get<Resp<PaginatedReport<TopProductRow>>>(
+      `/api/reports/top-products${buildParams(period, {
+        page: options.page ?? 1,
+        limit: options.limit ?? 10,
+        sortBy: options.sortBy ?? "revenue",
+        search: options.search,
+      })}`,
     );
-    return data.data.rows;
+    return data.data;
+  },
+
+  async getRevenueByFlashSale(
+    period: ReportPeriod = {},
+    options: { page?: number; limit?: number; sortBy?: "revenue" | "quantity" | "grossProfit" } = {},
+  ): Promise<PaginatedReport<RevenueByFlashSaleRow>> {
+    const { data } = await apiClient.get<Resp<PaginatedReport<RevenueByFlashSaleRow>>>(
+      `/api/reports/revenue-by-flash-sale${buildParams(period, {
+        page: options.page ?? 1,
+        limit: options.limit ?? 10,
+        sortBy: options.sortBy ?? "revenue",
+      })}`,
+    );
+    return data.data;
+  },
+
+  async getPurchaseOrderOverview(period: ReportPeriod = {}): Promise<PurchaseOrderOverview> {
+    const { data } = await apiClient.get<Resp<PurchaseOrderOverview>>(
+      `/api/reports/purchase-orders/overview${buildParams(period)}`,
+    );
+    return data.data;
   },
 
   async getRevenueByCategory(period: ReportPeriod = {}): Promise<RevenueByCategoryRow[]> {
@@ -95,11 +166,25 @@ export const reportingService = {
 
   async getRevenueTimeSeries(
     period: ReportPeriod = {},
-    granularity: "day" | "week" | "month" = "day",
+    granularity: "day" | "week" | "month" | "quarter" = "day",
   ): Promise<RevenueTimeSeriesRow[]> {
     const { data } = await apiClient.get<Resp<{ rows: RevenueTimeSeriesRow[] }>>(
       `/api/reports/revenue-timeseries${buildParams(period, { granularity })}`,
     );
     return data.data.rows;
+  },
+
+  async exportSalesReportXlsx(
+    period: ReportPeriod = {},
+    options: { granularity?: "day" | "week" | "month" | "quarter"; allTime?: boolean } = {},
+  ): Promise<Blob> {
+    const response = await apiClient.get<Blob>(
+      `/api/reports/export-xlsx${buildParams(options.allTime ? {} : period, {
+        granularity: options.granularity ?? "month",
+        allTime: options.allTime ? "true" : undefined,
+      })}`,
+      { responseType: "blob" },
+    );
+    return response.data;
   },
 };

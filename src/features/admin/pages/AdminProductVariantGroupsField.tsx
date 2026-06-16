@@ -108,6 +108,12 @@ export function AdminProductVariantGroupsField({
         </Button>
       </div>
 
+      <div className="mb-3 rounded-lg border border-slate-200 bg-slate-50 p-3 text-xs text-slate-600">
+        <strong>Tồn kho, đang về</strong> chỉ hiển thị (không sửa ở đây). Cập nhật qua{" "}
+        <strong>Đơn nhập (PO)</strong> để nhập hàng mới hoặc <strong>Tồn kho → Lịch sử điều chỉnh</strong> để
+        ghi nhận kiểm kê / hỏng / mất.
+      </div>
+
       <Form.List name="variantGroups">
         {(groupFields, { remove: removeGroup }) => (
           <div className="space-y-3">
@@ -176,10 +182,11 @@ export function AdminProductVariantGroupsField({
                       <Form.List name={[groupField.name, "sizes"]}>
                         {(sizeFields, { remove: removeSize }) => (
                           <div className="space-y-2">
-                            <div className="hidden gap-2 px-1 text-xs font-semibold uppercase tracking-[0.08em] text-slate-500 lg:grid lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_minmax(0,1fr)_minmax(0,1fr)_72px_40px]">
+                            <div className="hidden gap-2 px-1 text-xs font-semibold uppercase tracking-[0.08em] text-slate-500 lg:grid lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_minmax(0,0.8fr)_minmax(0,0.8fr)_minmax(0,0.8fr)_72px_40px]">
                               <span>Kích thước</span>
                               <span>Nhãn size</span>
-                              <span>Tồn kho</span>
+                              <span title="Cập nhật qua Đơn nhập / Điều chỉnh kho">Tồn kho</span>
+                              <span title="Số đang về từ Đơn nhập">Đang về</span>
                               <span>Giá cộng</span>
                               <span>Hoạt động</span>
                               <span>Xóa</span>
@@ -187,7 +194,7 @@ export function AdminProductVariantGroupsField({
                             {sizeFields.map((sizeField) => (
                               <div
                                 key={sizeField.key}
-                                className="grid gap-2 rounded-md border border-slate-200 p-2 sm:grid-cols-2 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_minmax(0,1fr)_minmax(0,1fr)_72px_40px]"
+                                className="grid gap-2 rounded-md border border-slate-200 p-2 sm:grid-cols-2 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_minmax(0,0.8fr)_minmax(0,0.8fr)_minmax(0,0.8fr)_72px_40px]"
                               >
                                 <Form.Item
                                   name={[sizeField.name, "size"]}
@@ -207,12 +214,21 @@ export function AdminProductVariantGroupsField({
                                 <Form.Item name={[sizeField.name, "sizeLabel"]} className="mb-0!">
                                   <Input placeholder="Ví dụ: M" />
                                 </Form.Item>
-                                <Form.Item
-                                  name={[sizeField.name, "stock"]}
-                                  rules={REQUIRED_RULE}
-                                  className="mb-0!"
-                                >
-                                  <InputNumber min={0} className="w-full!" placeholder="0" />
+                                <Form.Item name={[sizeField.name, "stock"]} className="mb-0!">
+                                  <InputNumber
+                                    min={0}
+                                    className="w-full!"
+                                    placeholder="0"
+                                    disabled
+                                  />
+                                </Form.Item>
+                                <Form.Item name={[sizeField.name, "incoming"]} className="mb-0!">
+                                  <InputNumber
+                                    min={0}
+                                    className="w-full!"
+                                    placeholder="0"
+                                    disabled
+                                  />
                                 </Form.Item>
                                 <Form.Item
                                   name={[sizeField.name, "additionalPrice"]}

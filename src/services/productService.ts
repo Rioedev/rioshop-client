@@ -19,11 +19,20 @@ export type ProductVariant = {
   size: ProductVariantSize;
   sizeLabel?: string;
   stock?: number;
+  incoming?: number;
   additionalPrice?: number;
   barcode?: string;
   images?: string[];
   isActive?: boolean;
   position?: number;
+  effectivePricing?: {
+    unitPrice: number;
+    listPrice: number;
+    priceSource: "regular" | "flash_sale";
+    flashSaleId?: string | null;
+    flashSaleName?: string | null;
+    flashSaleEndsAt?: string | null;
+  };
 };
 
 export type ProductMedia = {
@@ -43,6 +52,20 @@ export type ProductCollection = {
   bannerImage?: string;
 };
 
+export type ProductSizeChartRow = {
+  size: string;
+  shoulder?: number | null;
+  chest?: number | null;
+  waist?: number | null;
+  hip?: number | null;
+  length?: number | null;
+};
+
+export type ProductSizeChart = {
+  unit?: "cm";
+  rows?: ProductSizeChartRow[];
+};
+
 export type Product = {
   _id: string;
   sku: string;
@@ -59,8 +82,13 @@ export type Product = {
   collections?: ProductCollection[];
   gender?: ProductGender;
   pricing: {
-    basePrice: number;
+    regularPrice: number;
+    compareAtPrice: number;
+    /** @deprecated Use regularPrice. Kept for legacy API compatibility. */
     salePrice: number;
+    /** @deprecated Use compareAtPrice. Kept for legacy API compatibility. */
+    basePrice: number;
+    costPrice?: number;
     currency?: string;
   };
   inventorySummary?: {
@@ -70,6 +98,7 @@ export type Product = {
   };
   variants?: ProductVariant[];
   media?: ProductMedia[];
+  sizeChart?: ProductSizeChart;
   tags?: string[];
   ageGroup?: "adult" | "teen" | "kids" | "baby";
   material?: string[];
@@ -83,8 +112,12 @@ export type Product = {
   isNew?: boolean;
   isBestseller?: boolean;
   status: ProductStatus;
+  totalSold?: number;
+  salesCount?: number;
+  salesOrderCount?: number;
   createdAt?: string;
   updatedAt?: string;
+  publishedAt?: string;
 };
 
 export type ProductPayload = {
@@ -101,8 +134,13 @@ export type ProductPayload = {
   };
   collections?: ProductCollection[];
   pricing: {
-    basePrice: number;
-    salePrice: number;
+    regularPrice: number;
+    compareAtPrice?: number;
+    /** @deprecated Use regularPrice. */
+    salePrice?: number;
+    /** @deprecated Use compareAtPrice. */
+    basePrice?: number;
+    costPrice?: number;
     currency?: string;
   };
   inventorySummary?: {
@@ -112,6 +150,7 @@ export type ProductPayload = {
   };
   variants?: ProductVariant[];
   media?: ProductMedia[];
+  sizeChart?: ProductSizeChart;
   status?: ProductStatus;
   tags?: string[];
   gender?: ProductGender;
@@ -164,6 +203,17 @@ export type ProductQueryParams = {
   size?: string;
   sort?: ProductSort;
   status?: ProductStatusFilter;
+  ranking?: "best_selling";
+  newWithinDays?: number;
+};
+
+export type CartProductRecommendation = {
+  product: Product;
+  score: number;
+  signals?: {
+    coPurchaseOrders?: number;
+    coPurchaseQuantity?: number;
+  };
 };
 
 export const productService = {
@@ -198,6 +248,17 @@ export const productService = {
 
   async getRelatedProducts(id: string): Promise<Product[]> {
     const response = await apiClient.get<ApiResponse<Product[]>>(`/api/products/${id}/related`);
+    return response.data.data;
+  },
+
+  async getCartRecommendations(
+    productIds: string[],
+    limit = 4,
+  ): Promise<CartProductRecommendation[]> {
+    const response = await apiClient.post<ApiResponse<CartProductRecommendation[]>>(
+      "/api/products/cart-recommendations",
+      { productIds, limit },
+    );
     return response.data.data;
   },
 

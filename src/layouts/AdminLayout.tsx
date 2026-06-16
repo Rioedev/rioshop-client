@@ -29,7 +29,9 @@ import { AppNotificationsModal } from "../components/notifications/AppNotificati
 import {
   ADMIN_DEFAULT_PATH,
   ADMIN_PAGE_TITLE_MAP,
+  canAccessAdminRoute,
   getAdminMenuRouteMeta,
+  getAdminRouteMetaByPathname,
   toAdminFullPath,
   type AdminMenuIcon,
   type AdminRouteMeta,
@@ -92,11 +94,9 @@ export function AdminLayout() {
     return localStorage.getItem(ADMIN_THEME_STORAGE_KEY) === "dark";
   });
 
-  const canManageAdminAccounts =
-    user?.role === "superadmin" || user?.role === "manager";
   const adminMenuItems = useMemo<ItemType[]>(
     () =>
-      getAdminMenuRouteMeta(canManageAdminAccounts).map((route) => {
+      getAdminMenuRouteMeta(user?.role).map((route) => {
         const item = toAdminMenuItem(route);
         if (route.segment !== "inventories") {
           return item;
@@ -114,7 +114,7 @@ export function AdminLayout() {
           ),
         } as ItemType;
       }),
-    [canManageAdminAccounts, inventoryAlertCount],
+    [inventoryAlertCount, user?.role],
   );
 
   const matchedMenuKey =
@@ -138,6 +138,24 @@ export function AdminLayout() {
   const avatarUrl = `https://ui-avatars.com/api/?name=${encodeURIComponent(
     userFullName,
   )}&background=e2e8f0&color=0f172a&bold=true`;
+
+  useEffect(() => {
+    if (accountType !== "admin") {
+      return;
+    }
+
+    const currentRoute = getAdminRouteMetaByPathname(location.pathname);
+    if (!currentRoute || canAccessAdminRoute(currentRoute, user?.role)) {
+      return;
+    }
+
+    const fallbackRoute = getAdminMenuRouteMeta(user?.role)[0];
+    navigate(
+      fallbackRoute ? toAdminFullPath(fallbackRoute.segment) : ADMIN_DEFAULT_PATH,
+      { replace: true },
+    );
+    messageApi.warning("Vai trò hiện tại không có quyền truy cập màn hình này.");
+  }, [accountType, location.pathname, messageApi, navigate, user?.role]);
 
   const handleLogout = async () => {
     await logout();

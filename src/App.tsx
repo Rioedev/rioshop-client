@@ -42,7 +42,16 @@ function AppBootFallback() {
 
 function App() {
   return (
-    <ConfigProvider locale={viVN} form={{ validateMessages: FORM_VALIDATE_MESSAGES }}>
+    <ConfigProvider
+      locale={viVN}
+      form={{ validateMessages: FORM_VALIDATE_MESSAGES }}
+      theme={{
+        token: {
+          fontFamily: "var(--font-sans)",
+          fontWeightStrong: 650,
+        },
+      }}
+    >
       <AuthBootstrap />
       <Suspense fallback={<AppBootFallback />}>
         <RouterProvider router={appRouter} />

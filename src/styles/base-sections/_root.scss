@@ -1,6 +1,14 @@
 ﻿
 :root {
-  font-family: "Manrope", "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+  --font-sans: "Hanken Grotesk Variable", -apple-system, BlinkMacSystemFont,
+    "SF Pro Text", "Segoe UI Variable", "Segoe UI", sans-serif;
+  font-family: var(--font-sans);
+  font-synthesis: none;
+  font-optical-sizing: auto;
+  font-feature-settings: "kern" 1, "liga" 1, "calt" 1;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
   color: #0f172a;
   --store-ink: #0f172a;
   --store-bg: #f4f6fb;
@@ -12,11 +20,29 @@
 
 body {
   margin: 0;
+  font-weight: 430;
+  letter-spacing: -0.008em;
   background:
     radial-gradient(circle at 88% 2%, rgba(14, 165, 233, 0.1), transparent 28%),
     radial-gradient(circle at 8% 14%, rgba(15, 23, 42, 0.06), transparent 30%),
     var(--store-bg);
   color: var(--store-ink);
+}
+
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+  text-wrap: balance;
+}
+
+button,
+input,
+select,
+textarea {
+  font-family: inherit;
 }
 
 

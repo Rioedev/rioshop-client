@@ -180,7 +180,10 @@ export function StoreWishlistPage() {
       }
 
       const variantLabel = `${variant.color?.name?.trim() || "Mặc định"} / ${(variant.sizeLabel || variant.size).trim()}`;
-      const price = Math.max(0, product.pricing.salePrice + Number(variant.additionalPrice || 0));
+      const price = Math.max(
+        0,
+        (product.pricing.regularPrice ?? product.pricing.salePrice) + Number(variant.additionalPrice || 0),
+      );
 
       if (isAuthenticated) {
         const cart = await cartService.addItem({

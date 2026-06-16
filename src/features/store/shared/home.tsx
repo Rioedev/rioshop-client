@@ -77,8 +77,9 @@ export type FlashDeal = {
   id: string;
   title: string;
   slug: string;
+  image: string;
   salePrice: number;
-  basePrice: number;
+  compareAtPrice: number;
   soldPercent: number;
   endsAt: string;
 };
@@ -230,7 +231,7 @@ export const DEFAULT_HOME_CONTENT: ResolvedHomeContent = {
     collectionKicker: "Danh mục nổi bật",
     collectionLinkLabel: "Xem danh mục",
     couponKicker: "Ưu đãi đang chạy",
-    couponTitle: "Lưu nhanh mã giảm giá trước khi thanh toán",
+    couponTitle: "Lưu mã giảm giá",
     couponLinkLabel: "Áp mã tại giỏ hàng",
   },
   labels: {
@@ -275,13 +276,13 @@ export const DEFAULT_HOME_CONTENT: ResolvedHomeContent = {
       iconKey: "truck",
     },
     {
-      title: "Đổi trả 60 ngày",
+      title: "Đổi trả 7 ngày",
       text: "Đổi cỡ, đổi màu hoặc hoàn tiền linh hoạt nếu sản phẩm chưa vừa ý.",
       iconKey: "return",
     },
     {
       title: "Cam kết chính hãng",
-      text: "Hoàn 200% nếu phát hiện sản phẩm không đúng chất lượng đã công bố.",
+      text: "Hoàn 100% nếu phát hiện sản phẩm không đúng chất lượng đã công bố.",
       iconKey: "shield",
     },
   ],
@@ -339,7 +340,9 @@ export const getCategoryBadge = (product: ProductRuntime, labels: ResolvedHomeCo
     return labels.categoryNewBadge;
   }
 
-  if (product.pricing.basePrice > product.pricing.salePrice) {
+  const regularPrice = product.pricing.regularPrice ?? product.pricing.salePrice;
+  const compareAtPrice = product.pricing.compareAtPrice ?? product.pricing.basePrice;
+  if (compareAtPrice > regularPrice) {
     return labels.categoryPromotionBadge;
   }
 
@@ -571,6 +574,8 @@ export const mapHomeProduct = (
   labels: ResolvedHomeContent["labels"],
 ): HomeProduct => {
   const image = getProductImage(product, index);
+  const regularPrice = product.pricing.regularPrice ?? product.pricing.salePrice;
+  const compareAtPrice = product.pricing.compareAtPrice ?? product.pricing.basePrice;
 
   return {
     id: product._id,
@@ -580,9 +585,9 @@ export const mapHomeProduct = (
     categoryId: product.category?._id,
     categoryName: product.category?.name,
     categorySlug: product.category?.slug,
-    price: product.pricing.salePrice,
-    originalPrice: product.pricing.basePrice > product.pricing.salePrice ? product.pricing.basePrice : undefined,
-    badge: getDiscountBadge(product.pricing.salePrice, product.pricing.basePrice),
+    price: regularPrice,
+    originalPrice: compareAtPrice > regularPrice ? compareAtPrice : undefined,
+    badge: getDiscountBadge(regularPrice, compareAtPrice),
     rating:
       typeof product.ratings?.avg === "number" && product.ratings.avg > 0
         ? Number(product.ratings.avg.toFixed(1))

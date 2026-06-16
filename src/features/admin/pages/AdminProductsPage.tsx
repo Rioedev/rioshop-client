@@ -61,6 +61,7 @@ import {
   toList,
   toSlug,
   type ProductFormValues,
+  type SizeChartRowFormValue,
   type VariantGroupFormValue,
   type VariantImageFormValue,
   Paragraph,
@@ -336,6 +337,24 @@ export function AdminProductsPage() {
     messageApi.success(`Đã thêm ${createdCount} size cho màu này.`);
   };
 
+  const normalizeSizeChartRows = (rows: SizeChartRowFormValue[] = []) =>
+    rows
+      .map((row) => ({
+        size: row.size?.trim() || "",
+        shoulder: row.shoulder ?? null,
+        chest: row.chest ?? null,
+        waist: row.waist ?? null,
+        hip: row.hip ?? null,
+        length: row.length ?? null,
+      }))
+      .filter((row) => {
+        const hasSize = row.size.length > 0;
+        const hasMeasurement = [row.shoulder, row.chest, row.waist, row.hip, row.length].some(
+          (value) => value !== null && value !== undefined && Number(value) > 0,
+        );
+        return hasSize && hasMeasurement;
+      });
+
   useEffect(() => {
     if (!isModalOpen || productSkuManuallyEditedRef.current) {
       return;
@@ -567,12 +586,15 @@ export function AdminProductsPage() {
     productSkuManuallyEditedRef.current = false;
     form.resetFields();
     form.setFieldsValue({
-      status: "active",
+      // Tạo mới luôn là draft — chưa có PO nhập hàng nên Đang bán sẽ tự
+      // flip về out_of_stock, gây nhầm. Chuyển sang Đang bán sau khi edit.
+      status: "draft",
       sku: "",
       collectionIds: [],
       variantGroups: [defaultVariantGroup()],
       gender: "unisex",
       ageGroup: "adult",
+      sizeChartRows: [],
     });
     setIsModalOpen(true);
   };
@@ -587,8 +609,9 @@ export function AdminProductsPage() {
       brand: product.brand,
       categoryId: product.category?._id,
       collectionIds: (product.collections ?? []).map((item) => item._id),
-      basePrice: product.pricing.basePrice,
-      salePrice: product.pricing.salePrice,
+      regularPrice: product.pricing.regularPrice ?? product.pricing.salePrice ?? 0,
+      compareAtPrice: product.pricing.compareAtPrice ?? product.pricing.basePrice ?? 0,
+      costPrice: product.pricing.costPrice ?? 0,
       // out_of_stock là tình trạng kho tự động — map về "active" để admin
       // chỉnh đúng ý đồ bán. Khi save, hook pre("save") sẽ lại tự flip nếu thực sự hết hàng.
       status: product.status === "out_of_stock" ? "active" : product.status,
@@ -598,6 +621,7 @@ export function AdminProductsPage() {
       ageGroup: product.ageGroup,
       materialText: (product.material ?? []).join(", "),
       careText: (product.care ?? []).join(", "),
+      sizeChartRows: product.sizeChart?.rows ?? [],
       seoTitle: product.seoMeta?.title,
       seoDescription: product.seoMeta?.description,
       seoKeywordsText: (product.seoMeta?.keywords ?? []).join(", "),
@@ -695,8 +719,8 @@ export function AdminProductsPage() {
           image: item.image,
         })),
         pricing: {
-          basePrice: values.basePrice ?? 0,
-          salePrice: values.salePrice,
+          regularPrice: values.regularPrice,
+          compareAtPrice: values.compareAtPrice ?? 0,
           currency: "VND",
         },
         status: values.status,
@@ -704,6 +728,10 @@ export function AdminProductsPage() {
         ageGroup: values.ageGroup,
         material: toList(values.materialText),
         care: toList(values.careText),
+        sizeChart: {
+          unit: "cm",
+          rows: normalizeSizeChartRows(values.sizeChartRows),
+        },
         seoMeta: {
           title: values.seoTitle?.trim() || "",
           description: values.seoDescription?.trim() || "",
@@ -790,7 +818,12 @@ export function AdminProductsPage() {
           ? (record.collections ?? []).map((item) => item.name).join(", ")
           : "-",
     },
-    { title: "Giá bán", key: "price", width: 140, render: (_, r) => `${formatCurrency.format(r.pricing.salePrice)} VND` },
+    {
+      title: "Giá bán thường ngày",
+      key: "price",
+      width: 170,
+      render: (_, r) => `${formatCurrency.format(r.pricing.regularPrice ?? r.pricing.salePrice ?? 0)} VND`,
+    },
     { title: "Tồn kho", key: "stock", width: 90, render: (_, r) => getStock(r) },
     {
       title: "Cảnh báo tồn kho",
@@ -809,7 +842,27 @@ export function AdminProductsPage() {
         );
       },
     },
-    { title: "Trạng thái", dataIndex: "status", key: "status", width: 120, render: (status: ProductStatus) => <Tag color={STATUS_COLORS[status]}>{STATUS_LABELS[status]}</Tag> },
+    {
+      title: "Trạng thái",
+      dataIndex: "status",
+      key: "status",
+      width: 160,
+      render: (status: ProductStatus, record) => {
+        // Cảnh báo: sp đang Nháp nhưng đã có hàng tồn → admin nên publish
+        const available = record.inventorySummary?.available ?? 0;
+        const isDraftReady = status === "draft" && available > 0;
+        return (
+          <Space direction="vertical" size={2}>
+            <Tag color={STATUS_COLORS[status]}>{STATUS_LABELS[status]}</Tag>
+            {isDraftReady ? (
+              <Tag color="orange" className="m-0!" title="Đã có hàng, đổi sang Đang bán để hiển thị ở storefront">
+                Sẵn sàng publish
+              </Tag>
+            ) : null}
+          </Space>
+        );
+      },
+    },
     {
       title: "Hành động",
       key: "actions",
@@ -929,36 +982,38 @@ export function AdminProductsPage() {
               <div className="rounded-2xl border border-slate-200 bg-white p-4">
                 <Text strong className="text-base">Trạng thái</Text>
                 <Form.Item label="Hiển thị" name="status" rules={REQUIRED_RULE} className="mb-3! mt-3!">
-                  <Select options={PRODUCT_STATUS_OPTIONS} />
+                  <Select options={PRODUCT_STATUS_OPTIONS} disabled={!editingProduct} />
                 </Form.Item>
-                {editingProduct ? (
-                  <div className="mt-2 flex items-center gap-2">
-                    <Text type="secondary" className="text-xs">Tình trạng kho:</Text>
-                    {(editingProduct.inventorySummary?.available ?? 0) > 0 ? (
+                <div className="mt-2 flex items-center gap-2">
+                  <Text type="secondary" className="text-xs">Tình trạng kho:</Text>
+                  {editingProduct ? (
+                    (editingProduct.inventorySummary?.available ?? 0) > 0 ? (
                       <Tag color="green">Còn hàng ({editingProduct.inventorySummary?.available ?? 0} sp)</Tag>
                     ) : (
                       <Tag color="red">Hết hàng</Tag>
-                    )}
-                  </div>
-                ) : null}
+                    )
+                  ) : (
+                    <Tag color="default">Chưa nhập hàng</Tag>
+                  )}
+                </div>
               </div>
 
               <div className="rounded-2xl border border-slate-200 bg-white p-4">
-                <Text strong className="text-base">Giá bán</Text>
+                <Text strong className="text-base">Chính sách giá</Text>
                 <Form.Item
-                  label="Giá bán (khách trả)"
-                  name="salePrice"
+                  label="Giá bán thường ngày"
+                  name="regularPrice"
                   rules={REQUIRED_RULE}
                   className="mb-3! mt-3!"
                 >
-                  <InputNumber
+                  <InputNumber<number>
                     min={0}
                     precision={0}
                     className="w-full!"
                     placeholder="0"
                     addonAfter="VND"
                     formatter={(value) =>
-                      value === undefined || value === null || value === ""
+                      value === undefined || value === null
                         ? ""
                         : `${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ",")
                     }
@@ -969,31 +1024,31 @@ export function AdminProductsPage() {
                   />
                 </Form.Item>
                 <Form.Item
-                  label="Giá niêm yết (tùy chọn)"
-                  name="basePrice"
-                  className="mb-0!"
+                  label="Giá tham chiếu / niêm yết (tùy chọn)"
+                  name="compareAtPrice"
+                  className="mb-3!"
                   rules={[
                     ({ getFieldValue }) => ({
                       validator(_, value) {
                         if (value === undefined || value === null || value === "") return Promise.resolve();
-                        const base = Number(value);
-                        const sale = Number(getFieldValue("salePrice"));
-                        if (Number.isFinite(base) && base > 0 && Number.isFinite(sale) && base < sale) {
-                          return Promise.reject(new Error("Giá niêm yết phải lớn hơn hoặc bằng giá bán"));
+                        const compareAt = Number(value);
+                        const regular = Number(getFieldValue("regularPrice"));
+                        if (Number.isFinite(compareAt) && compareAt > 0 && Number.isFinite(regular) && compareAt < regular) {
+                          return Promise.reject(new Error("Giá tham chiếu phải lớn hơn hoặc bằng giá bán thường ngày"));
                         }
                         return Promise.resolve();
                       },
                     }),
                   ]}
                 >
-                  <InputNumber
+                  <InputNumber<number>
                     min={0}
                     precision={0}
                     className="w-full!"
                     placeholder="0"
                     addonAfter="VND"
                     formatter={(value) =>
-                      value === undefined || value === null || value === ""
+                      value === undefined || value === null
                         ? ""
                         : `${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ",")
                     }
@@ -1001,6 +1056,21 @@ export function AdminProductsPage() {
                       const digits = (value || "").toString().replace(/\D/g, "");
                       return digits ? Number(digits) : 0;
                     }}
+                  />
+                </Form.Item>
+                <Form.Item label="Giá vốn (tự cập nhật từ PO)" name="costPrice" className="mb-0!">
+                  <InputNumber
+                    min={0}
+                    precision={0}
+                    className="w-full!"
+                    placeholder="0"
+                    addonAfter="VND"
+                    disabled
+                    formatter={(value) =>
+                      value === undefined || value === null
+                        ? ""
+                        : `${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ",")
+                    }
                   />
                 </Form.Item>
               </div>
@@ -1039,6 +1109,70 @@ export function AdminProductsPage() {
                 <Form.Item label="Hướng dẫn bảo quản (phân tách bằng dấu phẩy)" name="careText" className="mb-0!">
                   <Input placeholder="Giặt lạnh, Không sấy, Ủi nhẹ" />
                 </Form.Item>
+              </div>
+
+              <div className="rounded-2xl border border-slate-200 bg-white p-4">
+                <Form.List name="sizeChartRows">
+                  {(fields, { add, remove }) => (
+                    <div className="space-y-2">
+                      <div className="mb-3 flex items-center justify-between gap-3">
+                        <Title level={5} className="m-0!">Hướng dẫn chọn size</Title>
+                        <Button
+                          size="small"
+                          onClick={() =>
+                            add({
+                              size: "",
+                              shoulder: null,
+                              chest: null,
+                              waist: null,
+                              hip: null,
+                              length: null,
+                            })
+                          }
+                        >
+                          Thêm dòng
+                        </Button>
+                      </div>
+                      {fields.length === 0 ? (
+                        <Text type="secondary" className="text-xs!">
+                          Chưa có bảng size cho sản phẩm này.
+                        </Text>
+                      ) : null}
+                      {fields.map((field) => (
+                        <div key={field.key} className="rounded-xl border border-slate-100 bg-slate-50 p-3">
+                          <div className="grid grid-cols-2 gap-3">
+                            <Form.Item label="Size" name={[field.name, "size"]} className="mb-0!">
+                              <Input placeholder="M, L, XL" />
+                            </Form.Item>
+                            <Form.Item label="Vai (cm)" name={[field.name, "shoulder"]} className="mb-0!">
+                              <InputNumber min={0} precision={1} placeholder="42" className="w-full!" />
+                            </Form.Item>
+                            <Form.Item label="Ngực (cm)" name={[field.name, "chest"]} className="mb-0!">
+                              <InputNumber min={0} precision={1} placeholder="96" className="w-full!" />
+                            </Form.Item>
+                            <Form.Item label="Eo (cm)" name={[field.name, "waist"]} className="mb-0!">
+                              <InputNumber min={0} precision={1} placeholder="76" className="w-full!" />
+                            </Form.Item>
+                            <Form.Item label="Hông (cm)" name={[field.name, "hip"]} className="mb-0!">
+                              <InputNumber min={0} precision={1} placeholder="98" className="w-full!" />
+                            </Form.Item>
+                            <Form.Item label="Dài (cm)" name={[field.name, "length"]} className="mb-0!">
+                              <InputNumber min={0} precision={1} placeholder="68" className="w-full!" />
+                            </Form.Item>
+                          </div>
+                          <div className="mt-3 flex justify-end">
+                            <Button danger size="small" onClick={() => remove(field.name)}>
+                              Xóa dòng
+                            </Button>
+                          </div>
+                        </div>
+                      ))}
+                      <Text type="secondary" className="block text-xs!">
+                        Đơn vị cm. Có thể chỉ nhập các cột phù hợp với loại sản phẩm.
+                      </Text>
+                    </div>
+                  )}
+                </Form.List>
               </div>
 
               <div className="rounded-2xl border border-slate-200 bg-white p-4">

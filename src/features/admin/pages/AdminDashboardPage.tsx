@@ -279,7 +279,7 @@ const buildDashboardKpis = (payload: {
       positive: conversionGrowth >= 0,
     },
     {
-      title: "Khách mua hàng",
+      title: "Khách đặt hàng",
       value: formatNumber.format(currentCustomers),
       change: formatGrowth(customerGrowth),
       positive: customerGrowth >= 0,
@@ -302,7 +302,6 @@ export function AdminDashboardPage() {
   const [recentOrders, setRecentOrders] = useState<OrderItem[]>([]);
   const [lowStockProducts, setLowStockProducts] = useState<StockItem[]>([]);
   const [lowStockTotalCount, setLowStockTotalCount] = useState(0);
-  const [todayOrderCount, setTodayOrderCount] = useState(0);
   const [pendingOrderCount, setPendingOrderCount] = useState(0);
   const [estimatedRevenueValue, setEstimatedRevenueValue] = useState(0);
   const [analyticsEventsCount, setAnalyticsEventsCount] = useState(0);
@@ -396,18 +395,13 @@ export function AdminDashboardPage() {
 
       const lowStockCount = lowStockPage.totalDocs;
       const activeProducts = activeProductsPage.totalDocs;
-      const stockStability =
-        activeProducts > 0
-          ? (((activeProducts - lowStockCount) / activeProducts) * 100).toFixed(1)
-          : "0.0";
-
       setAdminKpis([
         ...kpis,
         {
           title: "Sản phẩm đang bán",
           value: formatNumber.format(activeProducts),
-          change: `${stockStability}% ổn định tồn kho`,
-          positive: Number(stockStability) >= 70,
+          change: `${formatNumber.format(lowStockCount)} SKU đang cảnh báo`,
+          positive: lowStockCount === 0,
         },
       ]);
       setDashboardMetrics(currentMetrics);
@@ -415,8 +409,7 @@ export function AdminDashboardPage() {
       setRecentOrders(normalizedOrders);
       setLowStockProducts(normalizedLowStock);
       setLowStockTotalCount(lowStockCount);
-      setTodayOrderCount(todayMetrics.totals.orders);
-      setPendingOrderCount(getPendingOrderCount(currentMetrics));
+      setPendingOrderCount(currentMetrics.summary?.openOrders ?? getPendingOrderCount(currentMetrics));
       setEstimatedRevenueValue(todayMetrics.totals.netRevenue ?? todayMetrics.totals.revenue);
       setAnalyticsEventsCount(currentMetrics.totals.events);
     } catch (error) {
@@ -542,7 +535,7 @@ export function AdminDashboardPage() {
 
   const averageOrderValue = dashboardMetrics?.summary?.averageOrderValue ?? 0;
   const cancellationRate = dashboardMetrics?.summary?.cancellationRate ?? 0;
-  const returnRate = dashboardMetrics?.summary?.returnRate ?? 0;
+  const exchangeRate = dashboardMetrics?.summary?.exchangeRate ?? dashboardMetrics?.summary?.returnRate ?? 0;
   const overduePendingOrders = dashboardMetrics?.summary?.pendingOver24hOrders ?? 0;
   const newCustomers = dashboardMetrics?.summary?.newCustomers ?? 0;
   const returningCustomers = dashboardMetrics?.summary?.returningCustomers ?? 0;
@@ -558,13 +551,13 @@ export function AdminDashboardPage() {
 
     const rows: DashboardReportCsvRow[] = [
       { report: "Tổng quan", indicator: "Khoảng thời gian", value: activeRangeLabel },
-      { report: "Tổng quan", indicator: "Doanh thu thuần", value: dashboardMetrics.totals.netRevenue ?? dashboardMetrics.totals.revenue, note: "Sau giảm giá/hoàn theo dữ liệu analytics" },
+      { report: "Tổng quan", indicator: "Doanh thu thuần", value: dashboardMetrics.totals.netRevenue ?? dashboardMetrics.totals.revenue, note: "Sau giảm giá hàng hóa, không gồm phí vận chuyển" },
       { report: "Tổng quan", indicator: "Doanh thu gộp", value: dashboardMetrics.totals.grossRevenue ?? dashboardMetrics.totals.revenue },
       { report: "Tổng quan", indicator: "Tổng đơn hàng", value: dashboardMetrics.totals.orders },
       { report: "Tổng quan", indicator: "Giá trị đơn trung bình", value: averageOrderValue },
-      { report: "Tổng quan", indicator: "Đơn chờ xử lý quá 24h", value: overduePendingOrders },
-      { report: "Tổng quan", indicator: "Tỷ lệ hủy", value: `${cancellationRate.toFixed(2)}%` },
-      { report: "Tổng quan", indicator: "Tỷ lệ hoàn", value: `${returnRate.toFixed(2)}%` },
+      { report: "Tổng quan", indicator: "Đơn mở quá 24h (toàn hệ thống)", value: overduePendingOrders },
+      { report: "Tổng quan", indicator: "Tỷ lệ hủy đơn", value: `${cancellationRate.toFixed(2)}%`, note: "Đơn hủy / tổng đơn gốc tạo trong kỳ" },
+      { report: "Tổng quan", indicator: "Tỷ lệ đổi hàng", value: `${exchangeRate.toFixed(2)}%`, note: "Yêu cầu đổi hoàn tất / đơn đã giao trong kỳ" },
       { report: "Khách hàng", indicator: "Khách mới", value: newCustomers },
       { report: "Khách hàng", indicator: "Khách quay lại", value: returningCustomers },
       { report: "Chuyển đổi", indicator: "Lượt mua", value: dashboardMetrics.conversion.purchases },
@@ -712,7 +705,7 @@ export function AdminDashboardPage() {
                   Đơn cần xử lý
                 </p>
                 <p className="m-0 text-xl font-black text-amber-200">
-                  {pendingOrderCount} / {todayOrderCount}
+                  {formatNumber.format(pendingOrderCount)} đơn
                 </p>
               </div>
             </Col>
@@ -746,23 +739,25 @@ export function AdminDashboardPage() {
           </Col>
           <Col xs={24} sm={12} xl={4}>
             <Card className="h-full border-slate-200! shadow-sm!">
-              <Text type="secondary">Tỷ lệ hủy</Text>
+              <Text type="secondary">Tỷ lệ hủy đơn ({activeRangeLabel})</Text>
               <Title level={4} className="mb-0! mt-1! text-rose-600!">
                 {cancellationRate.toFixed(2)}%
               </Title>
+              <Text className="text-xs!" type="secondary">Đơn hủy / tổng đơn gốc tạo trong kỳ</Text>
             </Card>
           </Col>
           <Col xs={24} sm={12} xl={4}>
             <Card className="h-full border-slate-200! shadow-sm!">
-              <Text type="secondary">Tỷ lệ hoàn</Text>
+              <Text type="secondary">Tỷ lệ đổi hàng ({activeRangeLabel})</Text>
               <Title level={4} className="mb-0! mt-1! text-orange-600!">
-                {returnRate.toFixed(2)}%
+                {exchangeRate.toFixed(2)}%
               </Title>
+              <Text className="text-xs!" type="secondary">Yêu cầu đổi hoàn tất / đơn đã giao trong kỳ</Text>
             </Card>
           </Col>
           <Col xs={24} sm={12} xl={4}>
             <Card className="h-full border-slate-200! shadow-sm!">
-              <Text type="secondary">Đơn chờ {'>'}24h</Text>
+              <Text type="secondary">Đơn mở {'>'}24h (toàn hệ thống)</Text>
               <Title level={4} className="mb-0! mt-1! text-amber-600!">
                 {formatNumber.format(overduePendingOrders)}
               </Title>

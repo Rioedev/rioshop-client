@@ -107,9 +107,11 @@ export function StoreProductShowcaseGrid({ items }: StoreProductShowcaseGridProp
       {items.map((item, index) => {
         const image = toProductCardImage(item, `RIO-${index + 1}`);
         const colorSwatches = toProductCardColorSwatches(item, image);
-        const hasDiscount = item.pricing.basePrice > item.pricing.salePrice;
+        const regularPrice = item.pricing.regularPrice ?? item.pricing.salePrice;
+        const compareAtPrice = item.pricing.compareAtPrice ?? item.pricing.basePrice;
+        const hasDiscount = compareAtPrice > regularPrice;
         const discountLabel = hasDiscount
-          ? `-${Math.round(((item.pricing.basePrice - item.pricing.salePrice) / item.pricing.basePrice) * 100)}%`
+          ? `-${Math.round(((compareAtPrice - regularPrice) / compareAtPrice) * 100)}%`
           : undefined;
         const ratingText = Number(item.ratings?.avg ?? 0) > 0 ? Number(item.ratings?.avg ?? 0).toFixed(1) : "4.8";
         const soldText =
@@ -123,8 +125,8 @@ export function StoreProductShowcaseGrid({ items }: StoreProductShowcaseGridProp
             href={`/products/${item.slug}`}
             imageUrl={image}
             name={item.name}
-            price={formatCurrency(item.pricing.salePrice)}
-            originalPrice={hasDiscount ? formatCurrency(item.pricing.basePrice) : undefined}
+            price={formatCurrency(regularPrice)}
+            originalPrice={hasDiscount ? formatCurrency(compareAtPrice) : undefined}
             categoryLabel={item.category?.name ?? "Sản phẩm"}
             badge={discountLabel}
             colorSwatches={colorSwatches}

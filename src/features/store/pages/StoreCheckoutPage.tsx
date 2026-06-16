@@ -510,8 +510,7 @@ export function StoreCheckoutPage() {
         setFreeShipDiscount(localQuote.freeShipDiscount);
         setIsEligibleForFreeShip(localQuote.isEligibleForFreeShip);
         setRemainingToFreeShip(localQuote.remainingToFreeShip);
-        const text = getErrorMessage(error, "Không tính được phí GHN, tạm dùng phí dự phòng.");
-        messageApi.warning(text);
+        messageApi.warning("Không tính được phí GHN, tạm dùng phí dự phòng.");
       } finally {
         if (mounted) {
           setShippingFeeLoading(false);
@@ -971,4 +970,3 @@ export function StoreCheckoutPage() {
     </StorePageShell>
   );
 }
-

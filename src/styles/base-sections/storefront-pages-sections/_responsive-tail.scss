@@ -8,7 +8,7 @@
   }
 
   .cart-recommend-grid {
-    grid-template-columns: 1fr;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
 
@@ -40,6 +40,10 @@
 
   .rio-product-image {
     height: 240px;
+  }
+
+  .cart-recommend-grid {
+    grid-template-columns: 1fr;
   }
 
   .rio-newsletter-form,

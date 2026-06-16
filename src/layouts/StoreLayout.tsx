@@ -5,9 +5,15 @@ import { Link, Outlet, useLocation, useNavigate } from "react-router-dom";
 import { AppNotificationsModal } from "../components/notifications/AppNotificationsModal";
 import { STORE_BRAND_KEY } from "../app/constants/storeBrand";
 import { StoreAiChatbot } from "../features/store/components/StoreAiChatbot";
+import {
+  formatStoreCurrency,
+  resolveStoreProductColors,
+  resolveStoreProductThumbnail,
+} from "../features/store/utils/storeFormatting";
 import { analyticsTracker } from "../services/analyticsTracker";
 import { brandConfigService } from "../services/brandConfigService";
 import { categoryService, type Category } from "../services/categoryService";
+import { productService, type Product } from "../services/productService";
 import {
   collectionService,
   type Collection,
@@ -70,6 +76,10 @@ export function StoreLayout() {
   const [isAccountMenuOpen, setIsAccountMenuOpen] = useState(false);
   const [isMegaMenuOpen, setIsMegaMenuOpen] = useState(false);
   const [isNotificationModalOpen, setIsNotificationModalOpen] = useState(false);
+  const [searchKeyword, setSearchKeyword] = useState("");
+  const [searchSuggestions, setSearchSuggestions] = useState<Product[]>([]);
+  const [isSearchLoading, setIsSearchLoading] = useState(false);
+  const [isSearchFocused, setIsSearchFocused] = useState(false);
   const [categoryTree, setCategoryTree] = useState<Category[]>([]);
   const [collections, setCollections] = useState<Collection[]>([]);
   const [brandLayout, setBrandLayout] = useState<{
@@ -108,6 +118,8 @@ export function StoreLayout() {
   const megaMenuRef = useRef<HTMLDivElement | null>(null);
   const megaMenuCloseTimerRef = useRef<number | null>(null);
   const searchInputRef = useRef<InputRef | null>(null);
+  const searchBoxRef = useRef<HTMLDivElement | null>(null);
+  const searchRequestIdRef = useRef(0);
 
   const fullName = user?.fullName ?? "";
   const initials = fullName
@@ -135,6 +147,13 @@ export function StoreLayout() {
         !megaMenuRef.current.contains(event.target as Node)
       ) {
         setIsMegaMenuOpen(false);
+      }
+
+      if (
+        searchBoxRef.current &&
+        !searchBoxRef.current.contains(event.target as Node)
+      ) {
+        setIsSearchFocused(false);
       }
     };
 
@@ -308,8 +327,49 @@ export function StoreLayout() {
     return new URLSearchParams(location.search).get("q")?.trim() ?? "";
   }, [location.pathname, location.search]);
 
+  useEffect(() => {
+    setSearchKeyword(searchKeywordFromUrl);
+    setSearchSuggestions([]);
+    setIsSearchFocused(false);
+  }, [searchKeywordFromUrl]);
+
+  useEffect(() => {
+    const keyword = searchKeyword.trim();
+    const requestId = ++searchRequestIdRef.current;
+
+    if (!isSearchFocused || keyword.length < 2) {
+      setSearchSuggestions([]);
+      setIsSearchLoading(false);
+      return;
+    }
+
+    setIsSearchLoading(true);
+    const timer = window.setTimeout(() => {
+      void productService
+        .searchProducts(keyword, 1, 6, "active")
+        .then((result) => {
+          if (searchRequestIdRef.current !== requestId) {
+            return;
+          }
+          setSearchSuggestions(result.docs);
+        })
+        .catch(() => {
+          if (searchRequestIdRef.current === requestId) {
+            setSearchSuggestions([]);
+          }
+        })
+        .finally(() => {
+          if (searchRequestIdRef.current === requestId) {
+            setIsSearchLoading(false);
+          }
+        });
+    }, 350);
+
+    return () => window.clearTimeout(timer);
+  }, [isSearchFocused, searchKeyword]);
+
   const onSearch = (rawKeyword?: string) => {
-    const keyword = (rawKeyword ?? searchInputRef.current?.input?.value ?? "").trim();
+    const keyword = (rawKeyword ?? searchKeyword ?? searchInputRef.current?.input?.value ?? "").trim();
     if (keyword) {
       void analyticsTracker.track({
         event: "search",
@@ -324,6 +384,7 @@ export function StoreLayout() {
     navigate(
       keyword ? `/products?q=${encodeURIComponent(keyword)}` : "/products",
     );
+    setIsSearchFocused(false);
   };
 
   const megaColumns = useMemo(
@@ -407,6 +468,8 @@ export function StoreLayout() {
   }, [location.pathname, location.search, user?.id]);
 
   const isHomePage = location.pathname === "/";
+  const shouldShowSearchSuggestions =
+    isSearchFocused && searchKeyword.trim().length >= 2;
 
   return (
     <div className="storefront-shell min-h-screen">
@@ -439,12 +502,16 @@ export function StoreLayout() {
               RIO<span>SHOP</span>
             </Link>
 
-            <div className="order-3 w-full lg:order-0 lg:flex-1">
+            <div
+              ref={searchBoxRef}
+              className="store-search-wrap order-3 w-full lg:order-0 lg:flex-1"
+            >
               <Input
-                key={`${location.pathname}|${location.search}`}
                 ref={searchInputRef}
                 allowClear
-                defaultValue={searchKeywordFromUrl}
+                value={searchKeyword}
+                onChange={(event) => setSearchKeyword(event.target.value)}
+                onFocus={() => setIsSearchFocused(true)}
                 onPressEnter={(event) => onSearch(event.currentTarget.value)}
                 suffix={
                   <SearchOutlined
@@ -455,6 +522,68 @@ export function StoreLayout() {
                 className="store-search"
                 placeholder="Tìm áo thun, quần short, combo..."
               />
+
+              {shouldShowSearchSuggestions ? (
+                <div className="store-search-suggestions">
+                  <div className="store-search-suggestions-head">
+                    <strong>Kết quả tìm kiếm</strong>
+                    {!isSearchLoading ? <span>{searchSuggestions.length} sản phẩm</span> : null}
+                  </div>
+
+                  {isSearchLoading ? (
+                    <div className="store-search-suggestions-state">Đang tìm sản phẩm...</div>
+                  ) : searchSuggestions.length > 0 ? (
+                    <div className="store-search-suggestions-list">
+                      {searchSuggestions.map((product) => {
+                        const image = resolveStoreProductThumbnail(product);
+                        const colors = resolveStoreProductColors(product).slice(0, 3);
+                        const price = product.pricing.regularPrice ?? product.pricing.salePrice;
+
+                        return (
+                          <Link
+                            key={product._id}
+                            to={`/products/${product.slug}`}
+                            className="store-search-suggestion-item"
+                            onClick={() => setIsSearchFocused(false)}
+                          >
+                            <div className="store-search-suggestion-image">
+                              {image ? <img src={image} alt={product.name} /> : <span>RIO</span>}
+                            </div>
+                            <div className="store-search-suggestion-copy">
+                              <strong>{product.name}</strong>
+                              <small>{product.category?.name || product.brand}</small>
+                              <div className="store-search-suggestion-meta">
+                                <b>{formatStoreCurrency(price)}</b>
+                                {colors.length > 0 ? (
+                                  <span className="store-search-suggestion-colors">
+                                    {colors.map((color) => (
+                                      <i
+                                        key={`${product._id}-${color.name}-${color.hex}`}
+                                        style={{ backgroundColor: color.hex }}
+                                        title={color.name}
+                                      />
+                                    ))}
+                                  </span>
+                                ) : null}
+                              </div>
+                            </div>
+                          </Link>
+                        );
+                      })}
+                    </div>
+                  ) : (
+                    <div className="store-search-suggestions-state">Không tìm thấy sản phẩm phù hợp.</div>
+                  )}
+
+                  <button
+                    type="button"
+                    className="store-search-view-all"
+                    onClick={() => onSearch(searchKeyword)}
+                  >
+                    Xem tất cả kết quả
+                  </button>
+                </div>
+              ) : null}
             </div>
 
             <StoreHeaderActions
@@ -487,7 +616,7 @@ export function StoreLayout() {
             <Link to="/products?sort=newest" className="store-nav-pill">
               Mới về
             </Link>
-            <Link to="/products?sort=price_desc" className="store-nav-pill">
+            <Link to="/flash-sales" className="store-nav-pill">
               Flash sale
             </Link>
             <Link to="/products" className="store-nav-pill">

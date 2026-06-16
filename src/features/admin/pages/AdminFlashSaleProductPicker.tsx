@@ -138,7 +138,7 @@ export function AdminFlashSaleProductPicker({
               const image =
                 resolveStoreImageUrl(resolveStoreProductThumbnail(product)) ??
                 "/placeholder-product.svg";
-              const basePrice = Number(product.pricing?.salePrice || 0);
+              const regularPrice = Number(product.pricing?.regularPrice ?? product.pricing?.salePrice ?? 0);
 
               return (
                 <label
@@ -162,7 +162,7 @@ export function AdminFlashSaleProductPicker({
                     </p>
                   </div>
                   <div className="text-sm font-bold text-[#082a5c]">
-                    {basePrice.toLocaleString("vi-VN")}đ
+                    {regularPrice.toLocaleString("vi-VN")}đ
                   </div>
                 </label>
               );

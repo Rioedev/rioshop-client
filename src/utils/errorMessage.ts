@@ -87,6 +87,9 @@ const EXACT_MESSAGE_MAP: Record<string, string> = {
   "return request can only be completed after order is marked returned":
     "Yêu cầu đổi hàng chỉ hoàn tất sau khi đơn được xử lý đúng quy trình.",
   "failed to update return request status": "Không thể cập nhật yêu cầu đổi hàng. Vui lòng thử lại.",
+  "exchange items are required to complete exchange": "Hãy chọn sản phẩm và size thay thế trước khi hoàn tất đổi hàng.",
+  "exchange orders must be completed through the exchange request workflow":
+    "Đơn có yêu cầu đổi hàng phải được xử lý trong mục Yêu cầu đổi hàng.",
   "cannot determine delivered date for this order":
     "Không xác định được thời điểm giao hàng để kiểm tra hạn đổi hàng.",
   "return request period expired (3 day(s) after delivery)":
@@ -162,6 +165,9 @@ const PATTERN_MESSAGE_MAP: Array<{ pattern: RegExp; message: string }> = [
 
 const normalizeMessageKey = (value: string) => value.trim().toLowerCase().replace(/\s+/g, " ");
 
+const formatVnd = (value: number) =>
+  `${Math.max(0, value).toLocaleString("vi-VN")}đ`;
+
 const translateToVietnamese = (rawMessage?: string): string => {
   const normalizedMessage = repairMojibakeText(rawMessage, { trim: true });
   if (!normalizedMessage) {
@@ -169,6 +175,12 @@ const translateToVietnamese = (rawMessage?: string): string => {
   }
 
   const messageKey = normalizeMessageKey(normalizedMessage);
+
+  const minimumOrderMatch = messageKey.match(/^minimum order value is (\d+(?:\.\d+)?)$/);
+  if (minimumOrderMatch) {
+    return `Đơn hàng cần tối thiểu ${formatVnd(Number(minimumOrderMatch[1]))} để dùng mã này.`;
+  }
+
   const exactMatch = EXACT_MESSAGE_MAP[messageKey];
   if (exactMatch) {
     return exactMatch;

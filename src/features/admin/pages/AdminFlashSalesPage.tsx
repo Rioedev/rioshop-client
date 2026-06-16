@@ -249,7 +249,10 @@ export function AdminFlashSalesPage() {
 
     const priceValue = Number(currentSlot.salePrice);
     if (!Number.isFinite(priceValue) || priceValue <= 0) {
-      currentSlot.salePrice = Math.max(0, Number(selectedProduct?.pricing.salePrice || 0));
+      currentSlot.salePrice = Math.max(
+        0,
+        Number(selectedProduct?.pricing.regularPrice ?? selectedProduct?.pricing.salePrice ?? 0),
+      );
     }
 
     const stockLimit = Number(currentSlot.stockLimit);
@@ -303,7 +306,7 @@ export function AdminFlashSalesPage() {
       startsAt: "",
       endsAt: "",
       isActive: true,
-      slots: [createDefaultSlot()],
+      slots: [],
     });
     setIsModalOpen(true);
   };
@@ -325,7 +328,7 @@ export function AdminFlashSalesPage() {
               stockLimit: slot.stockLimit,
               sold: slot.sold,
             }))
-          : [createDefaultSlot()],
+          : [],
     });
     setIsModalOpen(true);
   };

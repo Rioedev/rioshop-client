@@ -5,8 +5,8 @@
   StarFilled,
   TruckOutlined,
 } from "@ant-design/icons";
-import { Button, InputNumber, Typography } from "antd";
-import type { ClipboardEvent, KeyboardEvent } from "react";
+import { Button, InputNumber, Modal, Typography } from "antd";
+import { useMemo, useState, type ClipboardEvent, type KeyboardEvent } from "react";
 import { Link } from "react-router-dom";
 import { formatStoreCurrency as formatCurrency } from "../utils/storeFormatting";
 import { DEFAULT_COLOR_HEX, type ProductRuntime } from "../shared/productDetail";
@@ -72,6 +72,7 @@ export function StoreProductMainSection({
   isInWishlist,
   onToggleWishlist,
 }: StoreProductMainSectionProps) {
+  const [isSizeGuideOpen, setIsSizeGuideOpen] = useState(false);
   const discountPercent =
     hasDiscount && selectedVariantBasePrice > 0
       ? Math.round(((selectedVariantBasePrice - selectedVariantPrice) / selectedVariantBasePrice) * 100)
@@ -80,6 +81,22 @@ export function StoreProductMainSection({
   const hasColorOptions = colorOptions.length > 0;
   const hasSizeOptions = sizeOptions.length > 0;
   const hasNoVariants = !hasColorOptions && !hasSizeOptions;
+  const sizeChartRows = useMemo(
+    () => (product.sizeChart?.rows ?? []).filter((row) => row.size?.trim()),
+    [product.sizeChart?.rows],
+  );
+  const displayedSizeRows =
+    sizeChartRows.length > 0
+      ? sizeChartRows
+      : sizeOptions.map((size) => ({
+          size,
+          shoulder: null,
+          chest: null,
+          waist: null,
+          hip: null,
+          length: null,
+        }));
+  const hasSizeGuide = displayedSizeRows.length > 0;
   const isPurchaseBlocked = hasNoVariants || isSelectedVariantOutOfStock;
   const primaryButtonLabel = hasNoVariants
     ? "Chưa có biến thể"
@@ -203,9 +220,20 @@ export function StoreProductMainSection({
 
         {hasSizeOptions ? (
           <div className="mt-5">
-            <p className="mb-3 text-sm font-semibold text-slate-700">
-              Kích thước: <span className="font-bold text-slate-900">{selectedSize || sizeOptions[0]}</span>
-            </p>
+            <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+              <p className="m-0 text-sm font-semibold text-slate-700">
+                Kích thước: <span className="font-bold text-slate-900">{selectedSize || sizeOptions[0]}</span>
+              </p>
+              {hasSizeGuide ? (
+                <Button
+                  type="link"
+                  className="h-auto! p-0! text-sm! font-semibold! text-slate-700!"
+                  onClick={() => setIsSizeGuideOpen(true)}
+                >
+                  Hướng dẫn chọn size
+                </Button>
+              ) : null}
+            </div>
             <div className="flex flex-wrap gap-2">
               {sizeOptions.map((size) => (
                 <button
@@ -287,6 +315,52 @@ export function StoreProductMainSection({
             </Link>
           )}
         </div>
+
+        <Modal
+          title="Hướng dẫn chọn size"
+          open={isSizeGuideOpen}
+          onCancel={() => setIsSizeGuideOpen(false)}
+          footer={null}
+          width={720}
+        >
+          <div className="overflow-x-auto">
+            <table className="w-full min-w-[620px] border-collapse text-sm">
+              <thead>
+                <tr className="border-b border-slate-200 text-left text-slate-500">
+                  <th className="py-2 pr-3 font-semibold">Size</th>
+                  <th className="py-2 pr-3 font-semibold">Vai</th>
+                  <th className="py-2 pr-3 font-semibold">Ngực</th>
+                  <th className="py-2 pr-3 font-semibold">Eo</th>
+                  <th className="py-2 pr-3 font-semibold">Hông</th>
+                  <th className="py-2 pr-3 font-semibold">Dài</th>
+                </tr>
+              </thead>
+              <tbody>
+                {displayedSizeRows.map((row) => (
+                  <tr key={row.size} className="border-b border-slate-100">
+                    <td className="py-2 pr-3 font-bold text-slate-900">{row.size}</td>
+                    <td className="py-2 pr-3 text-slate-700">{row.shoulder ? `${row.shoulder} cm` : "-"}</td>
+                    <td className="py-2 pr-3 text-slate-700">{row.chest ? `${row.chest} cm` : "-"}</td>
+                    <td className="py-2 pr-3 text-slate-700">{row.waist ? `${row.waist} cm` : "-"}</td>
+                    <td className="py-2 pr-3 text-slate-700">{row.hip ? `${row.hip} cm` : "-"}</td>
+                    <td className="py-2 pr-3 text-slate-700">{row.length ? `${row.length} cm` : "-"}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          <div className="mt-4 rounded-2xl bg-slate-50 p-4 text-sm leading-6 text-slate-600">
+            <p className="m-0">
+              Nếu số đo nằm giữa hai size, hãy chọn size lớn hơn để mặc thoải mái hơn. Với sản phẩm
+              form ôm, nên ưu tiên số đo ngực/eo; với sản phẩm form rộng, có thể chọn theo size thường mặc.
+            </p>
+            {sizeChartRows.length === 0 ? (
+              <p className="m-0 mt-2 text-slate-500">
+                Bảng số đo chi tiết của sản phẩm này đang được cập nhật.
+              </p>
+            ) : null}
+          </div>
+        </Modal>
 
         <div className="product-note-list">
           <p>

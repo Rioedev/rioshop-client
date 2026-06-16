@@ -172,6 +172,7 @@
 .store-home-v3-flash-layout {
   display: grid;
   grid-template-columns: minmax(360px, 0.86fr) minmax(0, 1.14fr);
+  align-items: start;
   gap: 20px;
 }
 
@@ -184,14 +185,55 @@
 .store-home-v3-flash-feature {
   border: 1px solid rgba(251, 146, 60, 0.18);
   background: rgba(15, 23, 42, 0.48);
-  padding: 24px;
   color: #f8fafc;
+  overflow: hidden;
+  display: grid;
+  grid-template-columns: 210px minmax(0, 1fr);
+  min-height: 300px;
+  align-self: start;
+  transition: transform 180ms ease, box-shadow 180ms ease;
+}
+
+.store-home-v3-flash-feature-media {
+  height: 300px;
+}
+
+.store-home-v3-flash-feature:hover,
+.store-home-v3-flash-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 16px 30px rgba(15, 23, 42, 0.12);
+}
+
+.store-home-v3-flash-feature-media,
+.store-home-v3-flash-card-media {
+  overflow: hidden;
+  background: #f1f5f9;
+}
+
+.store-home-v3-flash-feature-media img,
+.store-home-v3-flash-card-media img {
+  width: 100%;
+  height: 100%;
+  display: block;
+  object-fit: cover;
+  object-position: center top;
+  transition: transform 260ms ease;
+}
+
+.store-home-v3-flash-feature:hover img,
+.store-home-v3-flash-card:hover img {
+  transform: scale(1.025);
+}
+
+.store-home-v3-flash-feature-body {
+  align-self: center;
+  padding: 22px;
 }
 
 .store-home-v3-flash-feature h3 {
   margin: 8px 0 0;
-  font-size: 34px;
-  line-height: 1.06;
+  font-size: 26px;
+  line-height: 1.15;
   font-weight: 900;
 }
 
@@ -206,7 +248,7 @@
   display: flex;
   align-items: baseline;
   gap: 10px;
-  margin: 18px 0 14px;
+  margin: 16px 0 12px;
 }
 
 .store-home-v3-flash-price strong {
@@ -232,14 +274,23 @@
 
 .store-home-v3-flash-list {
   display: grid;
-  gap: 16px;
+  gap: 12px;
 }
 
 .store-home-v3-flash-card {
   border: 1px solid rgba(51, 65, 85, 0.7);
   background: #0f172a;
   color: #f8fafc;
-  padding: 18px;
+  overflow: hidden;
+  display: grid;
+  grid-template-columns: 104px minmax(0, 1fr);
+  min-height: 112px;
+  transition: transform 180ms ease, box-shadow 180ms ease;
+}
+
+.store-home-v3-flash-card-body {
+  min-width: 0;
+  padding: 13px 16px;
 }
 
 .store-home-v3-flash-card-head {
@@ -266,9 +317,9 @@
 }
 
 .store-home-v3-flash-card h3 {
-  margin: 12px 0 0;
-  font-size: 18px;
-  line-height: 1.5;
+  margin: 7px 0 0;
+  font-size: 16px;
+  line-height: 1.35;
   font-weight: 800;
 }
 
@@ -276,11 +327,11 @@
   display: flex;
   align-items: baseline;
   gap: 8px;
-  margin: 10px 0 14px;
+  margin: 7px 0 9px;
 }
 
 .store-home-v3-flash-card-price strong {
-  font-size: 22px;
+  font-size: 19px;
   font-weight: 900;
 }
 

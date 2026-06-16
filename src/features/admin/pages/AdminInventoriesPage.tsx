@@ -12,10 +12,13 @@
   Space,
   Statistic,
   Table,
+  Tabs,
   Tag,
   Typography,
   message,
 } from "antd";
+import { InventoryAdjustmentsPanel } from "./AdminInventoryAdjustmentsPage";
+import { AdminDefectiveInventoryPanel } from "./AdminDefectiveInventoryPanel";
 import { DownloadOutlined } from "@ant-design/icons";
 import type { ColumnsType, TablePaginationConfig } from "antd/es/table";
 import { useCallback, useEffect, useRef, useState } from "react";
@@ -553,11 +556,18 @@ export function AdminInventoriesPage() {
           Quản lý tồn kho
         </Title>
         <Paragraph className="mb-0!" type="secondary">
-          Theo dõi cảnh báo sắp hết hàng, tra cứu SKU biến thể và cập nhật tồn kho theo kho mặc định.
+          Theo dõi cảnh báo sắp hết hàng, tra cứu SKU biến thể, cập nhật tồn kho và ghi nhận lệch kho ngoài luồng nhập hàng.
         </Paragraph>
       </div>
 
-      <div className="grid gap-6">
+      <Tabs
+        defaultActiveKey="list"
+        items={[
+          {
+            key: "list",
+            label: "Danh sách tồn kho",
+            children: (
+              <div className="grid gap-6">
         <Card>
           <div className="mb-4">
             <Title level={5} className="mb-1! mt-0!">
@@ -740,7 +750,21 @@ export function AdminInventoriesPage() {
             }}
           />
         </Card>
-      </div>
+              </div>
+            ),
+          },
+          {
+            key: "adjustments",
+            label: "Lịch sử điều chỉnh",
+            children: <InventoryAdjustmentsPanel />,
+          },
+          {
+            key: "defective",
+            label: "Hàng lỗi",
+            children: <AdminDefectiveInventoryPanel />,
+          },
+        ]}
+      />
 
       <Modal
         title={editingItem ? "Cập nhật bản ghi tồn kho" : "Thêm bản ghi tồn kho"}
@@ -847,5 +871,3 @@ export function AdminInventoriesPage() {
     </div>
   );
 }
-
-

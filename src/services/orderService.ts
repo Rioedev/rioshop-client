@@ -16,6 +16,18 @@ export type PaymentStatus = "pending" | "paid" | "refunded" | "failed";
 export type PaymentMethod = "cod" | "bank_transfer" | "momo" | "vnpay" | "zalopay" | "card";
 export type ReturnRequestType = "return" | "exchange";
 export type ReturnRequestStatus = "pending" | "approved" | "rejected" | "completed";
+export type ReturnDisposition = "restock" | "quarantine";
+
+export type ExchangeItemRecord = {
+  productId: string;
+  productName: string;
+  originalVariantSku: string;
+  originalVariantLabel: string;
+  replacementVariantSku: string;
+  replacementVariantLabel: string;
+  quantity: number;
+  returnDisposition: ReturnDisposition;
+};
 
 export type ReturnRequestRecord = {
   type: ReturnRequestType;
@@ -27,6 +39,7 @@ export type ReturnRequestRecord = {
   completedAt?: string;
   replacementOrderId?: string;
   replacementOrderNumber?: string;
+  exchangeItems?: ExchangeItemRecord[];
 };
 
 export type ExchangeMetaRecord = {
@@ -67,6 +80,14 @@ type OrderApiItem = {
     unitPrice?: number;
     quantity?: number;
     totalPrice?: number;
+    returnedQty?: number;
+    availableVariants?: Array<{
+      sku: string;
+      label: string;
+      size?: string;
+      colorName?: string;
+      stock: number;
+    }>;
   }>;
   pricing?: {
     subtotal?: number;
@@ -111,6 +132,7 @@ type OrderApiItem = {
     completedAt?: string;
     replacementOrderId?: string;
     replacementOrderNumber?: string;
+    exchangeItems?: ExchangeItemRecord[];
   };
   exchangeMeta?: {
     isReplacement?: boolean;
@@ -130,6 +152,14 @@ export type OrderItem = {
   unitPrice: number;
   quantity: number;
   totalPrice: number;
+  returnedQty?: number;
+  availableVariants?: Array<{
+    sku: string;
+    label: string;
+    size?: string;
+    colorName?: string;
+    stock: number;
+  }>;
 };
 
 export type OrderRecord = {
@@ -214,6 +244,13 @@ export type SubmitReturnRequestPayload = {
 export type UpdateReturnRequestStatusPayload = {
   status: ReturnRequestStatus;
   note?: string;
+  exchangeItems?: Array<{
+    productId: string;
+    originalVariantSku: string;
+    replacementVariantSku: string;
+    quantity: number;
+    returnDisposition: ReturnDisposition;
+  }>;
 };
 
 export type SyncShipmentResult = {
@@ -327,6 +364,8 @@ const normalizeOrder = (item: OrderApiItem): OrderRecord => {
       unitPrice: line.unitPrice ?? 0,
       quantity: line.quantity ?? 0,
       totalPrice: line.totalPrice ?? 0,
+      returnedQty: line.returnedQty ?? 0,
+      availableVariants: line.availableVariants ?? [],
     })),
     pricing: {
       subtotal: item.pricing?.subtotal ?? 0,
@@ -360,6 +399,7 @@ const normalizeOrder = (item: OrderApiItem): OrderRecord => {
           completedAt: item.returnRequest.completedAt,
           replacementOrderId: toOptionalString(item.returnRequest.replacementOrderId),
           replacementOrderNumber: item.returnRequest.replacementOrderNumber,
+          exchangeItems: item.returnRequest.exchangeItems ?? [],
         }
       : undefined,
     exchangeMeta: item.exchangeMeta

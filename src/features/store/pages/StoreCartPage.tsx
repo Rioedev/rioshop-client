@@ -1,6 +1,7 @@
 import { Button, Checkbox, InputNumber, Progress, Select, message } from "antd";
 import { Link } from "react-router-dom";
 import { useEffect, useMemo, useRef, useState } from "react";
+import { StoreProductGridCard } from "../components/StoreProductGridCard";
 import {
   StoreEmptyState,
   StoreMetricGrid,
@@ -12,9 +13,10 @@ import {
 } from "../components/StorePageChrome";
 import {
   formatStoreCurrency,
-  resolveStoreProductColors,
+  resolveStoreImageUrl,
   resolveStoreProductThumbnail,
 } from "../utils/storeFormatting";
+import { toStoreColorSwatches } from "../utils/productSwatches";
 import {
   blockNonNumericAndOverflowKey,
   blockOverflowPaste,
@@ -23,7 +25,11 @@ import {
 } from "../utils/quantityInputGuards";
 import { cartService, toCartCouponMeta, toCartStoreItems } from "../../../services/cartService";
 import { couponService, type Coupon } from "../../../services/couponService";
-import { productService, type Product } from "../../../services/productService";
+import {
+  productService,
+  type CartProductRecommendation,
+  type Product,
+} from "../../../services/productService";
 import { shippingService, type ShippingPolicy } from "../../../services/shippingService";
 import { buildCartItemId, type CartItem, useCartStore } from "../../../stores/cartStore";
 import { useAuthStore } from "../../../stores/authStore";
@@ -47,6 +53,23 @@ const DEFAULT_SHIPPING_POLICY: ShippingPolicy = {
 const resolveCartItemId = (item: CartItem) =>
   item.itemId || buildCartItemId({ productId: item.productId, variantSku: item.variantSku });
 
+const getCouponSelectionBlockReason = (
+  coupon: Coupon,
+  selectedSubtotal: number,
+  selectedQuantity: number,
+) => {
+  if (selectedQuantity <= 0) {
+    return "Vui lòng chọn sản phẩm trước khi áp mã.";
+  }
+
+  const minOrderValue = Number(coupon.minOrderValue || 0);
+  if (minOrderValue > 0 && selectedSubtotal < minOrderValue) {
+    return `Đơn hàng cần tối thiểu ${formatStoreCurrency(minOrderValue)} để dùng mã ${coupon.code}.`;
+  }
+
+  return "";
+};
+
 export function StoreCartPage() {
   const [messageApi, contextHolder] = message.useMessage();
   const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
@@ -59,7 +82,7 @@ export function StoreCartPage() {
   const removeItem = useCartStore((state) => state.removeItem);
   const clearCart = useCartStore((state) => state.clearCart);
   const addCartItem = useCartStore((state) => state.addItem);
-  const [recommendations, setRecommendations] = useState<Product[]>([]);
+  const [recommendations, setRecommendations] = useState<CartProductRecommendation[]>([]);
   const [selectedCouponCode, setSelectedCouponCode] = useState<string | undefined>(undefined);
   const [savedCoupons, setSavedCoupons] = useState<Coupon[]>([]);
   const [savedCouponCodes, setSavedCouponCodes] = useState<string[]>([]);
@@ -151,30 +174,15 @@ export function StoreCartPage() {
     };
   }, []);
 
-  const {
-    subtotal,
-    freeShipProgress,
-    amountToFreeShip,
-    totalItems,
-    isFreeShipTracked,
-    isEligibleForFreeShip,
-  } = useMemo(() => {
+  const { subtotal, totalItems } = useMemo(() => {
     const subtotalValue = items.reduce((sum, item) => sum + item.price * item.quantity, 0);
     const quantityValue = items.reduce((sum, item) => sum + item.quantity, 0);
-    const threshold = Math.max(0, Number(shippingPolicy.freeShipThreshold || 0));
-    const trackFreeShip = shippingPolicy.freeShipEnabled && threshold > 0;
-    const eligible = trackFreeShip && subtotalValue >= threshold;
-    const progress = trackFreeShip ? Math.min(100, Math.round((subtotalValue / threshold) * 100)) : 0;
 
     return {
       subtotal: subtotalValue,
-      freeShipProgress: progress,
-      amountToFreeShip: trackFreeShip ? Math.max(0, threshold - subtotalValue) : 0,
       totalItems: quantityValue,
-      isFreeShipTracked: trackFreeShip,
-      isEligibleForFreeShip: eligible,
     };
-  }, [items, shippingPolicy]);
+  }, [items]);
 
   const unavailableSavedCouponCodes = useMemo(() => {
     const availableCodes = new Set(savedCoupons.map((coupon) => coupon.code.trim().toUpperCase()));
@@ -185,20 +193,20 @@ export function StoreCartPage() {
     let active = true;
 
     const loadRecommendations = async () => {
+      const productIds = [...new Set(items.map((item) => item.productId).filter(Boolean))];
+      if (productIds.length === 0) {
+        setRecommendations([]);
+        return;
+      }
+
       try {
-        const result = await productService.getProducts({
-          page: 1,
-          limit: 8,
-          status: "active",
-          sort: { isFeatured: -1, totalSold: -1, createdAt: -1 },
-        });
+        const result = await productService.getCartRecommendations(productIds, 4);
 
         if (!active) {
           return;
         }
 
-        const inCartIds = new Set(items.map((item) => item.productId));
-        setRecommendations(result.docs.filter((item) => !inCartIds.has(item._id)).slice(0, 3));
+        setRecommendations(result);
       } catch {
         if (active) {
           setRecommendations([]);
@@ -311,9 +319,59 @@ export function StoreCartPage() {
     (sum, item) => sum + item.price * item.quantity,
     0,
   );
+  const {
+    freeShipProgress,
+    amountToFreeShip,
+    isFreeShipTracked,
+    isEligibleForFreeShip,
+  } = useMemo(() => {
+    const threshold = Math.max(0, Number(shippingPolicy.freeShipThreshold || 0));
+    const trackFreeShip = shippingPolicy.freeShipEnabled && threshold > 0;
+    const hasSelectedItems = selectedCheckoutQuantity > 0;
+
+    return {
+      freeShipProgress:
+        trackFreeShip && hasSelectedItems
+          ? Math.min(100, Math.round((selectedCheckoutSubtotal / threshold) * 100))
+          : 0,
+      amountToFreeShip:
+        trackFreeShip && hasSelectedItems
+          ? Math.max(0, threshold - selectedCheckoutSubtotal)
+          : threshold,
+      isFreeShipTracked: trackFreeShip,
+      isEligibleForFreeShip:
+        trackFreeShip && hasSelectedItems && selectedCheckoutSubtotal >= threshold,
+    };
+  }, [selectedCheckoutQuantity, selectedCheckoutSubtotal, shippingPolicy]);
+  const savedCouponByCode = useMemo(
+    () => new Map(savedCoupons.map((coupon) => [coupon.code.trim().toUpperCase(), coupon] as const)),
+    [savedCoupons],
+  );
+  const selectedCoupon = selectedCouponCode
+    ? savedCouponByCode.get(selectedCouponCode.trim().toUpperCase())
+    : undefined;
+  const selectedCouponBlockReason = selectedCoupon
+    ? getCouponSelectionBlockReason(
+        selectedCoupon,
+        selectedCheckoutSubtotal,
+        selectedCheckoutQuantity,
+      )
+    : "";
+  const appliedCoupon = couponCode
+    ? savedCouponByCode.get(couponCode.trim().toUpperCase())
+    : undefined;
+  const appliedCouponBlockReason = appliedCoupon
+    ? getCouponSelectionBlockReason(
+        appliedCoupon,
+        selectedCheckoutSubtotal,
+        selectedCheckoutQuantity,
+      )
+    : "";
   const selectedCheckoutDiscountValue = Math.max(
     0,
-    Math.min(Number(couponDiscount || 0), selectedCheckoutSubtotal),
+    appliedCouponBlockReason
+      ? 0
+      : Math.min(Number(couponDiscount || 0), selectedCheckoutSubtotal),
   );
   const selectedCheckoutTotal = Math.max(
     0,
@@ -356,7 +414,7 @@ export function StoreCartPage() {
     const variantLabel = `${variant.color?.name?.trim() || "Mặc định"} / ${(variant.sizeLabel || variant.size).trim()}`;
     const price = Math.max(
       0,
-      item.pricing.salePrice + Number(variant.additionalPrice || 0),
+      (item.pricing.regularPrice ?? item.pricing.salePrice) + Number(variant.additionalPrice || 0),
     );
 
     if (isAuthenticated) {
@@ -400,8 +458,33 @@ export function StoreCartPage() {
       return;
     }
 
+    const coupon = savedCouponByCode.get(nextCode);
+    const blockReason = coupon
+      ? getCouponSelectionBlockReason(
+          coupon,
+          selectedCheckoutSubtotal,
+          selectedCheckoutQuantity,
+        )
+      : "";
+
+    if (blockReason) {
+      messageApi.warning(blockReason);
+      return;
+    }
+
     setApplyingCoupon(true);
     try {
+      const validation = await couponService.validateCoupon({
+        code: nextCode,
+        orderValue: selectedCheckoutSubtotal,
+        productIds: selectedCheckoutItems.map((item) => item.productId),
+      });
+
+      if (!validation.isValid) {
+        messageApi.warning(getErrorMessage(new Error(validation.reason || "Mã giảm giá không đủ điều kiện.")));
+        return;
+      }
+
       const cart = await cartService.applyCoupon(nextCode);
       syncCartFromServer(cart);
       messageApi.success(`Áp dụng mã ${nextCode} thành công.`);
@@ -466,9 +549,17 @@ export function StoreCartPage() {
     },
     {
       label: "Freeship",
-      value: !isFreeShipTracked ? "Theo chính sách" : amountToFreeShip > 0 ? formatStoreCurrency(amountToFreeShip) : "Đã đạt",
+      value: selectedCheckoutQuantity <= 0
+        ? "Chưa chọn"
+        : !isFreeShipTracked
+          ? "Theo chính sách"
+          : amountToFreeShip > 0
+            ? formatStoreCurrency(amountToFreeShip)
+            : "Đã đạt",
       description: !isFreeShipTracked
         ? "Chính sách freeship được áp ở bước thanh toán theo phương thức giao."
+        : selectedCheckoutQuantity <= 0
+          ? "Chọn sản phẩm để kiểm tra điều kiện miễn phí giao hàng."
         : amountToFreeShip > 0
           ? "Giá trị còn thiếu để đạt ngưỡng miễn phí giao hàng."
           : "Đơn hàng hiện tại đã đủ điều kiện freeship.",
@@ -500,6 +591,8 @@ export function StoreCartPage() {
                 <span className="text-sm text-slate-500">Đang tải chính sách freeship...</span>
               ) : !isFreeShipTracked ? (
                 <span className="text-sm text-slate-500">Freeship được áp ở bước checkout theo phương thức giao.</span>
+              ) : selectedCheckoutQuantity <= 0 ? (
+                <span className="text-sm text-slate-500">Chọn sản phẩm để tính điều kiện freeship</span>
               ) : amountToFreeShip > 0 ? (
                 <span className="text-sm text-slate-500">Thêm {formatStoreCurrency(amountToFreeShip)} để được miễn phí vận chuyển</span>
               ) : (
@@ -592,46 +685,40 @@ export function StoreCartPage() {
             <div className="space-y-3">
               <StoreSectionHeader kicker="Gợi ý thêm" title="Có thể bạn cũng thích" />
               <div className="cart-recommend-grid">
-                {recommendations.map((item) => {
+                {recommendations.map(({ product: item }) => {
                   const image = resolveStoreProductThumbnail(item);
-                  const colorChips = resolveStoreProductColors(item);
-                  const visibleColorChips = colorChips.slice(0, 5);
-                  const extraColorCount = Math.max(0, colorChips.length - visibleColorChips.length);
+                  const colorSwatches = toStoreColorSwatches(item, image).map((color) => ({
+                    ...color,
+                    imageUrl: resolveStoreImageUrl(color.imageUrl),
+                  }));
+                  const regularPrice = item.pricing.regularPrice ?? item.pricing.salePrice;
+                  const compareAtPrice = item.pricing.compareAtPrice ?? item.pricing.basePrice;
+                  const hasDiscount = Number(compareAtPrice || 0) > regularPrice;
+                  const discountLabel = hasDiscount
+                    ? `-${Math.round(((Number(compareAtPrice) - regularPrice) / Number(compareAtPrice)) * 100)}%`
+                    : undefined;
 
                   return (
-                    <article key={item._id} className="cart-rec-card">
-                      <div className="cart-rec-image">
-                        {image ? (
-                          <img src={image} alt={item.name} className="h-full w-full object-contain" />
-                        ) : (
-                          <div className="product-main-fallback">RIO</div>
-                        )}
-                      </div>
-                      <div className="cart-rec-content">
-                        <p className="cart-rec-title">{item.name}</p>
-                        {visibleColorChips.length > 0 ? (
-                          <div className="cart-rec-color-row" aria-label="Màu sắc sản phẩm">
-                            {visibleColorChips.map((color) => (
-                              <span
-                                key={`${item._id}-${color.name}-${color.hex}`}
-                                className="cart-rec-color-dot"
-                                style={{ background: color.hex }}
-                                title={color.name}
-                              />
-                            ))}
-                            {extraColorCount > 0 ? <span className="cart-rec-color-more">+{extraColorCount}</span> : null}
-                          </div>
-                        ) : null}
-                        <p className="cart-rec-price">{formatStoreCurrency(item.pricing.salePrice)}</p>
-                      </div>
-                      <Button
-                        size="small"
-                        className={storeButtonClassNames.secondaryCompact}
-                        onClick={() => void handleAddRecommendation(item)}
-                      >
-                        Thêm
-                      </Button>
-                    </article>
+                    <StoreProductGridCard
+                      key={item._id}
+                      href={`/products/${item.slug}`}
+                      imageUrl={image}
+                      name={item.name}
+                      price={formatStoreCurrency(regularPrice)}
+                      originalPrice={hasDiscount ? formatStoreCurrency(Number(compareAtPrice)) : undefined}
+                      categoryLabel={item.category?.name ?? "Sản phẩm"}
+                      badge={discountLabel}
+                      colorSwatches={colorSwatches}
+                      footer={
+                        <Button
+                          size="small"
+                          className={`${storeButtonClassNames.secondaryCompact} cart-recommend-add`}
+                          onClick={() => void handleAddRecommendation(item)}
+                        >
+                          Thêm
+                        </Button>
+                      }
+                    />
                   );
                 })}
               </div>
@@ -653,7 +740,9 @@ export function StoreCartPage() {
           <div className="cart-summary-row">
             <span>Phí vận chuyển</span>
             <strong>
-              {isFreeShipTracked && isEligibleForFreeShip
+              {selectedCheckoutQuantity <= 0
+                ? "Chưa chọn sản phẩm"
+                : isFreeShipTracked && isEligibleForFreeShip
                 ? "Đủ điều kiện freeship"
                 : "Tính theo GHN ở bước thanh toán"}
             </strong>
@@ -688,15 +777,24 @@ export function StoreCartPage() {
                 options={savedCoupons.map((coupon) => {
                   const normalizedCode = coupon.code.trim().toUpperCase();
                   const expiry = formatCouponExpiry(coupon.expiresAt);
+                  const blockReason = getCouponSelectionBlockReason(
+                    coupon,
+                    selectedCheckoutSubtotal,
+                    selectedCheckoutQuantity,
+                  );
                   return {
                     value: normalizedCode,
                     couponCode: normalizedCode,
+                    disabled: Boolean(blockReason),
                     label: (
                       <div style={{ whiteSpace: "normal", lineHeight: 1.35 }}>
                         <div>
                           {normalizedCode} - {formatCouponValue(coupon)}
                         </div>
                         <div className="text-xs text-slate-500">{formatCouponCondition(coupon)}</div>
+                        {blockReason ? (
+                          <div className="text-xs text-amber-600">{blockReason}</div>
+                        ) : null}
                         <div className="text-xs text-slate-500">HSD {expiry}</div>
                       </div>
                     ),
@@ -714,6 +812,7 @@ export function StoreCartPage() {
                 disabled={
                   !selectedCouponCode ||
                   selectedCouponCode === couponCode ||
+                  Boolean(selectedCouponBlockReason) ||
                   applyingCoupon ||
                   clearingCoupon ||
                   !isAuthenticated
@@ -725,6 +824,9 @@ export function StoreCartPage() {
             </div>
             {isAuthenticated && !savedCouponsLoading && savedCoupons.length === 0 ? (
               <p className="mt-2 text-xs text-slate-500">Bạn chưa lưu mã nào. Hãy vào trang chủ để lưu mã.</p>
+            ) : null}
+            {selectedCouponBlockReason ? (
+              <p className="mt-2 text-xs text-amber-600">{selectedCouponBlockReason}</p>
             ) : null}
             {isAuthenticated && unavailableSavedCouponCodes.length > 0 ? (
               <p className="mt-2 text-xs text-slate-500">
@@ -745,6 +847,11 @@ export function StoreCartPage() {
                 </Button>
               </div>
             ) : null}
+            {appliedCouponBlockReason ? (
+              <p className="mt-2 text-xs text-amber-600">
+                {appliedCouponBlockReason} Mã sẽ không được áp dụng cho nhóm sản phẩm đang chọn.
+              </p>
+            ) : null}
           </div>
 
           <Link
@@ -754,6 +861,12 @@ export function StoreCartPage() {
               if (selectedCheckoutItems.length === 0) {
                 event.preventDefault();
                 messageApi.warning("Vui lòng chọn ít nhất một sản phẩm để thanh toán.");
+                return;
+              }
+
+              if (appliedCouponBlockReason) {
+                event.preventDefault();
+                messageApi.warning(appliedCouponBlockReason);
               }
             }}
           >

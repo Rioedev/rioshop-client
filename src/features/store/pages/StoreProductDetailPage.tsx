@@ -190,11 +190,11 @@ export function StoreProductDetailPage() {
       properties: {
         slug: product.slug,
         name: product.name,
-        price: product.pricing.salePrice,
+        price: product.pricing.regularPrice ?? product.pricing.salePrice,
         path: `/products/${product.slug}`,
       },
     });
-  }, [product?._id, product?.slug, product?.name, product?.pricing.salePrice, userId]);
+  }, [product?._id, product?.slug, product?.name, product?.pricing.regularPrice, product?.pricing.salePrice, userId]);
 
   useEffect(() => {
     if (!isAuthenticated) {
@@ -478,11 +478,15 @@ export function StoreProductDetailPage() {
     : `${selectedColorLabel} / ${selectedSizeLabel}`;
   const selectedVariantPrice = Math.max(
     0,
-    product.pricing.salePrice + Number(selectedVariant?.additionalPrice || 0),
+    selectedVariant?.effectivePricing?.unitPrice ??
+      (product.pricing.regularPrice ?? product.pricing.salePrice) +
+        Number(selectedVariant?.additionalPrice || 0),
   );
   const selectedVariantBasePrice = Math.max(
     0,
-    product.pricing.basePrice + Number(selectedVariant?.additionalPrice || 0),
+    selectedVariant?.effectivePricing?.listPrice ??
+      (product.pricing.compareAtPrice ?? product.pricing.basePrice) +
+        Number(selectedVariant?.additionalPrice || 0),
   );
   const hasDiscount = selectedVariantBasePrice > selectedVariantPrice;
   const isSelectedVariantOutOfStock =
@@ -807,7 +811,7 @@ export function StoreProductDetailPage() {
                     </p>
                     <h3 className="mt-2 min-h-12 text-sm font-semibold text-slate-900">{item.name}</h3>
                     <p className="mt-2 text-base font-bold text-slate-900">
-                      {formatCurrency(item.pricing.salePrice)}
+                      {formatCurrency(item.pricing.regularPrice ?? item.pricing.salePrice)}
                     </p>
                   </div>
                 </Link>
@@ -858,4 +862,3 @@ export function StoreProductDetailPage() {
     </div>
   );
 }
-

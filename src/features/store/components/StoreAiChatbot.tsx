@@ -299,7 +299,7 @@ export function StoreAiChatbot() {
                           </div>
                           <div className="min-w-0">
                             <p>{product.name}</p>
-                            <strong>{formatStoreCurrency(product.pricing.salePrice)}</strong>
+                            <strong>{formatStoreCurrency(product.pricing.regularPrice ?? product.pricing.salePrice)}</strong>
                             <span>{recommendation.reason}</span>
                           </div>
                         </Link>

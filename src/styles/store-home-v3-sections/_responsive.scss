@@ -27,6 +27,15 @@
   .store-home-v3-showcase-feature {
     grid-template-columns: minmax(240px, 0.9fr) minmax(0, 1.1fr);
   }
+
+  .store-home-v3-flash-feature {
+    grid-template-columns: 220px minmax(0, 1fr);
+    min-height: 280px;
+  }
+
+  .store-home-v3-flash-feature-media {
+    height: 280px;
+  }
 }
 
 @media (max-width: 767px) {
@@ -108,6 +117,49 @@
   .store-home-v3-showcase-feature,
   .store-home-v3-showcase-item {
     grid-template-columns: 1fr;
+  }
+
+  .store-home-v3-flash-feature {
+    grid-template-columns: 118px minmax(0, 1fr);
+    min-height: 190px;
+  }
+
+  .store-home-v3-flash-feature-media {
+    height: 190px;
+  }
+
+  .store-home-v3-flash-feature-body {
+    padding: 15px;
+  }
+
+  .store-home-v3-flash-feature h3 {
+    font-size: 19px;
+  }
+
+  .store-home-v3-flash-price strong {
+    font-size: 21px;
+  }
+
+  .store-home-v3-flash-card {
+    grid-template-columns: 88px minmax(0, 1fr);
+    min-height: 108px;
+  }
+
+  .store-home-v3-flash-card-body {
+    padding: 13px 14px;
+  }
+
+  .store-home-v3-flash-card-head small {
+    display: none;
+  }
+
+  .store-home-v3-flash-card h3 {
+    margin-top: 8px;
+    font-size: 15px;
+  }
+
+  .store-home-v3-flash-card-price strong {
+    font-size: 18px;
   }
 
   .store-home-v3-showcase-copy {

@@ -1,8 +1,10 @@
 ﻿import {
   Button,
   Card,
+  Checkbox,
   Col,
   Input,
+  InputNumber,
   Modal,
   Popconfirm,
   Row,
@@ -21,6 +23,7 @@ import {
   type OrderRecord,
   type OrderStatus,
   type PaymentStatus,
+  type ReturnDisposition,
   type ReturnRequestStatus,
 } from "../../../services/orderService";
 import { subscribeAdminRealtime } from "../../../services/socketClient";
@@ -99,6 +102,27 @@ const RETURN_REQUEST_STATUS_COLOR_MAP: Record<ReturnRequestStatus, string> = {
   rejected: "red",
   completed: "green",
 };
+
+type ExchangeLineDraft = {
+  key: string;
+  selected: boolean;
+  productId: string;
+  originalVariantSku: string;
+  quantity: number;
+  replacementVariantSku: string;
+  returnDisposition?: ReturnDisposition;
+};
+
+const buildExchangeLineDrafts = (order: OrderRecord): ExchangeLineDraft[] =>
+  order.items.map((line, index) => ({
+    key: `${line.productId || "product"}::${line.variantSku || "variant"}::${index}`,
+    selected: order.items.length === 1,
+    productId: line.productId || "",
+    originalVariantSku: line.variantSku || "",
+    quantity: Math.max(1, Number(line.quantity || 0) - Number(line.returnedQty || 0)),
+    replacementVariantSku: "",
+    returnDisposition: undefined,
+  }));
 
 const getReturnRequestBadgeLabel = (order: Pick<OrderRecord, "returnRequest">) => {
   if (!order.returnRequest) {
@@ -383,6 +407,7 @@ export function AdminOrdersPage() {
   const [syncingActiveGhn, setSyncingActiveGhn] = useState(false);
   const [exportingOrders, setExportingOrders] = useState(false);
   const [updatingReturnRequest, setUpdatingReturnRequest] = useState(false);
+  const [exchangeLineDrafts, setExchangeLineDrafts] = useState<ExchangeLineDraft[]>([]);
 
   const orders = useOrderStore((state) => state.orders);
   const loading = useOrderStore((state) => state.loading);
@@ -492,8 +517,16 @@ export function AdminOrdersPage() {
     : false;
 
   const manageStatusOptions = useMemo(
-    () => getStatusUpdateOptions(managingOrder?.status || "pending", managingOrder?.shippingCarrier),
-    [managingOrder?.shippingCarrier, managingOrder?.status],
+    () => {
+      const options = getStatusUpdateOptions(
+        managingOrder?.status || "pending",
+        managingOrder?.shippingCarrier,
+      );
+      return managingOrder?.returnRequest?.type === "exchange"
+        ? options.filter((option) => option.value !== "returned")
+        : options;
+    },
+    [managingOrder?.returnRequest?.type, managingOrder?.shippingCarrier, managingOrder?.status],
   );
 
   const activeReturnRequest = managingOrder?.returnRequest;
@@ -522,6 +555,7 @@ export function AdminOrdersPage() {
     setManageStatus(order.status);
     setManagePaymentStatus(order.paymentStatus);
     setManageNote("");
+    setExchangeLineDrafts(buildExchangeLineDrafts(order));
   };
 
   const clearFocusOrderIdFromUrl = useCallback(() => {
@@ -549,6 +583,7 @@ export function AdminOrdersPage() {
     setManageStatus("pending");
     setManagePaymentStatus("pending");
     setManageNote("");
+    setExchangeLineDrafts([]);
   };
 
   const handleChangeStatusFilter = async (value: OrderStatus | "all") => {
@@ -626,10 +661,38 @@ export function AdminOrdersPage() {
     }
   };
 
+  const updateExchangeLineDraft = (key: string, patch: Partial<ExchangeLineDraft>) => {
+    setExchangeLineDrafts((current) =>
+      current.map((line) => (line.key === key ? { ...line, ...patch } : line)),
+    );
+  };
+
   const handleUpdateReturnRequestStatus = async (nextStatus: ReturnRequestStatus) => {
     if (!managingOrder?.returnRequest) {
       messageApi.warning("Đơn hàng này chưa có yêu cầu đổi hàng.");
       return;
+    }
+
+    const selectedExchangeLines = exchangeLineDrafts.filter((line) => line.selected);
+    if (nextStatus === "completed") {
+      if (selectedExchangeLines.length === 0) {
+        messageApi.warning("Hãy chọn ít nhất một sản phẩm cần đổi.");
+        return;
+      }
+
+      const invalidLine = selectedExchangeLines.find(
+        (line) =>
+          !line.productId ||
+          !line.originalVariantSku ||
+          !line.replacementVariantSku ||
+          !line.returnDisposition ||
+          !Number.isInteger(line.quantity) ||
+          line.quantity <= 0,
+      );
+      if (invalidLine) {
+        messageApi.warning("Hãy chọn size mới, số lượng và cách xử lý hàng trả về cho mọi sản phẩm đổi.");
+        return;
+      }
     }
 
     setUpdatingReturnRequest(true);
@@ -637,11 +700,22 @@ export function AdminOrdersPage() {
       const updatedOrder = await updateReturnRequestStatus(managingOrder.id, {
         status: nextStatus,
         note: manageNote.trim() || undefined,
+        exchangeItems:
+          nextStatus === "completed"
+            ? selectedExchangeLines.map((line) => ({
+                productId: line.productId,
+                originalVariantSku: line.originalVariantSku,
+                replacementVariantSku: line.replacementVariantSku,
+                quantity: line.quantity,
+                returnDisposition: line.returnDisposition as ReturnDisposition,
+              }))
+            : undefined,
       });
       setManagingOrder(updatedOrder);
       setManageStatus(updatedOrder.status);
       setManagePaymentStatus(updatedOrder.paymentStatus);
       setManageNote("");
+      setExchangeLineDrafts(buildExchangeLineDrafts(updatedOrder));
       refreshCurrentOrderPage();
       const replacementOrderNumber = updatedOrder.returnRequest?.replacementOrderNumber;
       if (nextStatus === "completed" && replacementOrderNumber) {
@@ -1152,6 +1226,126 @@ export function AdminOrdersPage() {
                           </a>
                         ))}
                       </div>
+                    </div>
+                  ) : null}
+
+                  {activeReturnRequest.status === "approved" ? (
+                    <div className="space-y-3 rounded-xl border border-blue-200 bg-white p-3">
+                      <div>
+                        <div className="font-semibold text-slate-900">Sản phẩm và tồn kho cần xử lý</div>
+                        <Text type="secondary">
+                          Chọn đúng size gửi lại và xác nhận hàng khách trả có thể bán tiếp hay phải loại bỏ.
+                        </Text>
+                      </div>
+
+                      {managingOrder.items.map((line, index) => {
+                        const draft = exchangeLineDrafts[index];
+                        if (!draft) {
+                          return null;
+                        }
+                        const maxQuantity = Math.max(
+                          0,
+                          Number(line.quantity || 0) - Number(line.returnedQty || 0),
+                        );
+
+                        return (
+                          <article key={draft.key} className="rounded-xl border border-slate-200 p-3">
+                            <div className="flex gap-3">
+                              <Checkbox
+                                checked={draft.selected}
+                                disabled={maxQuantity <= 0}
+                                onChange={(event) =>
+                                  updateExchangeLineDraft(draft.key, { selected: event.target.checked })
+                                }
+                              />
+                              <div className="h-14 w-14 shrink-0 overflow-hidden rounded-lg bg-slate-100">
+                                {line.image ? (
+                                  <img
+                                    src={line.image}
+                                    alt={line.productName || "Sản phẩm"}
+                                    className="h-full w-full object-cover object-top"
+                                  />
+                                ) : null}
+                              </div>
+                              <div className="min-w-0 flex-1">
+                                <div className="font-semibold text-slate-900">{line.productName}</div>
+                                <div className="text-xs text-slate-500">
+                                  Đang trả: {line.variantLabel || line.variantSku} · Còn có thể đổi: {maxQuantity}
+                                </div>
+                              </div>
+                            </div>
+
+                            {draft.selected ? (
+                              <div className="mt-3 grid gap-3 md:grid-cols-3">
+                                <div>
+                                  <Text type="secondary">Số lượng đổi</Text>
+                                  <InputNumber
+                                    className="mt-1 w-full"
+                                    min={1}
+                                    max={maxQuantity}
+                                    precision={0}
+                                    value={draft.quantity}
+                                    onChange={(value) =>
+                                      updateExchangeLineDraft(draft.key, { quantity: Number(value || 1) })
+                                    }
+                                  />
+                                </div>
+                                <div>
+                                  <Text type="secondary">Size / biến thể gửi mới</Text>
+                                  <Select
+                                    className="mt-1 w-full"
+                                    placeholder="Chọn size mới"
+                                    value={draft.replacementVariantSku || undefined}
+                                    options={(line.availableVariants || []).map((variant) => ({
+                                      value: variant.sku,
+                                      label: `${variant.label} · tồn ${variant.stock}`,
+                                    }))}
+                                    onChange={(value) =>
+                                      updateExchangeLineDraft(draft.key, { replacementVariantSku: value })
+                                    }
+                                  />
+                                </div>
+                                <div>
+                                  <Text type="secondary">Hàng khách trả về</Text>
+                                  <Select
+                                    className="mt-1 w-full"
+                                    placeholder="Chọn cách xử lý"
+                                    value={draft.returnDisposition}
+                                    options={[
+                                      { value: "restock", label: "Còn tốt - nhập lại kho" },
+                                      { value: "quarantine", label: "Ghi nhận hàng lỗi" },
+                                    ]}
+                                    onChange={(value: ReturnDisposition) =>
+                                      updateExchangeLineDraft(draft.key, { returnDisposition: value })
+                                    }
+                                  />
+                                </div>
+                              </div>
+                            ) : null}
+                          </article>
+                        );
+                      })}
+                    </div>
+                  ) : null}
+
+                  {activeReturnRequest.status === "completed" &&
+                  (activeReturnRequest.exchangeItems?.length || 0) > 0 ? (
+                    <div className="space-y-2 rounded-xl border border-emerald-200 bg-white p-3">
+                      <div className="font-semibold text-slate-900">Kết quả xử lý kho</div>
+                      {activeReturnRequest.exchangeItems?.map((item) => (
+                        <div
+                          key={`${item.productId}-${item.originalVariantSku}`}
+                          className="rounded-lg bg-slate-50 px-3 py-2 text-sm text-slate-700"
+                        >
+                          <div className="font-medium text-slate-900">{item.productName}</div>
+                          <div>
+                            {item.originalVariantLabel} → {item.replacementVariantLabel} · SL {item.quantity}
+                          </div>
+                          <div>
+                            Hàng trả: {item.returnDisposition === "restock" ? "đã nhập lại kho" : "đã ghi nhận là hàng lỗi"}
+                          </div>
+                        </div>
+                      ))}
                     </div>
                   ) : null}
 

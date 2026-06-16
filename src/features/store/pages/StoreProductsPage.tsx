@@ -35,17 +35,17 @@ import { getErrorMessage } from "../../../utils/errorMessage";
 
 const sortOptions = [
   { value: "featured", label: "Nổi bật" },
-  { value: "newest", label: "Mới nhất" },
+  { value: "newest", label: "Mới về trong 30 ngày" },
   { value: "price_asc", label: "Giá tăng dần" },
   { value: "price_desc", label: "Giá giảm dần" },
-  { value: "best_selling", label: "Bán chạy" },
+  { value: "best_selling", label: "Bán chạy nhất" },
 ];
 
 const sortMap: Record<string, Record<string, 1 | -1>> = {
   featured: { isFeatured: -1, isBestseller: -1, totalSold: -1, createdAt: -1 },
   newest: { createdAt: -1 },
-  price_asc: { "pricing.salePrice": 1 },
-  price_desc: { "pricing.salePrice": -1 },
+  price_asc: { "pricing.regularPrice": 1 },
+  price_desc: { "pricing.regularPrice": -1 },
   best_selling: { totalSold: -1, createdAt: -1 },
 };
 
@@ -292,16 +292,16 @@ export function StoreProductsPage() {
     const allPrices: number[] = [];
 
     filterFacetProducts.forEach((product) => {
-      const basePrice = Number(product.pricing?.salePrice ?? 0);
-      if (Number.isFinite(basePrice) && basePrice >= 0) {
-        allPrices.push(basePrice);
+      const regularPrice = Number(product.pricing?.regularPrice ?? product.pricing?.salePrice ?? 0);
+      if (Number.isFinite(regularPrice) && regularPrice >= 0) {
+        allPrices.push(regularPrice);
       }
 
       (product.variants ?? []).forEach((variant) => {
         if (variant.isActive === false) {
           return;
         }
-        const variantPrice = basePrice + Number(variant.additionalPrice || 0);
+        const variantPrice = regularPrice + Number(variant.additionalPrice || 0);
         if (Number.isFinite(variantPrice) && variantPrice >= 0) {
           allPrices.push(variantPrice);
         }
@@ -449,6 +449,8 @@ export function StoreProductsPage() {
           maxPrice: Number.isFinite(maxPriceParam) ? maxPriceParam : undefined,
           color: selectedColorValues.length > 0 ? selectedColorValues.join(",") : undefined,
           size: selectedSizeValues.length > 0 ? selectedSizeValues.join(",") : undefined,
+          ranking: sort === "best_selling" ? "best_selling" : undefined,
+          newWithinDays: sort === "newest" ? 30 : undefined,
           sort: sortMap[sort] ?? sortMap.featured,
         });
 
@@ -598,7 +600,10 @@ export function StoreProductsPage() {
     const variantLabel = variant
       ? `${variant.color?.name?.trim() || "Mặc định"} / ${(variant.sizeLabel || variant.size).trim()}`
       : undefined;
-    const unitPrice = Math.max(0, item.pricing.salePrice + Number(variant?.additionalPrice || 0));
+    const unitPrice = Math.max(
+      0,
+      (item.pricing.regularPrice ?? item.pricing.salePrice) + Number(variant?.additionalPrice || 0),
+    );
 
     if (isAuthenticated) {
       try {
@@ -673,7 +678,7 @@ export function StoreProductsPage() {
               productSlug: item.slug,
               name: item.name,
               image,
-              price: item.pricing.salePrice,
+              price: item.pricing.regularPrice ?? item.pricing.salePrice,
               colorSwatches,
             });
 
@@ -696,7 +701,7 @@ export function StoreProductsPage() {
       productId: item._id,
       slug: item.slug,
       name: item.name,
-      price: item.pricing.salePrice,
+      price: item.pricing.regularPrice ?? item.pricing.salePrice,
       imageUrl: image,
       colorSwatches,
     });
@@ -710,13 +715,16 @@ export function StoreProductsPage() {
       source?: string;
     } = {},
   ) => {
-    const hasDiscount = item.pricing.basePrice > item.pricing.salePrice;
+    const regularPrice = item.pricing.regularPrice ?? item.pricing.salePrice;
+    const compareAtPrice = item.pricing.compareAtPrice ?? item.pricing.basePrice;
+    const hasDiscount = compareAtPrice > regularPrice;
     const image = resolveStoreProductThumbnail(item);
     const inWishlist = wishlistItems.some((wishlist) => wishlist.productId === item._id);
     const colorSwatches = toProductCardColorSwatches(item);
     const discountLabel = hasDiscount
-      ? `-${Math.round(((item.pricing.basePrice - item.pricing.salePrice) / item.pricing.basePrice) * 100)}%`
+      ? `-${Math.round(((compareAtPrice - regularPrice) / compareAtPrice) * 100)}%`
       : undefined;
+    const listingBadge = sort === "best_selling" || sort === "newest" ? undefined : discountLabel;
     const source = options.source ?? "products_page";
 
     return (
@@ -725,13 +733,18 @@ export function StoreProductsPage() {
         href={`/products/${item.slug}`}
         imageUrl={image}
         name={item.name}
-        price={formatStoreCurrency(item.pricing.salePrice)}
-        originalPrice={hasDiscount ? formatStoreCurrency(item.pricing.basePrice) : undefined}
+        price={formatStoreCurrency(regularPrice)}
+        originalPrice={hasDiscount ? formatStoreCurrency(compareAtPrice) : undefined}
         categoryLabel={item.category?.name ?? "Sản phẩm"}
-        badge={discountLabel}
+        badge={listingBadge}
         colorSwatches={colorSwatches}
         footer={
           <>
+            {sort === "best_selling" ? (
+              <p className="m-0 basis-full text-sm font-medium text-slate-500">
+                Đã bán {Number(item.salesCount || 0)}
+              </p>
+            ) : null}
             {options.recommendation ? (
               <p className="m-0 basis-full rounded-2xl bg-sky-50 px-3 py-2 text-xs leading-5 text-slate-600">
                 {options.recommendation.reason}
@@ -765,6 +778,25 @@ export function StoreProductsPage() {
     "Váy dự tiệc tối",
     "Đồ thể thao thoáng mát",
   ];
+
+  const listingContent =
+    sort === "best_selling"
+      ? {
+          kicker: "Xếp hạng bán hàng",
+          title: "Sản phẩm bán chạy",
+          description: undefined,
+        }
+      : sort === "newest"
+        ? {
+            kicker: "Ra mắt trong 30 ngày",
+            title: "Sản phẩm mới về",
+            description: undefined,
+          }
+        : {
+            kicker: "Danh sách sản phẩm",
+            title: "Sản phẩm",
+            description: loading ? "Đang tải danh sách sản phẩm..." : `${totalDocs} sản phẩm đang hiển thị`,
+          };
 
   return (
     <StorePageShell>
@@ -804,6 +836,15 @@ export function StoreProductsPage() {
               </div>
 
               <div>
+                <p className="m-0 mb-1 text-xs font-bold uppercase tracking-[0.14em] text-slate-500">Danh mục</p>
+                <Select
+                  value={categorySlug}
+                  options={categoryOptions}
+                  onChange={(value) => onParamChange({ category: value || null, page: "1" })}
+                  className="w-full"
+                />
+              </div>
+              <div>
                 <p className="m-0 mb-1 text-xs font-bold uppercase tracking-[0.14em] text-slate-500">Bộ sưu tập</p>
                 <Select
                   value={collectionSlug}
@@ -813,15 +854,6 @@ export function StoreProductsPage() {
                 />
               </div>
 
-              <div>
-                <p className="m-0 mb-1 text-xs font-bold uppercase tracking-[0.14em] text-slate-500">Danh mục</p>
-                <Select
-                  value={categorySlug}
-                  options={categoryOptions}
-                  onChange={(value) => onParamChange({ category: value || null, page: "1" })}
-                  className="w-full"
-                />
-              </div>
 
               <div>
                 <p className="m-0 mb-1 text-xs font-bold uppercase tracking-[0.14em] text-slate-500">Sắp xếp</p>
@@ -997,9 +1029,9 @@ export function StoreProductsPage() {
 
           <StorePanelFrame>
             <StoreSectionHeader
-              kicker="Danh sách sản phẩm"
-              title="Sản phẩm"
-              description={loading ? "Đang tải danh sách sản phẩm..." : `${totalDocs} sản phẩm đang hiển thị`}
+              kicker={listingContent.kicker}
+              title={listingContent.title}
+              description={listingContent.description}
             />
 
             {products.length === 0 && !loading ? (

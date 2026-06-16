@@ -172,7 +172,9 @@ export type AnalyticsDashboardData = {
     averageOrderValue: number;
     cancellationRate: number;
     returnRate: number;
+    exchangeRate?: number;
     pendingOver24hOrders: number;
+    openOrders?: number;
     newCustomers: number;
     returningCustomers: number;
   };

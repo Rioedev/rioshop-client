@@ -1,3 +1,5 @@
+import type { AdminRole } from "../../../services/authService";
+
 export type AdminMenuIcon =
   | "home"
   | "tags"
@@ -30,6 +32,8 @@ export type AdminRouteSegment =
   | "brand-config"
   | "policies"
   | "sales-report"
+  | "suppliers"
+  | "purchase-orders"
   | "admin-accounts"
   | "profile";
 
@@ -39,8 +43,14 @@ export type AdminRouteMeta = {
   menuLabel?: string;
   menuIcon?: AdminMenuIcon;
   showInMenu: boolean;
+  allowedRoles?: AdminRole[];
   requiresAdminAccountPermission?: boolean;
 };
+
+const ALL_ADMIN_ROLES: AdminRole[] = ["superadmin", "manager", "warehouse", "sales"];
+const MANAGEMENT_ROLES: AdminRole[] = ["superadmin", "manager"];
+const WAREHOUSE_ROLES: AdminRole[] = ["superadmin", "manager", "warehouse"];
+const SALES_ROLES: AdminRole[] = ["superadmin", "manager", "sales"];
 
 export const toAdminFullPath = (segment: AdminRouteSegment): string =>
   `/admin/${segment}`;
@@ -80,6 +90,20 @@ export const ADMIN_ROUTE_META: AdminRouteMeta[] = [
     segment: "inventories",
     title: "Tồn kho",
     menuLabel: "Tồn kho",
+    menuIcon: "inbox",
+    showInMenu: true,
+  },
+  {
+    segment: "suppliers",
+    title: "Nhà cung cấp",
+    menuLabel: "Nhà cung cấp",
+    menuIcon: "team",
+    showInMenu: true,
+  },
+  {
+    segment: "purchase-orders",
+    title: "Đơn nhập (PO)",
+    menuLabel: "Đơn nhập (PO)",
     menuIcon: "inbox",
     showInMenu: true,
   },
@@ -176,11 +200,52 @@ export const ADMIN_PAGE_TITLE_MAP = ADMIN_ROUTE_META.reduce<Record<string, strin
   {},
 );
 
+const ADMIN_ROUTE_ALLOWED_ROLES: Partial<Record<AdminRouteSegment, AdminRole[]>> = {
+  dashboard: ALL_ADMIN_ROLES,
+  categories: MANAGEMENT_ROLES,
+  collections: MANAGEMENT_ROLES,
+  products: WAREHOUSE_ROLES,
+  inventories: WAREHOUSE_ROLES,
+  suppliers: WAREHOUSE_ROLES,
+  "purchase-orders": WAREHOUSE_ROLES,
+  orders: SALES_ROLES,
+  reviews: SALES_ROLES,
+  "flash-sales": SALES_ROLES,
+  coupons: SALES_ROLES,
+  users: SALES_ROLES,
+  "sales-report": MANAGEMENT_ROLES,
+  "analytics-events": MANAGEMENT_ROLES,
+  blogs: MANAGEMENT_ROLES,
+  "brand-config": MANAGEMENT_ROLES,
+  policies: MANAGEMENT_ROLES,
+  "admin-accounts": MANAGEMENT_ROLES,
+  profile: ALL_ADMIN_ROLES,
+};
+
+export const isAdminRole = (role?: string): role is AdminRole =>
+  ALL_ADMIN_ROLES.includes(role as AdminRole);
+
+export const canAccessAdminRoute = (
+  route: AdminRouteMeta,
+  adminRole?: string,
+): boolean => {
+  const allowedRoles = route.allowedRoles ?? ADMIN_ROUTE_ALLOWED_ROLES[route.segment];
+  return !allowedRoles || (isAdminRole(adminRole) && allowedRoles.includes(adminRole));
+};
+
 export const getAdminMenuRouteMeta = (
-  canManageAdminAccounts: boolean,
+  adminRole?: string,
 ): AdminRouteMeta[] =>
   ADMIN_ROUTE_META.filter(
     (route) =>
       route.showInMenu &&
-      (!route.requiresAdminAccountPermission || canManageAdminAccounts),
+      canAccessAdminRoute(route, adminRole),
   );
+
+export const getAdminRouteMetaByPathname = (
+  pathname: string,
+): AdminRouteMeta | undefined =>
+  ADMIN_ROUTE_META.find((route) => {
+    const routePath = toAdminFullPath(route.segment);
+    return pathname === routePath || pathname.startsWith(`${routePath}/`);
+  });

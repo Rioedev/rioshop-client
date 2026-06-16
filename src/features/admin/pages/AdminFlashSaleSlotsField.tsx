@@ -5,7 +5,6 @@ import { useMemo, useState } from "react";
 import type { Product } from "../../../services/productService";
 import {
   OBJECT_ID_PATTERN,
-  createDefaultSlot,
   type FlashSaleFormValues,
 } from "../shared/flashSales";
 import { AdminFlashSaleProductPicker } from "./AdminFlashSaleProductPicker";
@@ -28,11 +27,11 @@ type AdminFlashSaleSlotsFieldProps = {
 
 const roundToThousand = (value: number) => Math.max(0, Math.round(value / 1000) * 1000);
 
-const computeSalePrice = (basePrice: number, percent: number) =>
-  basePrice > 0 ? roundToThousand(basePrice * (1 - percent / 100)) : 0;
+const computeSalePrice = (regularPrice: number, percent: number) =>
+  regularPrice > 0 ? roundToThousand(regularPrice * (1 - percent / 100)) : 0;
 
-const computeDiscountPercent = (basePrice: number, salePrice: number) =>
-  basePrice > 0 ? Math.max(0, Math.min(99, Math.round((1 - salePrice / basePrice) * 100))) : 0;
+const computeDiscountPercent = (regularPrice: number, salePrice: number) =>
+  regularPrice > 0 ? Math.max(0, Math.min(99, Math.round((1 - salePrice / regularPrice) * 100))) : 0;
 
 export function AdminFlashSaleSlotsField({
   form,
@@ -60,9 +59,9 @@ export function AdminFlashSaleSlotsField({
     const slots = (form.getFieldValue("slots") || []) as FlashSaleFormValues["slots"];
     const next = slots.map((slot) => {
       const product = productById.get(slot.productId);
-      const basePrice = Number(product?.pricing?.salePrice || 0);
-      if (basePrice <= 0) return slot;
-      return { ...slot, salePrice: computeSalePrice(basePrice, percent) };
+      const regularPrice = Number(product?.pricing?.regularPrice ?? product?.pricing?.salePrice ?? 0);
+      if (regularPrice <= 0) return slot;
+      return { ...slot, salePrice: computeSalePrice(regularPrice, percent) };
     });
     form.setFieldsValue({ slots: next });
   };
@@ -75,7 +74,7 @@ export function AdminFlashSaleSlotsField({
       .filter((id) => !existingIds.has(id))
       .map((id) => {
         const product = productById.get(id);
-        const basePrice = Number(product?.pricing?.salePrice || 0);
+        const regularPrice = Number(product?.pricing?.regularPrice ?? product?.pricing?.salePrice ?? 0);
         const totalStock = (product?.variants || []).reduce(
           (sum, v) => sum + Math.max(0, Number(v.stock || 0)),
           0,
@@ -83,7 +82,7 @@ export function AdminFlashSaleSlotsField({
         return {
           productId: id,
           variantSku: undefined,
-          salePrice: computeSalePrice(basePrice, defaultDiscount),
+          salePrice: computeSalePrice(regularPrice, defaultDiscount),
           stockLimit: totalStock || 100,
           sold: 0,
         };
@@ -106,13 +105,13 @@ export function AdminFlashSaleSlotsField({
         },
       ]}
     >
-      {(fields, { add, remove }, { errors }) => (
+      {(fields, { remove }, { errors }) => (
         <div className="space-y-3">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div>
               <Text strong>Slot flash sale ({fields.length})</Text>
               <Text type="secondary" className="ml-2 text-xs!">
-                Bấm "Thêm SP" để chọn nhiều cùng lúc.
+                Chọn một hoặc nhiều sản phẩm để thêm vào chương trình.
               </Text>
             </div>
             <Space wrap>
@@ -128,11 +127,8 @@ export function AdminFlashSaleSlotsField({
               <Button onClick={() => applyBulkDiscount(bulkDiscount)} disabled={fields.length === 0}>
                 Áp dụng cho tất cả
               </Button>
-              <Button type="dashed" onClick={() => add(createDefaultSlot())}>
-                Thêm slot trống
-              </Button>
               <Button type="primary" icon={<PlusOutlined />} onClick={() => setPickerOpen(true)}>
-                Thêm SP
+                Chọn sản phẩm
               </Button>
             </Space>
           </div>
@@ -158,10 +154,10 @@ export function AdminFlashSaleSlotsField({
                     const slotValue = watchedSlots[field.name] || {};
                     const selectedProductId = slotValue.productId || "";
                     const selectedProduct = productById.get(selectedProductId.trim());
-                    const basePrice = Number(selectedProduct?.pricing?.salePrice || 0);
+                    const regularPrice = Number(selectedProduct?.pricing?.regularPrice ?? selectedProduct?.pricing?.salePrice ?? 0);
                     const variantOptions = getVariantOptionsByProductId(selectedProductId);
                     const currentSalePrice = Number(slotValue.salePrice || 0);
-                    const currentPercent = computeDiscountPercent(basePrice, currentSalePrice);
+                    const currentPercent = computeDiscountPercent(regularPrice, currentSalePrice);
 
                     return (
                       <tr
@@ -211,7 +207,7 @@ export function AdminFlashSaleSlotsField({
                           </Form.Item>
                         </td>
                         <td className="px-2 py-2 text-right text-sm text-slate-600">
-                          {basePrice > 0 ? `${basePrice.toLocaleString("vi-VN")}đ` : "—"}
+                          {regularPrice > 0 ? `${regularPrice.toLocaleString("vi-VN")}đ` : "—"}
                         </td>
                         <td className="px-2 py-2">
                           <InputNumber
@@ -220,8 +216,8 @@ export function AdminFlashSaleSlotsField({
                             value={currentPercent}
                             onChange={(value) => {
                               const percent = Number(value);
-                              if (!Number.isFinite(percent) || basePrice <= 0) return;
-                              const newSale = computeSalePrice(basePrice, percent);
+                              if (!Number.isFinite(percent) || regularPrice <= 0) return;
+                              const newSale = computeSalePrice(regularPrice, percent);
                               const slots = (form.getFieldValue(
                                 "slots",
                               ) || []) as FlashSaleFormValues["slots"];
@@ -232,7 +228,7 @@ export function AdminFlashSaleSlotsField({
                             addonAfter="%"
                             size="small"
                             className="w-full"
-                            disabled={basePrice <= 0}
+                            disabled={regularPrice <= 0}
                           />
                         </td>
                         <td className="px-2 py-2">
@@ -241,7 +237,7 @@ export function AdminFlashSaleSlotsField({
                             noStyle
                             rules={[{ required: true, message: "Bắt buộc" }]}
                           >
-                            <InputNumber
+                            <InputNumber<number>
                               min={0}
                               step={1000}
                               size="small"
@@ -291,7 +287,7 @@ export function AdminFlashSaleSlotsField({
             </div>
           ) : (
             <div className="rounded-md border border-dashed border-slate-300 bg-slate-50 py-8 text-center text-sm text-slate-500">
-              Chưa có sản phẩm trong flash sale. Bấm <strong>"Thêm SP"</strong> để chọn nhiều sản phẩm cùng lúc.
+              Chưa có sản phẩm trong flash sale. Bấm <strong>"Chọn sản phẩm"</strong> để thêm một hoặc nhiều sản phẩm.
             </div>
           )}
 
