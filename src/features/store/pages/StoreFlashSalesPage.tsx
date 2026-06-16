@@ -18,6 +18,7 @@ import {
   resolveStoreImageUrl,
   resolveStoreProductThumbnail,
 } from "../utils/storeFormatting";
+import { getProductDetailHref } from "../shared/productDetail";
 
 type CustomerSalePhase = "running" | "upcoming";
 type FlashSaleSort = "discount_desc" | "price_asc" | "price_desc" | "sold_desc";
@@ -76,7 +77,16 @@ const getSalePhase = (sale: FlashSale) => {
 
 const getReferencePrice = (slot: FlashSaleSlot) => {
   const pricing = slot.product?.pricing;
-  return Number(pricing?.regularPrice || pricing?.salePrice || pricing?.basePrice || slot.salePrice);
+  const basePrice = Number(pricing?.regularPrice || pricing?.salePrice || slot.salePrice);
+  const variantSku = (slot.variantSku || "").trim();
+  if (!variantSku) {
+    return basePrice;
+  }
+
+  const variant = (slot.product?.variants || []).find(
+    (item) => (item.sku || "").trim() === variantSku,
+  );
+  return Math.max(0, basePrice + Number(variant?.additionalPrice || 0));
 };
 
 const getDiscountPercent = (slot: FlashSaleSlot) => {
@@ -587,7 +597,7 @@ export function StoreFlashSalesPage() {
                 return (
                   <StoreProductGridCard
                     key={key}
-                    href={slot.product?.slug ? `/products/${slot.product.slug}` : "/flash-sales"}
+                    href={slot.product?.slug ? getProductDetailHref(slot.product, slot.variantSku) : "/flash-sales"}
                     imageUrl={image}
                     name={slot.product?.name || "Sản phẩm Flash Sale"}
                     price={formatStoreCurrency(slot.salePrice)}

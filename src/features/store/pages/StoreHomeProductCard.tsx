@@ -3,6 +3,7 @@ import { useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { formatStoreCurrency as formatCurrency } from "../utils/storeFormatting";
 import type { HomeProduct } from "../shared/home";
+import { getProductDetailHref } from "../shared/productDetail";
 
 type StoreHomeProductCardProps = {
   product: HomeProduct;
@@ -27,7 +28,7 @@ export function StoreHomeProductCard({
 
   return (
     <Link
-      to={`/products/${product.slug}`}
+      to={getProductDetailHref(product, product.variantSku)}
       className={`store-home-v3-product-card ${large ? "is-large" : ""}`}
     >
       <div className="store-home-v3-product-media">
@@ -97,7 +98,7 @@ export function StoreHomeShowcaseItem({ product }: StoreHomeShowcaseItemProps) {
   return (
     <Link
       key={`showcase-${product.id}`}
-      to={`/products/${product.slug}`}
+      to={getProductDetailHref(product, product.variantSku)}
       className="store-home-v3-showcase-item"
     >
       <div className="store-home-v3-showcase-item-media">

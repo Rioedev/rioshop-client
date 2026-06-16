@@ -24,6 +24,7 @@ import {
 } from "../utils/storeFormatting";
 import { type Product, type ProductVariant } from "../../../services/productService";
 import { getErrorMessage } from "../../../utils/errorMessage";
+import { getProductDetailHref, getProductDisplayPricing } from "../shared/productDetail";
 
 type StoreAiChatMessage = AiChatMessage & {
   id: string;
@@ -283,11 +284,12 @@ export function StoreAiChatbot() {
                     {item.recommendations.slice(0, 4).map((recommendation) => {
                       const product = recommendation.product;
                       const image = resolveRecommendedProductThumbnail(recommendation);
+                      const displayPricing = getProductDisplayPricing(product);
 
                       return (
                         <Link
                           key={product._id}
-                          to={`/products/${product.slug}`}
+                          to={getProductDetailHref(product, displayPricing.variantSku)}
                           className="store-ai-chatbot__product"
                         >
                           <div className="store-ai-chatbot__product-image">
@@ -299,7 +301,7 @@ export function StoreAiChatbot() {
                           </div>
                           <div className="min-w-0">
                             <p>{product.name}</p>
-                            <strong>{formatStoreCurrency(product.pricing.regularPrice ?? product.pricing.salePrice)}</strong>
+                            <strong>{formatStoreCurrency(displayPricing.price)}</strong>
                             <span>{recommendation.reason}</span>
                           </div>
                         </Link>

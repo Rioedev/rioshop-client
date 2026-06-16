@@ -59,6 +59,77 @@ export const getProductColorDots = (item: ProductRuntime) => {
   return Array.from(map.values()).slice(0, 4);
 };
 
+const toSafePriceNumber = (value: unknown) => {
+  const amount = Number(value);
+  return Number.isFinite(amount) ? Math.max(0, amount) : 0;
+};
+
+const getProductRegularUnitPrice = (item: ProductRuntime) => {
+  const basePrice = toSafePriceNumber(item.pricing?.regularPrice ?? item.pricing?.salePrice);
+  const activeVariants = (item.variants ?? []).filter((variant) => variant.isActive !== false);
+  if (activeVariants.length === 0) {
+    return basePrice;
+  }
+
+  const variantAdds = activeVariants.map((variant) => toSafePriceNumber(variant.additionalPrice));
+  return basePrice + Math.min(...variantAdds);
+};
+
+export const getProductDisplayPricing = (item: ProductRuntime) => {
+  const pricedVariants = (item.variants ?? [])
+    .filter((variant) => variant.isActive !== false && variant.effectivePricing)
+    .map((variant) => ({
+      variant,
+      pricing: variant.effectivePricing,
+    }))
+    .filter((entry): entry is {
+      variant: ProductVariant;
+      pricing: NonNullable<ProductVariant["effectivePricing"]>;
+    } =>
+      Number.isFinite(Number(entry.pricing?.unitPrice)),
+    );
+
+  if (pricedVariants.length > 0) {
+    const bestEntry = pricedVariants.reduce((best, current) => {
+      const bestPrice = toSafePriceNumber(best.pricing.unitPrice);
+      const currentPrice = toSafePriceNumber(current.pricing.unitPrice);
+      return currentPrice < bestPrice ? current : best;
+    });
+    const bestPricing = bestEntry.pricing;
+    const price = toSafePriceNumber(bestPricing.unitPrice);
+    const originalPrice = toSafePriceNumber(bestPricing.listPrice);
+    const hasDiscount = bestPricing.priceSource === "flash_sale" && originalPrice > price;
+    const discountPercent = hasDiscount
+      ? Math.round(((originalPrice - price) / originalPrice) * 100)
+      : 0;
+
+    return {
+      price,
+      originalPrice: hasDiscount ? originalPrice : undefined,
+      badge: discountPercent > 0 ? `-${discountPercent}%` : undefined,
+      priceSource: bestPricing.priceSource,
+      variantSku: bestEntry.variant.sku || undefined,
+    };
+  }
+
+  return {
+    price: getProductRegularUnitPrice(item),
+    originalPrice: undefined,
+    badge: undefined,
+    priceSource: "regular" as const,
+    variantSku: undefined,
+  };
+};
+
+export const getProductDetailHref = (
+  item: { slug?: string },
+  variantSku?: string,
+) => {
+  const slug = item.slug || "";
+  const sku = variantSku?.trim();
+  return sku ? `/products/${slug}?variantSku=${encodeURIComponent(sku)}` : `/products/${slug}`;
+};
+
 export const generateReviewPercents = (
   dist?: Record<string, number>,
   count = 0,

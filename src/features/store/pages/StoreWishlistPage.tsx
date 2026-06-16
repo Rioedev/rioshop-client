@@ -182,7 +182,8 @@ export function StoreWishlistPage() {
       const variantLabel = `${variant.color?.name?.trim() || "Mặc định"} / ${(variant.sizeLabel || variant.size).trim()}`;
       const price = Math.max(
         0,
-        (product.pricing.regularPrice ?? product.pricing.salePrice) + Number(variant.additionalPrice || 0),
+        variant.effectivePricing?.unitPrice ??
+          (product.pricing.regularPrice ?? product.pricing.salePrice) + Number(variant.additionalPrice || 0),
       );
 
       if (isAuthenticated) {

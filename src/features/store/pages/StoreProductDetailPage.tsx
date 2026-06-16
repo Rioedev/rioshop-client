@@ -1,6 +1,6 @@
 ﻿import { Button, Typography, message } from "antd";
 import { useEffect, useMemo, useState } from "react";
-import { Link, useParams } from "react-router-dom";
+import { Link, useParams, useSearchParams } from "react-router-dom";
 import { analyticsTracker } from "../../../services/analyticsTracker";
 import { cartService, toCartCouponMeta, toCartStoreItems } from "../../../services/cartService";
 import { couponService, type Coupon } from "../../../services/couponService";
@@ -31,6 +31,8 @@ import {
   WISHLIST_FALLBACK_IMAGE,
   formatDetailCouponExpiry,
   formatDetailCouponValue,
+  getProductDetailHref,
+  getProductDisplayPricing,
   generateReviewPercents,
   getVariantColorName,
   getVariantSizeLabel,
@@ -51,6 +53,8 @@ const EMPTY_REVIEW_STATS = {
 
 export function StoreProductDetailPage() {
   const { slug } = useParams();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const variantSkuParam = searchParams.get("variantSku")?.trim() || "";
   const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
   const userId = useAuthStore((state) => state.user?.id ?? null);
   const addItem = useCartStore((state) => state.addItem);
@@ -79,6 +83,7 @@ export function StoreProductDetailPage() {
   const [selectedImage, setSelectedImage] = useState<string | undefined>(undefined);
   const [selectedColor, setSelectedColor] = useState("");
   const [selectedSize, setSelectedSize] = useState("");
+  const [appliedVariantSkuParam, setAppliedVariantSkuParam] = useState("");
 
   const loadReviewData = async (productId: string, fallbackProduct?: ProductRuntime) => {
     try {
@@ -279,6 +284,36 @@ export function StoreProductDetailPage() {
   }, [productVariants, selectedColor]);
 
   useEffect(() => {
+    if (!variantSkuParam) {
+      setAppliedVariantSkuParam("");
+      return;
+    }
+
+    if (!variantSkuParam || productVariants.length === 0) {
+      return;
+    }
+
+    const targetVariant = productVariants.find(
+      (variant) => (variant.sku || "").trim() === variantSkuParam,
+    );
+    if (!targetVariant) {
+      setAppliedVariantSkuParam(variantSkuParam);
+      return;
+    }
+
+    setSelectedColor(getVariantColorName(targetVariant));
+    setSelectedSize(getVariantSizeLabel(targetVariant));
+    setAppliedVariantSkuParam(variantSkuParam);
+  }, [product?._id, productVariants, variantSkuParam]);
+
+  useEffect(() => {
+    if (
+      variantSkuParam &&
+      productVariants.some((variant) => (variant.sku || "").trim() === variantSkuParam)
+    ) {
+      return;
+    }
+
     const fallbackColor = colorOptions[0]?.name ?? "";
     if (!fallbackColor) {
       return;
@@ -287,9 +322,16 @@ export function StoreProductDetailPage() {
     if (!selectedColor || !colorOptions.some((color) => color.name === selectedColor)) {
       setSelectedColor(fallbackColor);
     }
-  }, [colorOptions, selectedColor]);
+  }, [colorOptions, productVariants, selectedColor, variantSkuParam]);
 
   useEffect(() => {
+    if (
+      variantSkuParam &&
+      productVariants.some((variant) => (variant.sku || "").trim() === variantSkuParam)
+    ) {
+      return;
+    }
+
     const fallbackSize = sizeOptions[0] ?? "";
     if (!fallbackSize) {
       return;
@@ -298,7 +340,7 @@ export function StoreProductDetailPage() {
     if (!selectedSize || !sizeOptions.includes(selectedSize)) {
       setSelectedSize(fallbackSize);
     }
-  }, [selectedSize, sizeOptions]);
+  }, [productVariants, selectedSize, sizeOptions, variantSkuParam]);
 
   const imageList = useMemo(() => {
     const selectedColorKey = normalizeColorValue(selectedColor);
@@ -366,6 +408,33 @@ export function StoreProductDetailPage() {
       null
     );
   }, [productVariants, selectedColor, selectedSize]);
+
+  useEffect(() => {
+    if (!product?._id || !selectedVariant?.sku) {
+      return;
+    }
+
+    if (variantSkuParam && appliedVariantSkuParam !== variantSkuParam) {
+      return;
+    }
+
+    const nextSku = selectedVariant.sku.trim();
+    if (!nextSku || nextSku === variantSkuParam) {
+      return;
+    }
+
+    setSearchParams((currentParams) => {
+      const nextParams = new URLSearchParams(currentParams);
+      nextParams.set("variantSku", nextSku);
+      return nextParams;
+    }, { replace: true });
+  }, [
+    appliedVariantSkuParam,
+    product?._id,
+    selectedVariant?.sku,
+    setSearchParams,
+    variantSkuParam,
+  ]);
 
   const shortDescriptionPreview = useMemo(() => {
     const shortDescription = stripHtmlToText(product?.shortDescription);
@@ -485,7 +554,7 @@ export function StoreProductDetailPage() {
   const selectedVariantBasePrice = Math.max(
     0,
     selectedVariant?.effectivePricing?.listPrice ??
-      (product.pricing.compareAtPrice ?? product.pricing.basePrice) +
+      (product.pricing.regularPrice ?? product.pricing.salePrice) +
         Number(selectedVariant?.additionalPrice || 0),
   );
   const hasDiscount = selectedVariantBasePrice > selectedVariantPrice;
@@ -796,8 +865,13 @@ export function StoreProductDetailPage() {
           <div className="related-grid">
             {relatedProducts.slice(0, 5).map((item) => {
               const image = resolveStoreProductThumbnail(item);
+              const displayPricing = getProductDisplayPricing(item);
               return (
-                <Link key={item._id} to={`/products/${item.slug}`} className="related-card">
+                <Link
+                  key={item._id}
+                  to={getProductDetailHref(item, displayPricing.variantSku)}
+                  className="related-card"
+                >
                   <div className="related-card-image">
                     {image ? (
                       <img src={image} alt={item.name} className="h-full w-full object-cover" />
@@ -811,8 +885,13 @@ export function StoreProductDetailPage() {
                     </p>
                     <h3 className="mt-2 min-h-12 text-sm font-semibold text-slate-900">{item.name}</h3>
                     <p className="mt-2 text-base font-bold text-slate-900">
-                      {formatCurrency(item.pricing.regularPrice ?? item.pricing.salePrice)}
+                      {formatCurrency(displayPricing.price)}
                     </p>
+                    {displayPricing.originalPrice ? (
+                      <p className="mt-1 text-sm font-semibold text-slate-400 line-through">
+                        {formatCurrency(displayPricing.originalPrice)}
+                      </p>
+                    ) : null}
                   </div>
                 </Link>
               );

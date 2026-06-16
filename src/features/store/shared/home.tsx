@@ -15,6 +15,7 @@ import {
   resolveStoreImageUrl,
   resolveStoreProductThumbnail,
 } from "../utils/storeFormatting";
+import { getProductDisplayPricing } from "./productDetail";
 
 export const SAVED_COUPON_STORAGE_KEY = "rioshop_saved_coupons";
 
@@ -59,6 +60,7 @@ export type HomeProduct = {
   id: string;
   name: string;
   slug: string;
+  variantSku?: string;
   category: string;
   categoryId?: string;
   categoryName?: string;
@@ -77,6 +79,7 @@ export type FlashDeal = {
   id: string;
   title: string;
   slug: string;
+  variantSku?: string;
   image: string;
   salePrice: number;
   compareAtPrice: number;
@@ -340,12 +343,6 @@ export const getCategoryBadge = (product: ProductRuntime, labels: ResolvedHomeCo
     return labels.categoryNewBadge;
   }
 
-  const regularPrice = product.pricing.regularPrice ?? product.pricing.salePrice;
-  const compareAtPrice = product.pricing.compareAtPrice ?? product.pricing.basePrice;
-  if (compareAtPrice > regularPrice) {
-    return labels.categoryPromotionBadge;
-  }
-
   return product.category?.name ?? labels.categoryDefaultBadge;
 };
 
@@ -574,20 +571,20 @@ export const mapHomeProduct = (
   labels: ResolvedHomeContent["labels"],
 ): HomeProduct => {
   const image = getProductImage(product, index);
-  const regularPrice = product.pricing.regularPrice ?? product.pricing.salePrice;
-  const compareAtPrice = product.pricing.compareAtPrice ?? product.pricing.basePrice;
+  const displayPricing = getProductDisplayPricing(product);
 
   return {
     id: product._id,
     name: product.name,
     slug: product.slug,
+    variantSku: displayPricing.variantSku,
     category: getCategoryBadge(product, labels),
     categoryId: product.category?._id,
     categoryName: product.category?.name,
     categorySlug: product.category?.slug,
-    price: regularPrice,
-    originalPrice: compareAtPrice > regularPrice ? compareAtPrice : undefined,
-    badge: getDiscountBadge(regularPrice, compareAtPrice),
+    price: displayPricing.price,
+    originalPrice: displayPricing.originalPrice,
+    badge: displayPricing.badge,
     rating:
       typeof product.ratings?.avg === "number" && product.ratings.avg > 0
         ? Number(product.ratings.avg.toFixed(1))

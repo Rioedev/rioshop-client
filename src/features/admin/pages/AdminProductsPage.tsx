@@ -610,7 +610,6 @@ export function AdminProductsPage() {
       categoryId: product.category?._id,
       collectionIds: (product.collections ?? []).map((item) => item._id),
       regularPrice: product.pricing.regularPrice ?? product.pricing.salePrice ?? 0,
-      compareAtPrice: product.pricing.compareAtPrice ?? product.pricing.basePrice ?? 0,
       costPrice: product.pricing.costPrice ?? 0,
       // out_of_stock là tình trạng kho tự động — map về "active" để admin
       // chỉnh đúng ý đồ bán. Khi save, hook pre("save") sẽ lại tự flip nếu thực sự hết hàng.
@@ -720,7 +719,7 @@ export function AdminProductsPage() {
         })),
         pricing: {
           regularPrice: values.regularPrice,
-          compareAtPrice: values.compareAtPrice ?? 0,
+          compareAtPrice: 0,
           currency: "VND",
         },
         status: values.status,
@@ -1005,41 +1004,6 @@ export function AdminProductsPage() {
                   name="regularPrice"
                   rules={REQUIRED_RULE}
                   className="mb-3! mt-3!"
-                >
-                  <InputNumber<number>
-                    min={0}
-                    precision={0}
-                    className="w-full!"
-                    placeholder="0"
-                    addonAfter="VND"
-                    formatter={(value) =>
-                      value === undefined || value === null
-                        ? ""
-                        : `${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ",")
-                    }
-                    parser={(value) => {
-                      const digits = (value || "").toString().replace(/\D/g, "");
-                      return digits ? Number(digits) : 0;
-                    }}
-                  />
-                </Form.Item>
-                <Form.Item
-                  label="Giá tham chiếu / niêm yết (tùy chọn)"
-                  name="compareAtPrice"
-                  className="mb-3!"
-                  rules={[
-                    ({ getFieldValue }) => ({
-                      validator(_, value) {
-                        if (value === undefined || value === null || value === "") return Promise.resolve();
-                        const compareAt = Number(value);
-                        const regular = Number(getFieldValue("regularPrice"));
-                        if (Number.isFinite(compareAt) && compareAt > 0 && Number.isFinite(regular) && compareAt < regular) {
-                          return Promise.reject(new Error("Giá tham chiếu phải lớn hơn hoặc bằng giá bán thường ngày"));
-                        }
-                        return Promise.resolve();
-                      },
-                    }),
-                  ]}
                 >
                   <InputNumber<number>
                     min={0}

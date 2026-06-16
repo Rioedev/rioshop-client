@@ -40,6 +40,7 @@ import {
 } from "../shared/home";
 import { StoreHomeHeroSection, type HomeHeroSlide } from "./StoreHomeHeroSection";
 import { StoreHomeProductCard } from "./StoreHomeProductCard";
+import { getProductDetailHref } from "../shared/productDetail";
 
 const HOME_NOW_TICK_MS = 1000;
 const HOME_INITIAL_NOW = Date.now();
@@ -229,16 +230,19 @@ export function StoreHomePage() {
               return;
             }
 
-            const fallbackCompareAtPrice = Math.round(slot.salePrice * 1.2);
             const dealPricing = slot.product?.pricing ?? product?.pricing;
-            const productRegularPrice = dealPricing?.regularPrice ?? dealPricing?.salePrice ?? 0;
-            const productCompareAtPrice = dealPricing?.compareAtPrice ?? dealPricing?.basePrice ?? 0;
-            const compareAtPrice =
-              productCompareAtPrice > slot.salePrice
-                ? productCompareAtPrice
-                : productRegularPrice > slot.salePrice
-                  ? productRegularPrice
-                  : fallbackCompareAtPrice;
+            const baseRegularPrice = dealPricing?.regularPrice ?? dealPricing?.salePrice ?? 0;
+            const variantSku = (slot.variantSku || "").trim();
+            const dealVariant = variantSku
+              ? (slot.product?.variants ?? product?.variants ?? []).find(
+                  (variant) => (variant.sku || "").trim() === variantSku,
+                )
+              : null;
+            const productRegularPrice = Math.max(
+              0,
+              Number(baseRegularPrice || 0) + Number(dealVariant?.additionalPrice || 0),
+            );
+            const compareAtPrice = productRegularPrice > slot.salePrice ? productRegularPrice : 0;
             const slotPrimaryImage =
               slot.product?.media?.find((item) => item.type === "image" && item.isPrimary)?.url ??
               slot.product?.media?.find((item) => item.type === "image")?.url ??
@@ -258,6 +262,7 @@ export function StoreHomePage() {
               id: `${currentSale.id}-${slot.productId}-${index}`,
               title: dealName,
               slug: dealSlug,
+              variantSku,
               image: dealImage,
               salePrice: slot.salePrice,
               compareAtPrice,
@@ -774,7 +779,10 @@ export function StoreHomePage() {
           </div>
 
           <div className="store-home-v3-flash-layout">
-            <Link to={`/products/${flashDeals[0].slug}`} className="store-home-v3-flash-feature">
+            <Link
+              to={getProductDetailHref(flashDeals[0], flashDeals[0].variantSku)}
+              className="store-home-v3-flash-feature"
+            >
               <div className="store-home-v3-flash-feature-media">
                 <img src={flashDeals[0].image} alt={flashDeals[0].title} />
               </div>
@@ -799,7 +807,11 @@ export function StoreHomePage() {
 
             <div className="store-home-v3-flash-list">
               {flashDeals.slice(1, 4).map((deal) => (
-                <Link key={`deal-${deal.id}`} to={`/products/${deal.slug}`} className="store-home-v3-flash-card">
+                <Link
+                  key={`deal-${deal.id}`}
+                  to={getProductDetailHref(deal, deal.variantSku)}
+                  className="store-home-v3-flash-card"
+                >
                   <div className="store-home-v3-flash-card-media">
                     <img src={deal.image} alt={deal.title} loading="lazy" />
                   </div>
@@ -813,7 +825,7 @@ export function StoreHomePage() {
                     <h3>{deal.title}</h3>
                     <div className="store-home-v3-flash-card-price">
                       <strong>{formatCurrency(deal.salePrice)}</strong>
-                      <span>{formatCurrency(deal.compareAtPrice)}</span>
+                      {deal.compareAtPrice ? <span>{formatCurrency(deal.compareAtPrice)}</span> : null}
                     </div>
                     <Progress percent={deal.soldPercent} showInfo={false} strokeColor="#fb923c" railColor="#e2e8f0" />
                   </div>

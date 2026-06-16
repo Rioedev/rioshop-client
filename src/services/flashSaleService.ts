@@ -32,6 +32,7 @@ type FlashSaleProductApi = {
     sku?: string;
     size?: string;
     sizeLabel?: string;
+    additionalPrice?: number;
     isActive?: boolean;
     images?: string[];
     color?: {

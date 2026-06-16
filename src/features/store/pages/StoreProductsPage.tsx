@@ -32,6 +32,7 @@ import { useAuthStore } from "../../../stores/authStore";
 import { useCartStore } from "../../../stores/cartStore";
 import { useWishlistStore } from "../../../stores/wishlistStore";
 import { getErrorMessage } from "../../../utils/errorMessage";
+import { getProductDetailHref, getProductDisplayPricing } from "../shared/productDetail";
 
 const sortOptions = [
   { value: "featured", label: "Nổi bật" },
@@ -602,7 +603,8 @@ export function StoreProductsPage() {
       : undefined;
     const unitPrice = Math.max(
       0,
-      (item.pricing.regularPrice ?? item.pricing.salePrice) + Number(variant?.additionalPrice || 0),
+      variant?.effectivePricing?.unitPrice ??
+        (item.pricing.regularPrice ?? item.pricing.salePrice) + Number(variant?.additionalPrice || 0),
     );
 
     if (isAuthenticated) {
@@ -668,6 +670,7 @@ export function StoreProductsPage() {
   const onToggleWishlist = async (item: Product, inWishlist: boolean) => {
     const image = resolveStoreProductThumbnail(item) || WISHLIST_FALLBACK_IMAGE;
     const colorSwatches = toStoreColorSwatches(item);
+    const displayPricing = getProductDisplayPricing(item);
 
     if (isAuthenticated) {
       try {
@@ -678,7 +681,7 @@ export function StoreProductsPage() {
               productSlug: item.slug,
               name: item.name,
               image,
-              price: item.pricing.regularPrice ?? item.pricing.salePrice,
+              price: displayPricing.price,
               colorSwatches,
             });
 
@@ -701,7 +704,7 @@ export function StoreProductsPage() {
       productId: item._id,
       slug: item.slug,
       name: item.name,
-      price: item.pricing.regularPrice ?? item.pricing.salePrice,
+      price: displayPricing.price,
       imageUrl: image,
       colorSwatches,
     });
@@ -715,28 +718,24 @@ export function StoreProductsPage() {
       source?: string;
     } = {},
   ) => {
-    const regularPrice = item.pricing.regularPrice ?? item.pricing.salePrice;
-    const compareAtPrice = item.pricing.compareAtPrice ?? item.pricing.basePrice;
-    const hasDiscount = compareAtPrice > regularPrice;
+    const displayPricing = getProductDisplayPricing(item);
     const image = resolveStoreProductThumbnail(item);
     const inWishlist = wishlistItems.some((wishlist) => wishlist.productId === item._id);
     const colorSwatches = toProductCardColorSwatches(item);
-    const discountLabel = hasDiscount
-      ? `-${Math.round(((compareAtPrice - regularPrice) / compareAtPrice) * 100)}%`
-      : undefined;
-    const listingBadge = sort === "best_selling" || sort === "newest" ? undefined : discountLabel;
     const source = options.source ?? "products_page";
 
     return (
       <StoreProductGridCard
         key={item._id}
-        href={`/products/${item.slug}`}
+        href={getProductDetailHref(item, displayPricing.variantSku)}
         imageUrl={image}
         name={item.name}
-        price={formatStoreCurrency(regularPrice)}
-        originalPrice={hasDiscount ? formatStoreCurrency(compareAtPrice) : undefined}
+        price={formatStoreCurrency(displayPricing.price)}
+        originalPrice={
+          displayPricing.originalPrice ? formatStoreCurrency(displayPricing.originalPrice) : undefined
+        }
+        badge={displayPricing.badge}
         categoryLabel={item.category?.name ?? "Sản phẩm"}
-        badge={listingBadge}
         colorSwatches={colorSwatches}
         footer={
           <>

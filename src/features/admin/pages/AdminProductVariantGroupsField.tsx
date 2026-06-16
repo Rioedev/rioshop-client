@@ -108,12 +108,6 @@ export function AdminProductVariantGroupsField({
         </Button>
       </div>
 
-      <div className="mb-3 rounded-lg border border-slate-200 bg-slate-50 p-3 text-xs text-slate-600">
-        <strong>Tồn kho, đang về</strong> chỉ hiển thị (không sửa ở đây). Cập nhật qua{" "}
-        <strong>Đơn nhập (PO)</strong> để nhập hàng mới hoặc <strong>Tồn kho → Lịch sử điều chỉnh</strong> để
-        ghi nhận kiểm kê / hỏng / mất.
-      </div>
-
       <Form.List name="variantGroups">
         {(groupFields, { remove: removeGroup }) => (
           <div className="space-y-3">
@@ -187,7 +181,7 @@ export function AdminProductVariantGroupsField({
                               <span>Nhãn size</span>
                               <span title="Cập nhật qua Đơn nhập / Điều chỉnh kho">Tồn kho</span>
                               <span title="Số đang về từ Đơn nhập">Đang về</span>
-                              <span>Giá cộng</span>
+                              <span>Phụ giá bán</span>
                               <span>Hoạt động</span>
                               <span>Xóa</span>
                             </div>

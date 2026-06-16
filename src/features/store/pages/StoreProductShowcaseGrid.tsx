@@ -5,6 +5,8 @@ import {
   resolveStoreImageUrl,
 } from "../utils/storeFormatting";
 import {
+  getProductDetailHref,
+  getProductDisplayPricing,
   toProductCardImage,
   type ProductRuntime,
 } from "../shared/productDetail";
@@ -107,12 +109,7 @@ export function StoreProductShowcaseGrid({ items }: StoreProductShowcaseGridProp
       {items.map((item, index) => {
         const image = toProductCardImage(item, `RIO-${index + 1}`);
         const colorSwatches = toProductCardColorSwatches(item, image);
-        const regularPrice = item.pricing.regularPrice ?? item.pricing.salePrice;
-        const compareAtPrice = item.pricing.compareAtPrice ?? item.pricing.basePrice;
-        const hasDiscount = compareAtPrice > regularPrice;
-        const discountLabel = hasDiscount
-          ? `-${Math.round(((compareAtPrice - regularPrice) / compareAtPrice) * 100)}%`
-          : undefined;
+        const displayPricing = getProductDisplayPricing(item);
         const ratingText = Number(item.ratings?.avg ?? 0) > 0 ? Number(item.ratings?.avg ?? 0).toFixed(1) : "4.8";
         const soldText =
           typeof item.totalSold === "number" && item.totalSold > 0
@@ -122,13 +119,15 @@ export function StoreProductShowcaseGrid({ items }: StoreProductShowcaseGridProp
         return (
           <StoreProductGridCard
             key={item._id}
-            href={`/products/${item.slug}`}
+            href={getProductDetailHref(item, displayPricing.variantSku)}
             imageUrl={image}
             name={item.name}
-            price={formatCurrency(regularPrice)}
-            originalPrice={hasDiscount ? formatCurrency(compareAtPrice) : undefined}
+            price={formatCurrency(displayPricing.price)}
+            originalPrice={
+              displayPricing.originalPrice ? formatCurrency(displayPricing.originalPrice) : undefined
+            }
+            badge={displayPricing.badge}
             categoryLabel={item.category?.name ?? "Sản phẩm"}
-            badge={discountLabel}
             colorSwatches={colorSwatches}
             footer={
               <div className="store-home-v3-product-foot">

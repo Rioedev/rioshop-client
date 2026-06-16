@@ -40,6 +40,7 @@ import {
   formatCouponValue,
   readSavedCouponCodes,
 } from "../shared/home";
+import { getProductDetailHref, getProductDisplayPricing } from "../shared/productDetail";
 
 const DEFAULT_SHIPPING_POLICY: ShippingPolicy = {
   freeShipEnabled: true,
@@ -414,7 +415,8 @@ export function StoreCartPage() {
     const variantLabel = `${variant.color?.name?.trim() || "Mặc định"} / ${(variant.sizeLabel || variant.size).trim()}`;
     const price = Math.max(
       0,
-      (item.pricing.regularPrice ?? item.pricing.salePrice) + Number(variant.additionalPrice || 0),
+      variant.effectivePricing?.unitPrice ??
+        (item.pricing.regularPrice ?? item.pricing.salePrice) + Number(variant.additionalPrice || 0),
     );
 
     if (isAuthenticated) {
@@ -687,27 +689,24 @@ export function StoreCartPage() {
               <div className="cart-recommend-grid">
                 {recommendations.map(({ product: item }) => {
                   const image = resolveStoreProductThumbnail(item);
+                  const displayPricing = getProductDisplayPricing(item);
                   const colorSwatches = toStoreColorSwatches(item, image).map((color) => ({
                     ...color,
                     imageUrl: resolveStoreImageUrl(color.imageUrl),
                   }));
-                  const regularPrice = item.pricing.regularPrice ?? item.pricing.salePrice;
-                  const compareAtPrice = item.pricing.compareAtPrice ?? item.pricing.basePrice;
-                  const hasDiscount = Number(compareAtPrice || 0) > regularPrice;
-                  const discountLabel = hasDiscount
-                    ? `-${Math.round(((Number(compareAtPrice) - regularPrice) / Number(compareAtPrice)) * 100)}%`
-                    : undefined;
 
                   return (
                     <StoreProductGridCard
                       key={item._id}
-                      href={`/products/${item.slug}`}
+                      href={getProductDetailHref(item, displayPricing.variantSku)}
                       imageUrl={image}
                       name={item.name}
-                      price={formatStoreCurrency(regularPrice)}
-                      originalPrice={hasDiscount ? formatStoreCurrency(Number(compareAtPrice)) : undefined}
+                      price={formatStoreCurrency(displayPricing.price)}
+                      originalPrice={
+                        displayPricing.originalPrice ? formatStoreCurrency(displayPricing.originalPrice) : undefined
+                      }
+                      badge={displayPricing.badge}
                       categoryLabel={item.category?.name ?? "Sản phẩm"}
-                      badge={discountLabel}
                       colorSwatches={colorSwatches}
                       footer={
                         <Button
