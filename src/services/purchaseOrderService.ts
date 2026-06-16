@@ -179,4 +179,26 @@ export const purchaseOrderService = {
     );
     return data.data;
   },
+
+  async exportListXlsx(params: {
+    status?: POStatus;
+    supplierId?: string;
+    search?: string;
+    from?: string;
+    to?: string;
+  } = {}): Promise<Blob> {
+    const response = await apiClient.get<Blob>(
+      `/api/purchase-orders/export-xlsx${buildQs(params)}`,
+      { responseType: "blob" },
+    );
+    return response.data;
+  },
+
+  async exportDetailXlsx(id: string): Promise<Blob> {
+    const response = await apiClient.get<Blob>(
+      `/api/purchase-orders/${id}/export-xlsx`,
+      { responseType: "blob" },
+    );
+    return response.data;
+  },
 };

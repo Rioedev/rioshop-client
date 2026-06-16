@@ -16,7 +16,7 @@ import {
   Typography,
   message,
 } from "antd";
-import { PlusOutlined } from "@ant-design/icons";
+import { DownloadOutlined, PlusOutlined } from "@ant-design/icons";
 import type { ColumnsType } from "antd/es/table";
 import { type ReactNode, useCallback, useEffect, useMemo, useState } from "react";
 import dayjs, { type Dayjs } from "dayjs";
@@ -77,6 +77,8 @@ export function AdminPurchaseOrdersPage() {
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
   const [supplierFilter, setSupplierFilter] = useState<string | undefined>(undefined);
   const [suppliers, setSuppliers] = useState<Supplier[]>([]);
+  const [exportingList, setExportingList] = useState(false);
+  const [exportingDetail, setExportingDetail] = useState(false);
 
   // Create / edit drawer state — dùng chung cho cả tạo nháp và sửa nháp
   // editingPoId = null → tạo mới; có id → đang sửa PO draft
@@ -134,6 +136,46 @@ export function AdminPurchaseOrdersPage() {
   useEffect(() => {
     void loadSuppliers();
   }, [loadSuppliers]);
+
+  const downloadBlob = (blob: Blob, fileName: string) => {
+    const url = window.URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = fileName;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    window.URL.revokeObjectURL(url);
+  };
+
+  const exportPurchaseOrderList = async () => {
+    setExportingList(true);
+    try {
+      const blob = await purchaseOrderService.exportListXlsx({
+        status: statusFilter === "all" ? undefined : statusFilter,
+        supplierId: supplierFilter,
+      });
+      downloadBlob(blob, `don-nhap-hang-${dayjs().format("YYYY-MM-DD")}.xlsx`);
+      messageApi.success("Đã xuất danh sách đơn nhập Excel.");
+    } catch (error) {
+      messageApi.error(getErrorMessage(error, "Không xuất được danh sách đơn nhập"));
+    } finally {
+      setExportingList(false);
+    }
+  };
+
+  const exportPurchaseOrderDetail = async (po: PurchaseOrder) => {
+    setExportingDetail(true);
+    try {
+      const blob = await purchaseOrderService.exportDetailXlsx(po._id);
+      downloadBlob(blob, `don-nhap-${po.poNumber}.xlsx`);
+      messageApi.success("Đã xuất chi tiết đơn nhập Excel.");
+    } catch (error) {
+      messageApi.error(getErrorMessage(error, "Không xuất được chi tiết đơn nhập"));
+    } finally {
+      setExportingDetail(false);
+    }
+  };
 
   // Create flow
   const loadDefaultProducts = async () => {
@@ -521,9 +563,18 @@ export function AdminPurchaseOrdersPage() {
             Tạo phiếu đặt hàng với nhà cung cấp / xưởng, theo dõi tiến độ và ghi nhận nhập kho.
           </Text>
         </div>
-        <Button type="primary" icon={<PlusOutlined />} onClick={openCreate}>
-          Tạo đơn nhập
-        </Button>
+        <Space>
+          <Button
+            icon={<DownloadOutlined />}
+            loading={exportingList}
+            onClick={() => void exportPurchaseOrderList()}
+          >
+            Xuất Excel
+          </Button>
+          <Button type="primary" icon={<PlusOutlined />} onClick={openCreate}>
+            Tạo đơn nhập
+          </Button>
+        </Space>
       </div>
 
       <Card>
@@ -711,6 +762,13 @@ export function AdminPurchaseOrdersPage() {
         extra={
           selectedPo ? (
             <Space>
+              <Button
+                icon={<DownloadOutlined />}
+                loading={exportingDetail}
+                onClick={() => void exportPurchaseOrderDetail(selectedPo)}
+              >
+                Xuất chi tiết
+              </Button>
               {isDraftPo ? (
                 <Button onClick={() => openEditDraft(selectedPo)}>Sửa nháp</Button>
               ) : null}
