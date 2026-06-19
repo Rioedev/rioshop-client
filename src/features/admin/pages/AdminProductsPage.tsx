@@ -81,6 +81,8 @@ export function AdminProductsPage() {
   const [messageApi, contextHolder] = message.useMessage();
   const skipFirstSearch = useRef(true);
   const pendingUploadFilesRef = useRef<Record<string, File>>({});
+  const pendingPreviewUrlsRef = useRef<Record<string, string>>({});
+  const uploadSessionRef = useRef(0);
   const productSkuManuallyEditedRef = useRef(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
@@ -91,6 +93,7 @@ export function AdminProductsPage() {
   const [importErrors, setImportErrors] = useState<ProductImportXlsxError[]>([]);
   const [importErrorTotal, setImportErrorTotal] = useState(0);
   const [importErrorOpen, setImportErrorOpen] = useState(false);
+  const [uploadingVariantImages, setUploadingVariantImages] = useState(0);
   const [productInventoryAlerts, setProductInventoryAlerts] = useState<Record<string, ProductInventoryAlertSummary>>({});
   const [inventoryAlertTotal, setInventoryAlertTotal] = useState(0);
   const watchedName = Form.useWatch("name", form);
@@ -365,34 +368,78 @@ export function AdminProductsPage() {
 
   const registerPendingFile = (file: File) => {
     const pendingFileId = `pending-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+    const previewUrl = URL.createObjectURL(file);
     pendingUploadFilesRef.current[pendingFileId] = file;
-    return pendingFileId;
+    pendingPreviewUrlsRef.current[pendingFileId] = previewUrl;
+    return { pendingFileId, previewUrl };
   };
 
   const unregisterPendingFile = (pendingFileId?: string) => {
     if (!pendingFileId) return;
+    const previewUrl = pendingPreviewUrlsRef.current[pendingFileId];
+    if (previewUrl) {
+      URL.revokeObjectURL(previewUrl);
+      delete pendingPreviewUrlsRef.current[pendingFileId];
+    }
     delete pendingUploadFilesRef.current[pendingFileId];
   };
 
   const resetPendingFiles = () => {
+    Object.values(pendingPreviewUrlsRef.current).forEach((url) => URL.revokeObjectURL(url));
     pendingUploadFilesRef.current = {};
+    pendingPreviewUrlsRef.current = {};
   };
 
   const handleVariantGroupUpload = (groupFieldName: number): UploadProps["customRequest"] =>
     async ({ file, onSuccess, onError }) => {
+      const uploadSession = uploadSessionRef.current;
+      const nextFile = file as File;
+      const { pendingFileId, previewUrl } = registerPendingFile(nextFile);
+      const current = (form.getFieldValue(["variantGroups", groupFieldName, "imageItems"]) ?? []) as VariantImageFormValue[];
+      form.setFieldValue(["variantGroups", groupFieldName, "imageItems"], [
+        ...current,
+        { url: previewUrl, pendingFileId },
+      ]);
+      setUploadingVariantImages((count) => count + 1);
+
       try {
-        const nextFile = file as File;
-        const pendingFileId = registerPendingFile(nextFile);
-        const current = (form.getFieldValue(["variantGroups", groupFieldName, "imageItems"]) ?? []) as VariantImageFormValue[];
-        form.setFieldValue(["variantGroups", groupFieldName, "imageItems"], [
-          ...current,
-          { url: `[Local file] ${nextFile.name}`, pendingFileId },
-        ]);
+        const url = await uploadProductImage(nextFile);
+        if (uploadSession !== uploadSessionRef.current) {
+          unregisterPendingFile(pendingFileId);
+          return;
+        }
+
+        const groups = ((form.getFieldValue("variantGroups") ?? []) as VariantGroupFormValue[]).map(
+          (group) => ({
+            ...group,
+            imageItems: (group.imageItems ?? []).map((imageItem) =>
+              imageItem.pendingFileId === pendingFileId ? { url } : { ...imageItem },
+            ),
+          }),
+        );
+        form.setFieldValue("variantGroups", groups);
+        unregisterPendingFile(pendingFileId);
         onSuccess?.("ok");
-        messageApi.success("Đã thêm ảnh biến thể, hệ thống sẽ tải lên khi bạn bấm Lưu.");
+        messageApi.success(`Đã tải lên ${nextFile.name}`);
       } catch (error) {
+        if (uploadSession === uploadSessionRef.current) {
+          const groups = ((form.getFieldValue("variantGroups") ?? []) as VariantGroupFormValue[]).map(
+            (group) => ({
+              ...group,
+              imageItems: (group.imageItems ?? []).filter(
+                (imageItem) => imageItem.pendingFileId !== pendingFileId,
+              ),
+            }),
+          );
+          form.setFieldValue("variantGroups", groups);
+        }
+        unregisterPendingFile(pendingFileId);
         onError?.(error as Error);
-        messageApi.error(getErrorMessage(error));
+        messageApi.error(getErrorMessage(error, `Không tải được ảnh ${nextFile.name}`));
+      } finally {
+        if (uploadSession === uploadSessionRef.current) {
+          setUploadingVariantImages((count) => Math.max(0, count - 1));
+        }
       }
     };
 
@@ -581,6 +628,8 @@ export function AdminProductsPage() {
   };
 
   const openCreateModal = () => {
+    uploadSessionRef.current += 1;
+    setUploadingVariantImages(0);
     setEditingProduct(null);
     resetPendingFiles();
     productSkuManuallyEditedRef.current = false;
@@ -600,6 +649,8 @@ export function AdminProductsPage() {
   };
 
   const openEditModal = (product: Product) => {
+    uploadSessionRef.current += 1;
+    setUploadingVariantImages(0);
     setEditingProduct(product);
     resetPendingFiles();
     productSkuManuallyEditedRef.current = true;
@@ -630,6 +681,11 @@ export function AdminProductsPage() {
   };
 
   const handleSave = async () => {
+    if (uploadingVariantImages > 0) {
+      messageApi.info("Vui lòng chờ ảnh tải lên hoàn tất.");
+      return;
+    }
+
     try {
       await form.validateFields();
       const values = form.getFieldsValue(true) as ProductFormValues;
@@ -954,6 +1010,8 @@ export function AdminProductsPage() {
           title={null}
           open={isModalOpen}
           onCancel={() => {
+            uploadSessionRef.current += 1;
+            setUploadingVariantImages(0);
             productSkuManuallyEditedRef.current = false;
             resetPendingFiles();
             form.resetFields();
@@ -962,7 +1020,11 @@ export function AdminProductsPage() {
         onOk={() => void handleSave()}
         okText={editingProduct ? "Cập nhật" : "Tạo mới"}
         cancelText="Hủy"
-        okButtonProps={{ loading: saving, className: "bg-sky-700! hover:bg-sky-800!" }}
+        okButtonProps={{
+          loading: saving,
+          disabled: uploadingVariantImages > 0,
+          className: "bg-sky-700! hover:bg-sky-800!",
+        }}
         width="min(1280px, calc(100vw - 32px))"
         destroyOnHidden
       >
@@ -1192,6 +1254,7 @@ export function AdminProductsPage() {
                         onChange={(nextValue) => form.setFieldValue("description", nextValue)}
                         placeholder="Mô tả chi tiết sản phẩm..."
                         onUploadImage={handleEditorImageUpload}
+                        collapsible
                       />
                     )}
                   </Form.Item>
@@ -1208,6 +1271,7 @@ export function AdminProductsPage() {
                 handleVariantGroupUpload={handleVariantGroupUpload}
                 beforeUpload={beforeUpload}
                 unregisterPendingFile={unregisterPendingFile}
+                uploadingImages={uploadingVariantImages > 0}
                 handleCopy={handleCopy}
               />
             </div>

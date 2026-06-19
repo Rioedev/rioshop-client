@@ -1564,6 +1564,25 @@ export function AdminOrdersPage() {
                   <Text type="secondary">Phí vận chuyển</Text>
                   <Text strong>{formatCurrency.format(managingOrder.pricing.shippingFee)} VND</Text>
                 </div>
+                {managingOrder.pricing.shippingFeeStatus !== "legacy" ? (
+                  <>
+                    <div className="flex items-center justify-between">
+                      <Text type="secondary">Khách thực trả phí ship</Text>
+                      <Text>{formatCurrency.format(managingOrder.pricing.shippingCustomerPaid)} VND</Text>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <Text type="secondary">
+                        Phí hãng vận chuyển
+                        {managingOrder.pricing.shippingFeeStatus === "estimated" ? " (tạm tính)" : ""}
+                      </Text>
+                      <Text>{formatCurrency.format(managingOrder.pricing.shippingCarrierFee)} VND</Text>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <Text type="secondary">Cửa hàng hỗ trợ ship</Text>
+                      <Text>{formatCurrency.format(managingOrder.pricing.shippingSubsidy)} VND</Text>
+                    </div>
+                  </>
+                ) : null}
                 <div className="mt-2 flex items-center justify-between rounded-xl border border-slate-200 bg-slate-50 px-3 py-2">
                   <Text strong className="text-base!">Tổng thanh toán</Text>
                   <Text strong className="text-base! text-slate-900!">

@@ -447,7 +447,7 @@ export function AdminSalesReportPage() {
       </div>
 
       <Spin spinning={loading}>
-        <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+        <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
           <Card>
             <Text type="secondary" className="text-xs! uppercase! tracking-wider!">Doanh thu</Text>
             <Title level={4} className="m-0! mt-2!">{formatCurrency(overview?.revenue ?? 0)}</Title>
@@ -463,6 +463,21 @@ export function AdminSalesReportPage() {
             </Title>
             <Text type="secondary" className="text-xs!">
               Tỷ suất {(((overview?.marginRate ?? 0)) * 100).toFixed(1)}% · Giá vốn {formatCurrency(overview?.cost ?? 0)}
+            </Text>
+          </Card>
+          <Card>
+            <Text type="secondary" className="text-xs! uppercase! tracking-wider!">
+              Lợi nhuận sau phí ship
+            </Text>
+            <Title
+              level={4}
+              className={`m-0! mt-2! ${(overview?.profitAfterShipping ?? 0) >= 0 ? "text-emerald-600!" : "text-red-500!"}`}
+            >
+              {formatCurrency(overview?.profitAfterShipping ?? 0)}
+            </Title>
+            <Text type="secondary" className="text-xs!">
+              Shop chịu {formatCurrency(overview?.shippingNetCost ?? 0)} · Phí hãng{" "}
+              {formatCurrency(overview?.shippingCarrierFee ?? 0)}
             </Text>
           </Card>
           <Card>

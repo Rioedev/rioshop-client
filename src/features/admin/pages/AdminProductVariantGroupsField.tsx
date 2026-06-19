@@ -29,6 +29,7 @@ type AdminProductVariantGroupsFieldProps = {
   handleVariantGroupUpload: (groupFieldName: number) => UploadProps["customRequest"];
   beforeUpload: UploadProps["beforeUpload"];
   unregisterPendingFile: (pendingFileId?: string) => void;
+  uploadingImages: boolean;
   handleCopy: (value: string, label: string) => Promise<void>;
 };
 
@@ -39,6 +40,7 @@ export function AdminProductVariantGroupsField({
   handleVariantGroupUpload,
   beforeUpload,
   unregisterPendingFile,
+  uploadingImages,
   handleCopy,
 }: AdminProductVariantGroupsFieldProps) {
   const [draggingImage, setDraggingImage] = useState<{
@@ -403,6 +405,7 @@ export function AdminProductVariantGroupsField({
                               <Button
                                 size="small"
                                 icon={<PlusOutlined />}
+                                loading={uploadingImages}
                                 className="h-[190px] border-dashed!"
                                 block
                               >

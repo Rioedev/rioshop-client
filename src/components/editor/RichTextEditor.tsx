@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { Button, Space, message } from "antd";
+import { DownOutlined, UpOutlined } from "@ant-design/icons";
 import { EditorContent, useEditor } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
 import Underline from "@tiptap/extension-underline";
@@ -14,6 +15,7 @@ type RichTextEditorProps = {
   onChange?: (value: string) => void;
   placeholder?: string;
   onUploadImage?: (file: File) => Promise<string>;
+  collapsible?: boolean;
 };
 
 export function RichTextEditor({
@@ -21,9 +23,11 @@ export function RichTextEditor({
   onChange,
   placeholder = "Nhập nội dung...",
   onUploadImage,
+  collapsible = false,
 }: RichTextEditorProps) {
   const [messageApi, contextHolder] = message.useMessage();
   const [uploading, setUploading] = useState(false);
+  const [collapsed, setCollapsed] = useState(false);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   const editor = useEditor({
@@ -74,7 +78,7 @@ export function RichTextEditor({
   if (!editor) return null;
 
   return (
-    <div className="rte-shell">
+    <div className={`rte-shell${collapsed ? " rte-shell--collapsed" : ""}`}>
       {contextHolder}
       <Space size={6} wrap className="rte-toolbar">
         <Button
@@ -134,6 +138,16 @@ export function RichTextEditor({
         <Button size="small" loading={uploading} onClick={openImagePicker}>
           Ảnh
         </Button>
+        {collapsible ? (
+          <Button
+            size="small"
+            type="text"
+            icon={collapsed ? <DownOutlined /> : <UpOutlined />}
+            onClick={() => setCollapsed((current) => !current)}
+          >
+            {collapsed ? "Mở rộng" : "Thu gọn"}
+          </Button>
+        ) : null}
       </Space>
       <EditorContent editor={editor} />
       <input

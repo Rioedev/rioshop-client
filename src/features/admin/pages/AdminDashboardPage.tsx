@@ -12,6 +12,10 @@ import { useNavigate } from "react-router-dom";
 import { type AnalyticsDashboardData } from "../../../services/analyticsEventService";
 import { type InventoryRecord } from "../../../services/inventoryService";
 import { type OrderRecord } from "../../../services/orderService";
+import {
+  reportingService,
+  type ReportingOverview,
+} from "../../../services/reportingService";
 import { subscribeAdminRealtime } from "../../../services/socketClient";
 import { useAnalyticsEventStore } from "../../../stores/analyticsEventStore";
 import { useInventoryStore } from "../../../stores/inventoryStore";
@@ -126,6 +130,22 @@ const formatCurrencyCompact = (value: number) => {
 
   if (safeValue >= 1_000_000) {
     return `${(safeValue / 1_000_000).toFixed(1)} triệu`;
+  }
+
+  return `${formatNumber.format(safeValue)} VND`;
+};
+
+const formatSignedCurrencyCompact = (value: number) => {
+  const safeValue = Number(value || 0);
+  const sign = safeValue < 0 ? "-" : "";
+  const absoluteValue = Math.abs(safeValue);
+
+  if (absoluteValue >= 1_000_000_000) {
+    return `${sign}${(absoluteValue / 1_000_000_000).toFixed(2)} tỷ`;
+  }
+
+  if (absoluteValue >= 1_000_000) {
+    return `${sign}${(absoluteValue / 1_000_000).toFixed(1)} triệu`;
   }
 
   return `${formatNumber.format(safeValue)} VND`;
@@ -306,6 +326,8 @@ export function AdminDashboardPage() {
   const [estimatedRevenueValue, setEstimatedRevenueValue] = useState(0);
   const [analyticsEventsCount, setAnalyticsEventsCount] = useState(0);
   const [dashboardMetrics, setDashboardMetrics] = useState<AnalyticsDashboardData | null>(null);
+  const [salesOverview, setSalesOverview] = useState<ReportingOverview | null>(null);
+  const [previousSalesOverview, setPreviousSalesOverview] = useState<ReportingOverview | null>(null);
 
   const currentDateLabel = useMemo(
     () =>
@@ -346,6 +368,8 @@ export function AdminDashboardPage() {
         recentOrdersPage,
         lowStockPage,
         activeProductsPage,
+        currentSalesOverview,
+        priorSalesOverview,
       ] = await Promise.all([
         fetchDashboard({
           startDate: currentPeriodStart.toISOString(),
@@ -377,6 +401,14 @@ export function AdminDashboardPage() {
           page: 1,
           limit: 1,
           status: "active",
+        }),
+        reportingService.getOverview({
+          from: currentPeriodStart.toISOString(),
+          to: now.toISOString(),
+        }),
+        reportingService.getOverview({
+          from: previousPeriodStart.toISOString(),
+          to: previousPeriodEnd.toISOString(),
         }),
       ]);
 
@@ -412,6 +444,8 @@ export function AdminDashboardPage() {
       setPendingOrderCount(currentMetrics.summary?.openOrders ?? getPendingOrderCount(currentMetrics));
       setEstimatedRevenueValue(todayMetrics.totals.netRevenue ?? todayMetrics.totals.revenue);
       setAnalyticsEventsCount(currentMetrics.totals.events);
+      setSalesOverview(currentSalesOverview);
+      setPreviousSalesOverview(priorSalesOverview);
     } catch (error) {
       if (requestId === requestSequenceRef.current) {
         messageApi.error(getErrorMessage(error));
@@ -543,6 +577,15 @@ export function AdminDashboardPage() {
   const activeRangeLabel =
     rangePreset === "7d" ? "7 ngày" : rangePreset === "90d" ? "90 ngày" : "30 ngày";
 
+  const grossProfitGrowth = calculateGrowthRate(
+    salesOverview?.grossProfit ?? 0,
+    previousSalesOverview?.grossProfit ?? 0,
+  );
+  const profitAfterShippingGrowth = calculateGrowthRate(
+    salesOverview?.profitAfterShipping ?? 0,
+    previousSalesOverview?.profitAfterShipping ?? 0,
+  );
+
   const handleExportDashboardReport = () => {
     if (!dashboardMetrics) {
       messageApi.info("Chưa có dữ liệu thống kê để xuất.");
@@ -555,6 +598,12 @@ export function AdminDashboardPage() {
       { report: "Tổng quan", indicator: "Doanh thu gộp", value: dashboardMetrics.totals.grossRevenue ?? dashboardMetrics.totals.revenue },
       { report: "Tổng quan", indicator: "Tổng đơn hàng", value: dashboardMetrics.totals.orders },
       { report: "Tổng quan", indicator: "Giá trị đơn trung bình", value: averageOrderValue },
+      { report: "Lợi nhuận", indicator: "Giá vốn", value: salesOverview?.cost ?? 0 },
+      { report: "Lợi nhuận", indicator: "Lãi gộp", value: salesOverview?.grossProfit ?? 0 },
+      { report: "Lợi nhuận", indicator: "Phí ship khách trả", value: salesOverview?.shippingCustomerPaid ?? 0 },
+      { report: "Lợi nhuận", indicator: "Phí hãng vận chuyển", value: salesOverview?.shippingCarrierFee ?? 0 },
+      { report: "Lợi nhuận", indicator: "Chi phí ship ròng", value: salesOverview?.shippingNetCost ?? 0 },
+      { report: "Lợi nhuận", indicator: "Lợi nhuận sau phí ship", value: salesOverview?.profitAfterShipping ?? 0, note: "Chưa trừ quảng cáo, lương, thuế và các chi phí vận hành khác" },
       { report: "Tổng quan", indicator: "Đơn mở quá 24h (toàn hệ thống)", value: overduePendingOrders },
       { report: "Tổng quan", indicator: "Tỷ lệ hủy đơn", value: `${cancellationRate.toFixed(2)}%`, note: "Đơn hủy / tổng đơn gốc tạo trong kỳ" },
       { report: "Tổng quan", indicator: "Tỷ lệ đổi hàng", value: `${exchangeRate.toFixed(2)}%`, note: "Yêu cầu đổi hoàn tất / đơn đã giao trong kỳ" },
@@ -728,7 +777,82 @@ export function AdminDashboardPage() {
           ))}
         </Row>
 
-        <Row gutter={[16, 16]}>
+        <Card className="border-slate-200! shadow-sm!">
+          <div className="mb-4 flex flex-wrap items-end justify-between gap-2">
+            <div>
+              <Text className="text-xs! font-bold! uppercase! tracking-[0.12em]! text-slate-400!">
+                Hiệu quả kinh doanh · {activeRangeLabel}
+              </Text>
+              <Title level={4} className="mb-0! mt-1!">
+                Từ doanh thu đến lợi nhuận sau phí ship
+              </Title>
+            </div>
+            <Text type="secondary" className="text-xs!">
+              Doanh thu hàng hóa sau giảm giá, không gồm phí vận chuyển
+            </Text>
+          </div>
+
+          <Row gutter={[12, 12]}>
+            <Col xs={24} sm={12} xl={6}>
+              <div className="h-full rounded-2xl border border-blue-100 bg-blue-50/70 p-4">
+                <Text type="secondary">Doanh thu hàng hóa</Text>
+                <Title level={4} className="mb-1! mt-2! text-blue-700!">
+                  {formatSignedCurrencyCompact(salesOverview?.revenue ?? 0)}
+                </Title>
+                <Text className="text-xs!" type="secondary">
+                  {formatNumber.format(salesOverview?.orderCount ?? 0)} đơn ghi nhận
+                </Text>
+              </div>
+            </Col>
+            <Col xs={24} sm={12} xl={6}>
+              <div className="h-full rounded-2xl border border-emerald-100 bg-emerald-50/70 p-4">
+                <Text type="secondary">Lãi gộp</Text>
+                <Title
+                  level={4}
+                  className={`mb-1! mt-2! ${(salesOverview?.grossProfit ?? 0) >= 0 ? "text-emerald-700!" : "text-rose-600!"}`}
+                >
+                  {formatSignedCurrencyCompact(salesOverview?.grossProfit ?? 0)}
+                </Title>
+                <Text className={grossProfitGrowth >= 0 ? "text-xs! text-emerald-600!" : "text-xs! text-rose-600!"}>
+                  {formatGrowth(grossProfitGrowth)} so với kỳ trước
+                </Text>
+              </div>
+            </Col>
+            <Col xs={24} sm={12} xl={6}>
+              <div className="h-full rounded-2xl border border-amber-100 bg-amber-50/70 p-4">
+                <Text type="secondary">Chi phí ship ròng</Text>
+                <Title level={4} className="mb-1! mt-2! text-amber-700!">
+                  {formatSignedCurrencyCompact(salesOverview?.shippingNetCost ?? 0)}
+                </Title>
+                <Text className="text-xs!" type="secondary">
+                  Khách trả {formatSignedCurrencyCompact(salesOverview?.shippingCustomerPaid ?? 0)} · Hãng thu{" "}
+                  {formatSignedCurrencyCompact(salesOverview?.shippingCarrierFee ?? 0)}
+                </Text>
+              </div>
+            </Col>
+            <Col xs={24} sm={12} xl={6}>
+              <div className="h-full rounded-2xl border border-violet-100 bg-violet-50/70 p-4">
+                <Text type="secondary">Lợi nhuận sau phí ship</Text>
+                <Title
+                  level={4}
+                  className={`mb-1! mt-2! ${(salesOverview?.profitAfterShipping ?? 0) >= 0 ? "text-violet-700!" : "text-rose-600!"}`}
+                >
+                  {formatSignedCurrencyCompact(salesOverview?.profitAfterShipping ?? 0)}
+                </Title>
+                <Text className={profitAfterShippingGrowth >= 0 ? "text-xs! text-emerald-600!" : "text-xs! text-rose-600!"}>
+                  {formatGrowth(profitAfterShippingGrowth)} so với kỳ trước
+                </Text>
+                <div>
+                  <Text type="secondary" className="text-[11px]!">
+                    Chưa phải lãi ròng
+                  </Text>
+                </div>
+              </div>
+            </Col>
+          </Row>
+        </Card>
+
+        <Row gutter={[16, 16]} className="mt-4!">
           <Col xs={24} sm={12} xl={4}>
             <Card className="h-full border-slate-200! shadow-sm!">
               <Text type="secondary">AOV ({activeRangeLabel})</Text>

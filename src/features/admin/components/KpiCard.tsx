@@ -61,7 +61,7 @@ export function KpiCard({ item }: KpiCardProps) {
           {item.positive ? <ArrowUpOutlined /> : <ArrowDownOutlined />} {item.change}
         </Text>
         <Text type="secondary" className="text-xs!">
-          so với tuần trước
+          so với kỳ trước
         </Text>
       </div>
 

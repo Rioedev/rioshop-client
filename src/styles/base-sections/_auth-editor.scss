@@ -103,6 +103,26 @@
   outline: none;
 }
 
+.rte-shell--collapsed .rte-content {
+  position: relative;
+  min-height: 72px;
+  max-height: 96px;
+  overflow: hidden;
+  pointer-events: none;
+  color: #64748b;
+}
+
+.rte-shell--collapsed .rte-content::after {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  height: 44px;
+  content: "";
+  background: linear-gradient(to bottom, rgb(255 255 255 / 0%), #fff);
+  pointer-events: none;
+}
+
 .rte-content p {
   margin: 0 0 10px;
 }

@@ -93,6 +93,11 @@ type OrderApiItem = {
     subtotal?: number;
     discount?: number;
     shippingFee?: number;
+    shippingQuotedFee?: number;
+    shippingCarrierFee?: number;
+    shippingCustomerPaid?: number;
+    shippingSubsidy?: number;
+    shippingFeeStatus?: "estimated" | "confirmed" | "legacy";
     total?: number;
     currency?: string;
   };
@@ -173,6 +178,11 @@ export type OrderRecord = {
     subtotal: number;
     discount: number;
     shippingFee: number;
+    shippingQuotedFee: number;
+    shippingCarrierFee: number;
+    shippingCustomerPaid: number;
+    shippingSubsidy: number;
+    shippingFeeStatus: "estimated" | "confirmed" | "legacy";
     total: number;
     currency: string;
   };
@@ -371,6 +381,11 @@ const normalizeOrder = (item: OrderApiItem): OrderRecord => {
       subtotal: item.pricing?.subtotal ?? 0,
       discount: item.pricing?.discount ?? 0,
       shippingFee: item.pricing?.shippingFee ?? 0,
+      shippingQuotedFee: item.pricing?.shippingQuotedFee ?? 0,
+      shippingCarrierFee: item.pricing?.shippingCarrierFee ?? 0,
+      shippingCustomerPaid: item.pricing?.shippingCustomerPaid ?? 0,
+      shippingSubsidy: item.pricing?.shippingSubsidy ?? 0,
+      shippingFeeStatus: item.pricing?.shippingFeeStatus ?? "legacy",
       total: item.pricing?.total ?? 0,
       currency: item.pricing?.currency ?? "VND",
     },

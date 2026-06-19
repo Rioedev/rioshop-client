@@ -15,6 +15,15 @@ export type ReportingOverview = {
   cost: number;
   grossProfit: number;
   marginRate: number;
+  shippingQuotedFee: number;
+  shippingCarrierFee: number;
+  shippingCustomerPaid: number;
+  shippingSubsidy: number;
+  shippingNetCost: number;
+  shippingTrackedOrderCount: number;
+  shippingUntrackedOrderCount: number;
+  profitAfterShipping: number;
+  profitAfterShippingMarginRate: number;
 };
 
 export type TopProductRow = {
