@@ -113,16 +113,32 @@ type ExchangeLineDraft = {
   returnDisposition?: ReturnDisposition;
 };
 
-const buildExchangeLineDrafts = (order: OrderRecord): ExchangeLineDraft[] =>
-  order.items.map((line, index) => ({
-    key: `${line.productId || "product"}::${line.variantSku || "variant"}::${index}`,
-    selected: order.items.length === 1,
-    productId: line.productId || "",
-    originalVariantSku: line.variantSku || "",
-    quantity: Math.max(1, Number(line.quantity || 0) - Number(line.returnedQty || 0)),
-    replacementVariantSku: "",
-    returnDisposition: undefined,
-  }));
+const buildExchangeLineDrafts = (order: OrderRecord): ExchangeLineDraft[] => {
+  const requestedItems = order.returnRequest?.requestedItems ?? [];
+  const requestedMap = new Map(
+    requestedItems.map((item) => [`${item.productId}::${item.originalVariantSku}`, item]),
+  );
+  const hasRequestedItems = requestedItems.length > 0;
+
+  return order.items.map((line, index) => {
+    const requested = requestedMap.get(`${line.productId || ""}::${line.variantSku || ""}`);
+    const remaining = Math.max(1, Number(line.quantity || 0) - Number(line.returnedQty || 0));
+
+    return {
+      key: `${line.productId || "product"}::${line.variantSku || "variant"}::${index}`,
+      // Khi khách đã chọn sẵn món cần đổi thì chỉ tick đúng các món đó;
+      // ngược lại giữ hành vi cũ (đơn 1 món thì tự chọn).
+      selected: hasRequestedItems ? Boolean(requested) : order.items.length === 1,
+      productId: line.productId || "",
+      originalVariantSku: line.variantSku || "",
+      quantity: requested
+        ? Math.min(remaining, Math.max(1, Number(requested.quantity || 1)))
+        : remaining,
+      replacementVariantSku: requested?.replacementVariantSku || "",
+      returnDisposition: undefined,
+    };
+  });
+};
 
 const getReturnRequestBadgeLabel = (order: Pick<OrderRecord, "returnRequest">) => {
   if (!order.returnRequest) {
@@ -1043,19 +1059,19 @@ export function AdminOrdersPage() {
             onChange={(event) => setSearchText(event.target.value)}
             allowClear
             placeholder="Tìm theo mã đơn, tên khách, email, số điện thoại"
-            className="min-w-[280px] max-w-[420px]"
+            className="min-w-70 max-w-105"
           />
           <Select<OrderStatus | "all">
             value={statusFilter}
             options={STATUS_FILTER_OPTIONS}
             onChange={(value) => void handleChangeStatusFilter(value)}
-            className="min-w-[230px]"
+            className="min-w-57.5"
           />
           <Select<PaymentStatus | "all">
             value={paymentStatusFilter}
             options={PAYMENT_STATUS_FILTER_OPTIONS}
             onChange={(value) => void handleChangePaymentFilter(value)}
-            className="min-w-[260px]"
+            className="min-w-65"
           />
           <Button
             onClick={() => void handleSyncActiveGhn()}
@@ -1198,6 +1214,27 @@ export function AdminOrdersPage() {
                     <div>
                       <Text type="secondary">Ghi chú khách hàng</Text>
                       <div className="font-medium text-slate-800">{activeReturnRequest.note}</div>
+                    </div>
+                  ) : null}
+
+                  {activeReturnRequest.requestedItems &&
+                  activeReturnRequest.requestedItems.length > 0 ? (
+                    <div>
+                      <Text type="secondary">Sản phẩm khách muốn đổi</Text>
+                      <div className="mt-1 space-y-1">
+                        {activeReturnRequest.requestedItems.map((requested) => (
+                          <div
+                            key={`${requested.productId}-${requested.originalVariantSku}`}
+                            className="rounded-lg bg-white px-3 py-2 text-sm text-slate-700"
+                          >
+                            <div className="font-medium text-slate-900">{requested.productName}</div>
+                            <div>
+                              {requested.originalVariantLabel} → {requested.replacementVariantLabel} · SL{" "}
+                              {requested.quantity}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
                     </div>
                   ) : null}
 
@@ -1530,7 +1567,7 @@ export function AdminOrdersPage() {
                         <div className="text-sm text-slate-500">Phân loại: {line.variantLabel || "-"}</div>
                       </div>
 
-                      <div className="ml-auto min-w-[180px] space-y-1 text-right text-sm">
+                      <div className="ml-auto min-w-45 space-y-1 text-right text-sm">
                         <div>
                           <Text type="secondary">Số lượng</Text>
                           <div className="font-semibold text-slate-900">{line.quantity}</div>

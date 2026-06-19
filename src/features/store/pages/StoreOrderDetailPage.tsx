@@ -1,4 +1,4 @@
-import { Button, Form, Input, Modal, Upload, message } from "antd";
+import { Button, Checkbox, Form, Input, InputNumber, Modal, Select, Upload, message } from "antd";
 import type { UploadProps } from "antd/es/upload";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Link, useParams } from "react-router-dom";
@@ -228,6 +228,46 @@ const resolveDeliveredAt = (order: OrderRecord | null): Date | null => {
   return null;
 };
 
+type ExchangeSelectionDraft = {
+  key: string;
+  productId: string;
+  originalVariantSku: string;
+  productName: string;
+  variantLabel: string;
+  image?: string;
+  maxQuantity: number;
+  availableVariants: Array<{ sku: string; label: string; stock: number }>;
+  selected: boolean;
+  quantity: number;
+  replacementVariantSku?: string;
+};
+
+// Dựng danh sách sản phẩm khách có thể đổi: chỉ giữ món còn số lượng chưa đổi,
+// và mỗi món chỉ cho chọn các biến thể khác đang còn hàng (loại biến thể hiện tại).
+const buildExchangeDrafts = (order: OrderRecord): ExchangeSelectionDraft[] =>
+  order.items
+    .map((line, index) => {
+      const maxQuantity = Math.max(0, Number(line.quantity || 0) - Number(line.returnedQty || 0));
+      const availableVariants = (line.availableVariants ?? []).filter(
+        (variant) => variant.sku !== line.variantSku && variant.stock > 0,
+      );
+
+      return {
+        key: `${line.productId || "product"}::${line.variantSku || "variant"}::${index}`,
+        productId: line.productId || "",
+        originalVariantSku: line.variantSku || "",
+        productName: line.productName || "Sản phẩm",
+        variantLabel: line.variantLabel || line.variantSku || "Mặc định",
+        image: line.image,
+        maxQuantity,
+        availableVariants,
+        selected: false,
+        quantity: Math.max(1, maxQuantity),
+        replacementVariantSku: undefined,
+      } satisfies ExchangeSelectionDraft;
+    })
+    .filter((draft) => draft.maxQuantity > 0);
+
 export function StoreOrderDetailPage() {
   const { id } = useParams<{ id: string }>();
   const [messageApi, contextHolder] = message.useMessage();
@@ -245,6 +285,7 @@ export function StoreOrderDetailPage() {
   const [submittingReturnRequest, setSubmittingReturnRequest] = useState(false);
   const [returnProofImages, setReturnProofImages] = useState<string[]>([]);
   const [returnProofUploading, setReturnProofUploading] = useState(false);
+  const [exchangeDrafts, setExchangeDrafts] = useState<ExchangeSelectionDraft[]>([]);
   const realtimeRefreshTimerRef = useRef<number | null>(null);
 
   const loadOrderDetail = useCallback(async () => {
@@ -443,7 +484,14 @@ export function StoreOrderDetailPage() {
       note: "",
     });
     setReturnProofImages([]);
+    setExchangeDrafts(buildExchangeDrafts(order));
     setReturnRequestModalOpen(true);
+  };
+
+  const updateExchangeDraft = (key: string, patch: Partial<ExchangeSelectionDraft>) => {
+    setExchangeDrafts((current) =>
+      current.map((draft) => (draft.key === key ? { ...draft, ...patch } : draft)),
+    );
   };
 
   const beforeUploadReturnProof: UploadProps["beforeUpload"] = (file) => {
@@ -490,6 +538,24 @@ export function StoreOrderDetailPage() {
       return;
     }
 
+    const selectedDrafts = exchangeDrafts.filter((draft) => draft.selected);
+    if (selectedDrafts.length === 0) {
+      messageApi.warning("Hãy chọn ít nhất một sản phẩm bạn muốn đổi.");
+      return;
+    }
+
+    const invalidDraft = selectedDrafts.find(
+      (draft) =>
+        !draft.replacementVariantSku ||
+        !Number.isInteger(draft.quantity) ||
+        draft.quantity <= 0 ||
+        draft.quantity > draft.maxQuantity,
+    );
+    if (invalidDraft) {
+      messageApi.warning("Hãy chọn size/màu muốn đổi sang và số lượng hợp lệ cho mỗi sản phẩm.");
+      return;
+    }
+
     try {
       const values = await returnRequestForm.validateFields();
 
@@ -499,6 +565,12 @@ export function StoreOrderDetailPage() {
         reason: values.reason.trim(),
         note: values.note?.trim() || undefined,
         images: returnProofImages,
+        items: selectedDrafts.map((draft) => ({
+          productId: draft.productId,
+          originalVariantSku: draft.originalVariantSku,
+          replacementVariantSku: draft.replacementVariantSku as string,
+          quantity: draft.quantity,
+        })),
       });
       messageApi.success("Đã gửi yêu cầu đổi hàng. Shop sẽ phản hồi sớm.");
       setReturnRequestModalOpen(false);
@@ -668,6 +740,26 @@ export function StoreOrderDetailPage() {
                     order.returnRequest.note ? ` • Ghi chú: ${order.returnRequest.note}` : ""
                   }`}
                 />
+                {order.returnRequest.requestedItems &&
+                order.returnRequest.requestedItems.length > 0 ? (
+                  <div className="mt-2 rounded-2xl border border-slate-200 bg-white/80 p-3 text-sm text-slate-700">
+                    <p className="m-0 text-xs font-bold uppercase tracking-[0.12em] text-slate-500">
+                      Sản phẩm bạn muốn đổi
+                    </p>
+                    <ul className="m-0 mt-2 list-none space-y-1 p-0">
+                      {order.returnRequest.requestedItems.map((requested) => (
+                        <li
+                          key={`${requested.productId}-${requested.originalVariantSku}`}
+                          className="text-slate-800"
+                        >
+                          <span className="font-semibold">{requested.productName}</span>:{" "}
+                          {requested.originalVariantLabel} → {requested.replacementVariantLabel} · SL{" "}
+                          {requested.quantity}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                ) : null}
               </div>
             ) : null}
 
@@ -813,8 +905,104 @@ export function StoreOrderDetailPage() {
         okText="Gửi yêu cầu"
         cancelText="Đóng"
         okButtonProps={{ loading: submittingReturnRequest }}
+        width={640}
         destroyOnClose
       >
+        <div className="mb-4">
+          <p className="m-0 text-sm font-semibold text-slate-900">Chọn sản phẩm muốn đổi</p>
+          <p className="m-0 mt-0.5 text-xs text-slate-500">
+            Tick vào sản phẩm cần đổi rồi chọn size/màu bạn muốn đổi sang.
+          </p>
+
+          {exchangeDrafts.length === 0 ? (
+            <div className="mt-3 rounded-xl border border-slate-200 bg-slate-50 px-3 py-3 text-sm text-slate-500">
+              Đơn này hiện không còn sản phẩm nào có thể đổi.
+            </div>
+          ) : (
+            <div className="mt-3 space-y-3">
+              {exchangeDrafts.map((draft) => {
+                const hasVariants = draft.availableVariants.length > 0;
+
+                return (
+                  <article
+                    key={draft.key}
+                    className="rounded-xl border border-slate-200 bg-white p-3"
+                  >
+                    <div className="flex gap-3">
+                      <Checkbox
+                        checked={draft.selected}
+                        disabled={!hasVariants}
+                        onChange={(event) =>
+                          updateExchangeDraft(draft.key, { selected: event.target.checked })
+                        }
+                      />
+                      <div className="h-14 w-14 shrink-0 overflow-hidden rounded-lg border border-slate-200 bg-slate-100">
+                        {draft.image ? (
+                          <img
+                            src={resolveStoreImageUrl(draft.image) || draft.image}
+                            alt={draft.productName}
+                            className="h-full w-full object-cover"
+                          />
+                        ) : null}
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <p className="m-0 truncate text-sm font-semibold text-slate-900">
+                          {draft.productName}
+                        </p>
+                        <p className="m-0 mt-0.5 text-xs text-slate-500">
+                          Hiện tại: {draft.variantLabel} • Có thể đổi tối đa {draft.maxQuantity}
+                        </p>
+                        {!hasVariants ? (
+                          <p className="m-0 mt-1 text-xs font-medium text-amber-600">
+                            Tạm hết biến thể khác để đổi.
+                          </p>
+                        ) : null}
+                      </div>
+                    </div>
+
+                    {draft.selected && hasVariants ? (
+                      <div className="mt-3 grid gap-3 sm:grid-cols-2">
+                        <div>
+                          <p className="m-0 mb-1 text-xs font-medium text-slate-600">Số lượng đổi</p>
+                          <InputNumber
+                            className="w-full"
+                            min={1}
+                            max={draft.maxQuantity}
+                            precision={0}
+                            value={draft.quantity}
+                            onChange={(value) =>
+                              updateExchangeDraft(draft.key, {
+                                quantity: Math.min(draft.maxQuantity, Math.max(1, Number(value || 1))),
+                              })
+                            }
+                          />
+                        </div>
+                        <div>
+                          <p className="m-0 mb-1 text-xs font-medium text-slate-600">
+                            Đổi sang size / màu
+                          </p>
+                          <Select
+                            className="w-full"
+                            placeholder="Chọn biến thể muốn đổi"
+                            value={draft.replacementVariantSku}
+                            options={draft.availableVariants.map((variant) => ({
+                              value: variant.sku,
+                              label: `${variant.label} · còn ${variant.stock}`,
+                            }))}
+                            onChange={(value: string) =>
+                              updateExchangeDraft(draft.key, { replacementVariantSku: value })
+                            }
+                          />
+                        </div>
+                      </div>
+                    ) : null}
+                  </article>
+                );
+              })}
+            </div>
+          )}
+        </div>
+
         <Form layout="vertical" form={returnRequestForm}>
           <Form.Item
             name="reason"

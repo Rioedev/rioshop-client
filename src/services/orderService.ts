@@ -29,6 +29,16 @@ export type ExchangeItemRecord = {
   returnDisposition: ReturnDisposition;
 };
 
+export type RequestedExchangeItemRecord = {
+  productId: string;
+  productName: string;
+  originalVariantSku: string;
+  originalVariantLabel: string;
+  replacementVariantSku: string;
+  replacementVariantLabel: string;
+  quantity: number;
+};
+
 export type ReturnRequestRecord = {
   type: ReturnRequestType;
   reason: string;
@@ -39,6 +49,7 @@ export type ReturnRequestRecord = {
   completedAt?: string;
   replacementOrderId?: string;
   replacementOrderNumber?: string;
+  requestedItems?: RequestedExchangeItemRecord[];
   exchangeItems?: ExchangeItemRecord[];
 };
 
@@ -137,6 +148,7 @@ type OrderApiItem = {
     completedAt?: string;
     replacementOrderId?: string;
     replacementOrderNumber?: string;
+    requestedItems?: RequestedExchangeItemRecord[];
     exchangeItems?: ExchangeItemRecord[];
   };
   exchangeMeta?: {
@@ -249,6 +261,12 @@ export type SubmitReturnRequestPayload = {
   reason: string;
   note?: string;
   images?: string[];
+  items: Array<{
+    productId: string;
+    originalVariantSku: string;
+    replacementVariantSku: string;
+    quantity: number;
+  }>;
 };
 
 export type UpdateReturnRequestStatusPayload = {
@@ -414,6 +432,7 @@ const normalizeOrder = (item: OrderApiItem): OrderRecord => {
           completedAt: item.returnRequest.completedAt,
           replacementOrderId: toOptionalString(item.returnRequest.replacementOrderId),
           replacementOrderNumber: item.returnRequest.replacementOrderNumber,
+          requestedItems: item.returnRequest.requestedItems ?? [],
           exchangeItems: item.returnRequest.exchangeItems ?? [],
         }
       : undefined,
