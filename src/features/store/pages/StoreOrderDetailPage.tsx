@@ -33,7 +33,7 @@ const orderStatusLabelMap: Record<string, string> = {
   waiting_pickup: "Chờ lấy hàng",
   in_transit: "Đang vận chuyển",
   out_for_delivery: "Đang giao hàng",
-  return_in_progress: "Đang hoàn hàng",
+  return_in_progress: "Đang xử lý đổi hàng",
   issue: "Giao hàng gặp sự cố",
   pending: "Chờ xác nhận",
   confirmed: "Đã xác nhận",
@@ -43,7 +43,7 @@ const orderStatusLabelMap: Record<string, string> = {
   delivered: "Đã giao",
   completed: "Hoàn thành",
   cancelled: "Đã hủy",
-  returned: "Hoàn trả",
+  returned: "Đã hủy",
   return_requested: "Đã gửi yêu cầu đổi hàng",
   return_request_pending: "Yêu cầu đổi hàng đang chờ xử lý",
   return_request_approved: "Yêu cầu đổi hàng đã được duyệt",
@@ -287,8 +287,12 @@ export function StoreOrderDetailPage() {
   const [returnProofUploading, setReturnProofUploading] = useState(false);
   const [exchangeDrafts, setExchangeDrafts] = useState<ExchangeSelectionDraft[]>([]);
   const realtimeRefreshTimerRef = useRef<number | null>(null);
+  const orderLoadRequestRef = useRef(0);
 
   const loadOrderDetail = useCallback(async () => {
+    const requestId = orderLoadRequestRef.current + 1;
+    orderLoadRequestRef.current = requestId;
+
     if (!id) {
       setOrder(null);
       setLoading(false);
@@ -298,13 +302,21 @@ export function StoreOrderDetailPage() {
     setLoading(true);
     try {
       const result = await orderService.getOrderById(id);
-      setOrder(result);
+      if (orderLoadRequestRef.current === requestId) {
+        setOrder(result);
+      }
     } catch (error) {
+      if (orderLoadRequestRef.current !== requestId) {
+        return;
+      }
+
       const messageText = getErrorMessage(error, "Không thể tải chi tiết đơn hàng");
       messageApi.error(messageText);
       setOrder(null);
     } finally {
-      setLoading(false);
+      if (orderLoadRequestRef.current === requestId) {
+        setLoading(false);
+      }
     }
   }, [id, messageApi]);
 
@@ -315,6 +327,7 @@ export function StoreOrderDetailPage() {
       return;
     }
 
+    setOrder(null);
     void loadOrderDetail();
   }, [isAuthenticated, loadOrderDetail]);
 
@@ -816,7 +829,7 @@ export function StoreOrderDetailPage() {
 
                   return (
                     <article
-                      key={`${order.id}-${item.productId ?? index}`}
+                      key={`${order.id}-${item.productId ?? "product"}-${item.variantSku ?? "variant"}-${index}`}
                       className="rounded-2xl border border-slate-200 bg-white/90 p-4"
                     >
                       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">

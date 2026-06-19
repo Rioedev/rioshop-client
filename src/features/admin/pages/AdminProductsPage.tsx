@@ -639,6 +639,7 @@ export function AdminProductsPage() {
       // flip về out_of_stock, gây nhầm. Chuyển sang Đang bán sau khi edit.
       status: "draft",
       sku: "",
+      regularPrice: 0,
       collectionIds: [],
       variantGroups: [defaultVariantGroup()],
       gender: "unisex",

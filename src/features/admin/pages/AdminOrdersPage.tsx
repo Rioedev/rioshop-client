@@ -42,7 +42,7 @@ const STATUS_LABEL_MAP: Record<OrderStatus, string> = {
   delivered: "Đã giao",
   completed: "Hoàn thành",
   cancelled: "Đã hủy",
-  returned: "Đã hoàn",
+  returned: "Đã hủy",
 };
 
 const STATUS_COLOR_MAP: Record<OrderStatus, string> = {
@@ -54,7 +54,7 @@ const STATUS_COLOR_MAP: Record<OrderStatus, string> = {
   delivered: "green",
   completed: "success",
   cancelled: "red",
-  returned: "purple",
+  returned: "red",
 };
 const ONLINE_PAYMENT_METHODS = new Set(["momo", "vnpay", "zalopay", "card", "bank_transfer"]);
 
@@ -119,16 +119,21 @@ const buildExchangeLineDrafts = (order: OrderRecord): ExchangeLineDraft[] => {
     requestedItems.map((item) => [`${item.productId}::${item.originalVariantSku}`, item]),
   );
   const hasRequestedItems = requestedItems.length > 0;
+  const exchangeableLines = hasRequestedItems
+    ? order.items.filter((line) =>
+        requestedMap.has(`${line.productId || ""}::${line.variantSku || ""}`),
+      )
+    : order.items;
 
-  return order.items.map((line, index) => {
+  return exchangeableLines.map((line, index) => {
     const requested = requestedMap.get(`${line.productId || ""}::${line.variantSku || ""}`);
     const remaining = Math.max(1, Number(line.quantity || 0) - Number(line.returnedQty || 0));
 
     return {
       key: `${line.productId || "product"}::${line.variantSku || "variant"}::${index}`,
-      // Khi khách đã chọn sẵn món cần đổi thì chỉ tick đúng các món đó;
-      // ngược lại giữ hành vi cũ (đơn 1 món thì tự chọn).
-      selected: hasRequestedItems ? Boolean(requested) : order.items.length === 1,
+      // Yêu cầu mới chỉ hiển thị đúng các món khách đã chọn.
+      // Dữ liệu cũ chưa lưu requestedItems vẫn giữ cách xử lý trước đây.
+      selected: hasRequestedItems ? true : order.items.length === 1,
       productId: line.productId || "",
       originalVariantSku: line.variantSku || "",
       quantity: requested
@@ -161,21 +166,18 @@ const STATUS_FILTER_OPTIONS: { value: OrderStatus | "all"; label: string }[] = [
   { value: "delivered", label: STATUS_LABEL_MAP.delivered },
   { value: "completed", label: STATUS_LABEL_MAP.completed },
   { value: "cancelled", label: STATUS_LABEL_MAP.cancelled },
-  { value: "returned", label: STATUS_LABEL_MAP.returned },
 ];
 
 const PAYMENT_STATUS_FILTER_OPTIONS: { value: PaymentStatus | "all"; label: string }[] = [
   { value: "all", label: "Tất cả trạng thái thanh toán" },
   { value: "pending", label: PAYMENT_STATUS_LABEL_MAP.pending },
   { value: "paid", label: PAYMENT_STATUS_LABEL_MAP.paid },
-  { value: "refunded", label: PAYMENT_STATUS_LABEL_MAP.refunded },
   { value: "failed", label: PAYMENT_STATUS_LABEL_MAP.failed },
 ];
 
 const PAYMENT_STATUS_UPDATE_OPTIONS: { value: PaymentStatus; label: string }[] = [
   { value: "pending", label: PAYMENT_STATUS_LABEL_MAP.pending },
   { value: "paid", label: PAYMENT_STATUS_LABEL_MAP.paid },
-  { value: "refunded", label: PAYMENT_STATUS_LABEL_MAP.refunded },
   { value: "failed", label: PAYMENT_STATUS_LABEL_MAP.failed },
 ];
 
@@ -184,9 +186,9 @@ const STATUS_TRANSITION_MAP: Record<OrderStatus, OrderStatus[]> = {
   confirmed: ["packing", "ready_to_ship", "cancelled"],
   packing: ["ready_to_ship", "cancelled"],
   ready_to_ship: ["shipping", "cancelled"],
-  shipping: ["delivered", "returned", "cancelled"],
-  delivered: ["completed", "returned"],
-  completed: ["returned"],
+  shipping: ["delivered", "cancelled"],
+  delivered: ["completed"],
+  completed: [],
   cancelled: [],
   returned: [],
 };
@@ -533,16 +535,12 @@ export function AdminOrdersPage() {
     : false;
 
   const manageStatusOptions = useMemo(
-    () => {
-      const options = getStatusUpdateOptions(
+    () =>
+      getStatusUpdateOptions(
         managingOrder?.status || "pending",
         managingOrder?.shippingCarrier,
-      );
-      return managingOrder?.returnRequest?.type === "exchange"
-        ? options.filter((option) => option.value !== "returned")
-        : options;
-    },
-    [managingOrder?.returnRequest?.type, managingOrder?.shippingCarrier, managingOrder?.status],
+      ),
+    [managingOrder?.shippingCarrier, managingOrder?.status],
   );
 
   const activeReturnRequest = managingOrder?.returnRequest;
@@ -1275,9 +1273,13 @@ export function AdminOrdersPage() {
                         </Text>
                       </div>
 
-                      {managingOrder.items.map((line, index) => {
-                        const draft = exchangeLineDrafts[index];
-                        if (!draft) {
+                      {exchangeLineDrafts.map((draft) => {
+                        const line = managingOrder.items.find(
+                          (orderItem) =>
+                            orderItem.productId === draft.productId &&
+                            orderItem.variantSku === draft.originalVariantSku,
+                        );
+                        if (!line) {
                           return null;
                         }
                         const maxQuantity = Math.max(
@@ -1634,8 +1636,5 @@ export function AdminOrdersPage() {
     </div>
   );
 }
-
-
-
 
 

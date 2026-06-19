@@ -31,8 +31,8 @@ const STATUS_LABEL_MAP: Record<string, string> = {
   delivered: "Đã giao",
   completed: "Hoàn thành",
   cancelled: "Đã hủy",
-  return_in_progress: "Đang hoàn hàng",
-  returned: "Hoàn trả",
+  return_in_progress: "Đang xử lý đổi hàng",
+  returned: "Đã hủy",
   issue: "Giao hàng gặp sự cố",
   pending: "Chờ xác nhận",
   confirmed: "Đã xác nhận",
@@ -48,8 +48,8 @@ const STATUS_PILL_VARIANT_MAP: Record<string, string> = {
   delivered: "delivered",
   completed: "completed",
   cancelled: "cancelled",
-  return_in_progress: "returned",
-  returned: "returned",
+  return_in_progress: "shipping",
+  returned: "cancelled",
   issue: "cancelled",
 };
 

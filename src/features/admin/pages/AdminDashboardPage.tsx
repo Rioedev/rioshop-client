@@ -56,7 +56,7 @@ const STATUS_LABEL_MAP: Record<string, string> = {
   delivered: "Đã giao",
   completed: "Hoàn thành",
   cancelled: "Đã hủy",
-  returned: "Đã hoàn",
+  returned: "Đã hủy",
 };
 
 const STATUS_COLOR_MAP: Record<string, string> = {
@@ -68,7 +68,7 @@ const STATUS_COLOR_MAP: Record<string, string> = {
   delivered: "#10b981",
   completed: "#16a34a",
   cancelled: "#ef4444",
-  returned: "#f97316",
+  returned: "#ef4444",
 };
 
 const PAYMENT_LABEL_MAP: Record<string, string> = {
